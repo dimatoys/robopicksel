@@ -1,0 +1,175 @@
+<project name="head">
+<!--
+  <property name="remote.account" value="pi@10.0.0.11"/>
+-->
+  <property name="remote.account" value="pi@10.0.0.200"/>
+  <property name="remote.path" value="projects/head"/>
+  <property name="remote.dumps" value="projects/dumps"/>
+  <property name="remote.camtest" value="projects/camtest"/>
+  <property name="remote.rasbicamtest" value="projects/rasbicamtest"/>
+  <property name="remote.rcmd" value="projects/rcmd"/>
+  <property name="build.local" value="../visionModuleLocal"/>
+  <property name="dir.features" value="../featuresLocal"/>
+  <property name="dir.border" value="../headBorder"/>
+
+  <target name="cleanr">
+    <exec executable="ssh">
+      <arg value="${remote.account}"/>
+      <arg value="rm -rf ${remote.path}"/>
+    </exec>
+  </target>
+
+  <target name="upload">
+    <exec executable="rsync">
+      <arg value="-r"/>
+      <arg value="."/>
+      <arg value="${remote.account}:${remote.path}"/>
+    </exec>
+  </target>
+
+  <target name="web" depends="upload">
+    <exec executable="ssh">
+      <arg value="${remote.account}"/>
+      <arg value="cd ${remote.path} ; sudo python ./web.py"/>
+    </exec>
+  </target> 
+
+  <target name="bweb" depends="upload">
+    <exec executable="ssh">
+      <arg value="${remote.account}"/>
+      <arg value="cd ${remote.path}/visionModule ; cmake . ; make ; cd ..  ; sudo python ./web.py"/>
+    </exec>
+  </target>
+
+    <target name="dumps">
+        <exec executable="rsync">
+          <arg value="-r"/>
+          <arg value="${remote.account}:${remote.dumps}"/>
+          <arg value=".."/>
+        </exec>
+    </target>
+
+	  <target name="cleanl">
+	    <delete dir="${build.local}"/>
+	    <mkdir dir="${build.local}"/>
+	    <copy file="visionModule/CMakeLists.win" tofile="${build.local}/CMakeLists.txt"/>
+	    <exec executable="cmake" dir="${build.local}">
+	        <arg value="."/>
+	    </exec>
+	  </target>
+
+  <target name="localmake">
+    <exec executable="make" dir="${build.local}"/>
+  </target>
+
+  <target name="local" depends="localmake">
+    <exec executable="python">
+        <arg value="web.py"/>
+        <arg value="local"/>
+    </exec>
+  </target>
+
+  <target name="cleanc">
+    <delete dir="${dir.features}"/>
+    <mkdir dir="${dir.features}"/>
+    <copy file="visionModule/CMakeLists.cmd" tofile="${dir.features}/CMakeLists.txt"/>
+    <exec executable="cmake" dir="${dir.features}">
+        <arg value="."/>
+    </exec>
+  </target>
+
+  <target name="makec">
+    <exec executable="make" dir="${dir.features}"/>
+  </target>
+
+  <target name="runc" depends="makec">
+    <exec executable="${dir.features}/ftest">
+    </exec>
+  </target>
+
+    <target name="cleanb">
+        <delete dir="${dir.border}"/>
+        <mkdir dir="${dir.border}"/>
+	    <copy file="visionModule/CMakeLists.border" tofile="${dir.border}/CMakeLists.txt"/>
+	    <exec executable="cmake" dir="${dir.border}">
+	        <arg value="."/>
+	    </exec>
+    </target>
+
+	  <target name="makeb">
+	    <exec executable="make" dir="${dir.border}"/>
+	  </target>
+
+    <target name="read_cborder" depends="makeb">
+      <exec executable="${dir.border}/border">
+          <arg value="c"/>
+          <arg value="borderNewC.dump"/>
+          <arg value="border.txt"/>
+      </exec>
+    </target>
+
+      	<target name="dump_border" depends="makeb">
+	    <exec executable="${dir.border}/border" output="border.txt">
+	    	<arg value="d"/>
+            <arg value="border.dump"/>
+	    </exec>
+	  </target>
+
+	<target name="read_border" depends="makeb">
+      <exec executable="${dir.border}/border">
+          <arg value="r"/>
+          <arg value="borderNew.dump"/>
+          <arg value="border.txt"/>
+      </exec>
+    </target>
+
+  <target name="shutdown">
+    <exec executable="ssh">
+      <arg value="${remote.account}"/>
+      <arg value="sudo shutdown -h now"/>
+    </exec>
+  </target> 
+
+    <target name="cleantc" depends="upload">
+        <exec executable="ssh">
+          <arg value="${remote.account}"/>
+          <arg value="rm -rf ${remote.camtest} ; mkdir ${remote.camtest} ; cp ${remote.path}/visionModule/CMakeLists.camtest ${remote.camtest}/CMakeLists.txt ; cd ${remote.camtest} ; cmake ."/>
+        </exec>
+    </target>
+
+  <target name="testcam" depends="upload">
+    <exec executable="ssh">
+      <arg value="${remote.account}"/>
+      <arg value="cd ${remote.camtest} ; make ; ./camtest"/>
+    </exec>
+ </target>
+
+    <target name="cleantrc" depends="upload">
+        <exec executable="ssh">
+          <arg value="${remote.account}"/>
+          <arg value="rm -rf ${remote.rasbicamtest} ; mkdir ${remote.rasbicamtest} ; cp ${remote.path}/visionModule/CMakeLists.rasbicamtest ${remote.rasbicamtest}/CMakeLists.txt ; cd ${remote.rasbicamtest} ; cmake ."/>
+        </exec>
+    </target>
+
+  <target name="testrasbicam" depends="upload">
+    <exec executable="ssh">
+      <arg value="${remote.account}"/>
+      <arg value="cd ${remote.rasbicamtest} ; make ; ./simpletest_raspicam"/>
+    </exec>
+  </target>
+
+    <target name="cleanrcmd" depends="upload">
+        <exec executable="ssh">
+          <arg value="${remote.account}"/>
+          <arg value="rm -rf ${remote.rcmd} ; mkdir ${remote.rcmd} ; cp ${remote.path}/visionModule/CMakeLists.rcmd ${remote.rcmd}/CMakeLists.txt ; cd ${remote.rcmd} ; cmake ."/>
+        </exec>
+    </target>
+
+    <target name="runrcmd" depends="upload">
+        <exec executable="ssh">
+          <arg value="${remote.account}"/>
+          <arg value="cd ${remote.rcmd} ; make ; ./ftest"/>
+        </exec>
+    </target>
+
+</project>

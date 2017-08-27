@@ -1,0 +1,6 @@
+cmake_minimum_required (VERSION 2.8) 
+project (raspicam_test)
+set(raspicam_DIR /home/pi/projects/raspicam-master/build)
+find_package(raspicam REQUIRED)
+add_executable (simpletest_raspicam ../head/visionModule/raspicam/raspicam.cpp ../head/visionModule/raspicam/raspicam_test.cpp)
+target_link_libraries (simpletest_raspicam ${raspicam_LIBS})

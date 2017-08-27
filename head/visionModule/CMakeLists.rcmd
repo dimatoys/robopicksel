@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 2.8)
+project( picam )
+SET(COMPILE_DEFINITIONS -Werror -DLOCAL=0)
+SET(CMAKE_CXX_FLAGS -DRASPBERRYPI=1)
+
+set(raspicam_DIR /home/pi/projects/raspicam-master/build)
+find_package(raspicam REQUIRED)
+
+include_directories(/opt/local/include)
+include_directories(../head/visionModule)
+
+set (FTEST_SRC
+    ../head/visionModule/module/fireTest.cpp
+    ../head/visionModule/utils/jpeg.cpp
+    ../head/visionModule/utils/image.cpp
+    ../head/visionModule/module/visionModule.cpp
+    ../head/visionModule/gradient/gradient.cpp
+    ../head/visionModule/egb/egb.cpp
+    ../head/visionModule/clustering/clustering.cpp
+    ../head/visionModule/jpeg/jpegimage.cpp
+    ../head/visionModule/statimg/statimg.cpp
+)
+add_executable(ftest ${FTEST_SRC})
+target_link_libraries(ftest jpeg)
+

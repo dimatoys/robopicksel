@@ -1,0 +1,936 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Head control</title>
+    <link rel="stylesheet" href="/static/jquery-ui-1.11.4/jquery-ui.css">
+    <style>
+    .rotate180 {
+    	-ms-transform: rotate(180deg); /* IE 9 */
+    	-webkit-transform: rotate(180deg); /* Chrome, Safari, Opera */
+    	transform: rotate(180deg);
+    }
+    </style>
+    <script src="/static/jquery-1.11.3.min.js"></script>
+    <script src="/static/jquery-ui-1.11.4/jquery-ui.min.js"></script>
+    <script src="/static/head.map.js"></script>
+    <script type="text/javascript">
+
+    GM = {{ GM }}
+    GM2 = {{ GM2 }}
+    GD = {{ GD }}
+    GH = {{ GH}}
+    GC = {{ GC }}
+    GR = {{ GR }}
+    CC = {{ CC }}
+    CH = {{ CH }}
+    CV = {{ CV }}
+    SH = {{ SH}}
+    GRH = {{ GRH }}
+    MinS = {{ MinS }}
+    MaxS = {{ MaxS }}
+
+    GM3 = (GM + GM2) / 2
+
+/*
+"awb_mode"
+
+
+    'off'
+    'auto'
+    'sunlight'
+    'cloudy'
+    'shade'
+    'tungsten'
+    'fluorescent'
+    'incandescent'
+    'flash'
+    'horizon'
+
+"brightness" 0..100
+"contrast" -100..100
+
+"exposure_compensation" -25..25
+
+"exposure_mode" 
+    'off'
+    'auto'
+    'night'
+    'nightpreview'
+    'backlight'
+    'spotlight'
+    'sports'
+    'snow'
+    'beach'
+    'verylong'
+    'fixedfps'
+    'antishake'
+    'fireworks'
+
+"iso" 0, 100, 200, 320, 400, 500, 640, 800, 1600
+
+"warmup" float >= 0
+
+"width" 640, 320, 160, 128, 64, 32
+"height" 480, 240, 120, 96, 48, 24
+	*/
+
+    g_Objects = []
+
+    function sendServo(id) {
+        var query = "/servo/"+id+"/"+$("#s" + id).val()
+        $.get( query , function( data ) {
+          drawHead()
+        });
+    }
+
+    function sendGeometry() {
+        var query = "/geometry/" + $("#gx").val() +"/" +$("#gb").val() + "/" + $("#gz").val()
+        $.get( query , function( data ) {
+          eval("res = " + data)
+          var servos = res['servos']
+          for (var i = 0; i < 4; i++) {
+              $("#s" + i).val(servos[i])
+              $("#slider" + i).slider( "option", "value", servos[i] )
+          }
+          drawHead()
+        });
+    }
+
+    function initServos() {
+    	//sendGeometry();
+    	getSensors(true);
+    }
+
+    function getSensors(forseServos) {
+        $.get("/sensors", function(data) {
+            eval("res = " + data)
+            var sensors = res['sensors']
+            var servos = res['servos']
+            var compass = res['compass']
+            $("#sensor0").css('background-color', sensors[0] > 0 ? "#FF8080": "#80FF80")
+            $("#sensor1").css('background-color', sensors[1] > 0 ? "#FF8080": "#80FF80")
+            if (forseServos) {
+                for (var i = 0; i < 4; i++) {
+                    $("#s" + i).val(servos[i])
+                    $("#slider" + i).slider( "option", "value", servos[i] )
+                }
+                $("#gb").val(servos[3])
+                drawHead()
+            }
+        })
+    }
+
+    function checkCommandStatus(callback) {
+    	$.get("/cmdstatus",
+    		function(data) {
+    			eval("res = " + data)
+    			$("#cmd_status").html(res["status"])
+    			if ((res["status"] == "ok") || (res["status"] == "fail")){
+    				//alert("data=" + data + " result=" + res["result"])
+    				if (res["result"] != undefined) {
+    					$("#cmd_result").html(data)
+    				}
+    				callback(res["status"], res["result"])
+    			} else {
+    				setTimeout(function(){checkCommandStatus(callback)}, 200)
+    			}
+    		})
+    }
+
+    function scheduleSensors() {
+        setTimeout(function(){
+            if ($("#sensors").val() == "STOP SENSORS") {
+                   $("#sensor0").css('background-color',"#303030")
+                   $("#sensor1").css('background-color',"#303030")
+                   getSensors($("#get_sg").prop('checked'))
+            } else {
+                $("#sensor0").css('background-color',"#B0B0B0")
+                $("#sensor1").css('background-color',"#B0B0B0")
+            }
+            scheduleSensors()
+        }, 300)
+    }
+    
+    function sendCommand(cmd, callback) {
+        $.get("/command/" + cmd, function(data) {
+              eval("res = " + data)
+              if (res["status"] == "ok") {
+            	  $("#cmd_result").html("")
+            	  checkCommandStatus(callback)
+              } else {
+            	  $("#cmd_status").html("Cmd Error:" + res["status"])
+              }
+        })
+    }
+
+
+    function drawHead() {
+
+        var size = 10
+
+        var mheadElement = document.getElementById("mhead")
+        var c = mheadElement.getContext("2d")
+        var w = mheadElement.height / 2
+        var scale = w / (GM3 + GD)
+
+        var a = ($("#s2").val() - (MaxS + MinS) / 2) * Math.PI / (MaxS - MinS)
+        var g = ($("#s1").val() - (MaxS + MinS) / 2) * Math.PI / (MaxS - MinS)
+
+        var x0 = GD
+        var y0 = 0
+
+        var x1 = x0 + Math.floor(Math.cos(a) * GD)
+        var y1 = y0 + Math.floor(Math.sin(a) * GD)
+
+        var x = $("#gx").val()
+        var z = $("#gz").val()
+        var min = Math.floor(Math.sqrt(GD * GD + GM3 * GM3))
+
+        var cx = x * scale
+        var cz = z * scale + w
+        var ch = GH * scale + w
+        var cmin = min * scale
+
+        var x2 = x1 + Math.floor(Math.cos(a + g) * GM3)
+        var y2 = y1 + Math.floor(Math.sin(a + g) * GM3)
+
+        var ox2 = x1 + Math.floor(Math.cos(a + g) * GM)
+        var oy2 = y1 + Math.floor(Math.sin(a + g) * GM)
+
+        var x3 = x1 + Math.floor(Math.cos(a + g) * GC + Math.cos(a + g - Math.PI / 2) * GR)
+        var y3 = y1 + Math.floor(Math.sin(a + g) * GC + Math.sin(a + g - Math.PI / 2) * GR)
+
+        var ca0 = a + g + CC
+        var sinca0 = Math.sin(ca0)
+        if (sinca0 > 0) {
+            cx4 = (x3 + Math.floor((GH - y3) * Math.cos(ca0) / sinca0)) * scale
+            cy4 = ch
+        } else {
+            cy4 = 0
+        }
+
+        var ca1 = a + g + CC + CV / 2
+        var sinca1 = Math.sin(ca1)
+        if (sinca1 > 0) {
+            cx5 = (x3 + Math.floor((GH - y3) * Math.cos(ca1) / sinca1)) * scale
+            cy5 = ch
+        } else {
+            cy5 = 0
+        }
+
+        var ca2 = a + g + CC - CV / 2
+        var sinca2 = Math.sin(ca2)
+        if (sinca2 > 0) {
+            cx6 = (x3 + Math.floor((GH - y3) * Math.cos(ca2) / sinca2)) * scale
+            cy6 = ch
+        } else {
+            cy6 = 0
+        }
+
+        var cx0 = x0 * scale
+        var cy0 = y0 * scale + w
+
+        var cx1 = x1 * scale
+        var cy1 = y1 * scale + w
+
+        var cx2 = x2 * scale
+        var cy2 = y2 * scale + w
+
+        var cox2 = ox2 * scale
+        var coy2 = oy2 * scale + w
+
+        var cx3 = x3 * scale
+        var cy3 = y3 * scale + w
+
+        c.fillStyle = "#FFF"
+        c.lineWidth = 1
+
+        c.fillRect(0, 0, mheadElement.width, w * 2)
+        
+        c.strokeStyle = "#000"
+        c.beginPath()
+        c.strokeRect(0, 0, mheadElement.width, w * 2)
+        for (var n = 50; n < GM3 + GD; n += 50) {
+        	var r = n * scale
+        	c.moveTo(0, w - r)
+        	c.lineTo(mheadElement.width, w - r)
+        	c.moveTo(0, w + r)
+        	c.lineTo(mheadElement.width, w + r)
+        }
+        for (var n = 50; n * scale < mheadElement.width; n += 50) {
+        	var r = n * scale
+        	c.moveTo(r, 0)
+        	c.lineTo(r, w * 2)
+        }
+        c.stroke()
+
+        c.strokeStyle = "#F88"
+        c.lineWidth = 5
+        c.beginPath()
+        c.moveTo(0, ch)
+        c.lineTo(mheadElement.width, ch)
+
+        c.stroke()
+
+        c.strokeStyle = "#8F8"
+        c.beginPath()
+        c.moveTo(0, cz)
+        c.lineTo(mheadElement.width, cz)
+        c.moveTo(cx, 0)
+        c.lineTo(cx, w * 2)
+        c.moveTo(cx0,0)
+        c.arc(cx0, cy0, w, -Math.PI/2, Math.PI * 3 / 2, false)
+        c.moveTo(cx0,cy0 - cmin)
+        c.arc(cx0, cy0, cmin, -Math.PI/2, Math.PI * 3 / 2, false)
+        c.stroke()
+
+        c.strokeStyle = "#88F"
+        c.fillStyle = "#88F"
+        c.font = "12px Arial";
+        c.beginPath()
+
+        c.moveTo(cx0 + size, cy0)
+        c.arc(cx0, cy0, size, 0, 2 * Math.PI, false)
+
+        c.moveTo(cx1 + size, cy1)
+        c.arc(cx1, cy1, size, 0, 2 * Math.PI, false)
+    	c.fillText(x1 + "," + y1, cx1 + size, cy1 - size);
+
+
+        c.moveTo(cox2 + size, coy2)
+        c.arc(cox2, coy2, size, 0, 2 * Math.PI, false)
+
+        c.moveTo(cx3 + size, cy3)
+        c.arc(cx3, cy3, size, 0, 2 * Math.PI, false)
+
+        c.moveTo(0,w)
+        c.lineTo(cx0, cy0)
+        c.lineTo(cx1, cy1)
+        c.lineTo(cx2, cy2)
+    	c.fillText(x2 + "," + y2, cx2 + size, cy2 - size);
+
+        c.stroke()
+
+        c.strokeStyle = "#F88"
+        c.lineWidth = 1
+        c.beginPath()
+        c.moveTo(0, w)
+        c.lineTo(mheadElement.width, w)
+        
+        if (cy4 == ch) {
+            c.moveTo(cx3, cy3)
+            c.lineTo(cx4, cy4)
+        }
+        if (cy5 == ch) {
+            c.moveTo(cx3, cy3)
+            c.lineTo(cx5, cy5)
+        }
+        if (cy6 == ch) {
+            c.moveTo(cx3, cy3)
+            c.lineTo(cx6, cy6)
+        }
+
+        c.moveTo(0,(GH - SH) * scale + w)
+        c.lineTo(mheadElement.width, (GH - SH) * scale + w)
+
+        c.moveTo(0, (GH - GRH) * scale + w)
+        c.lineTo(mheadElement.width, (GH - GRH) * scale + w)
+
+        c.stroke()
+
+        $("#topmap").topmap("redraw", g_Objects)
+        
+    }
+
+    function makeObjTable() {
+    	table = $("#obj_table")
+    	table.empty()
+        for (var i in g_Objects) {
+        	tr = $("<tr/>").appendTo(table)
+        	lookToButton = $('<input/>').attr("type", "button")
+        	                            .attr("value", "CmdGrabAt(" + g_Objects[i].x + "," + g_Objects[i].y + ")")
+        	                            .click(function(){
+        	                            	sendCommand($(this).attr("value"), function(status, result){
+        	                            		setTimeout(function(){getSensors(true)}, 100)
+        	                            	} )
+        	                            })
+        	$("<td/>").append(lookToButton).appendTo(tr)
+        }
+    }
+    
+      $(function() {
+        for (var i = 0; i < 4; i++) {
+            $( "#slider" + i ).slider({
+                               min: MinS,
+                               max: MaxS,
+                               value: (MinS + MaxS) / 2,
+                               change: function( event, ui ) {
+                                      $(this).parent().parent().find(".svalue").each(function(){
+                                          if ($(this).val() !=  ui.value) {
+                                            $(this).val(ui.value)
+                                            sendServo(parseInt($(this).attr("id")[1]))
+                                          }
+                                      })
+                               }
+            });
+        }
+        
+        $("#lookFrom").slider({
+        	min: MinS,
+        	max: MaxS,
+            value: (MinS + MaxS) / 2,
+            change: function( event, ui ) {
+                        $("#lookFrom_s").val(ui.value)
+                        sendCommand("CmdTestLookPosition(" + ui.value + ")",
+                            	function(status, result){
+                            		$("#lookFrom_d").html(result["d"])
+                            	}
+                            )
+                    }
+        })
+        
+        $("#lookFrom_send").click(function(){
+        	var value = $("#lookFrom_s").val()
+        	$("#lookFrom").slider( "option", "value", value )
+        })
+        
+        $("#grabOpen").slider({
+        	min: 97,
+        	max: 218,
+            value: 150,
+            change: function( event, ui ) {
+                        $("#grabOpen_s").val(ui.value)
+                        sendCommand("CmdTestGrabPosition('OPEN', " + ui.value + ")",
+                            	function(status, result){}
+                            )
+                    }
+        })
+        
+        $("#grabOpen_send").click(function(){
+        	var value = $("#grabOpen_s").val()
+        	$("#grabOpen").slider( "option", "value", value )
+        })
+        
+        $("#grabClosed").slider({
+        	min: 97,
+        	max: 218,
+            value: 150,
+            change: function( event, ui ) {
+                        $("#grabClosed_s").val(ui.value)
+                        sendCommand("CmdTestGrabPosition('CLOSE', " + ui.value + ")",
+                            	function(status, result){}
+                            )
+                    }
+        })
+        
+        $("#grabClosed_send").click(function(){
+        	var value = $("#grabClosed_s").val()
+        	$("#grabClosed").slider( "option", "value", value )
+        })
+      });
+
+      function makeCmdButton(caption, args) {
+    	  var cell = $("<td/>")
+    	  btn = $("<input/>").attr("type", "button").attr("value", caption)
+    	  cell.append(btn)
+    	  for (var i in args) {
+    		  if (args[i].type == "textfield") {
+    			  $("<input/>").attr("type", "textfield")
+    			               .attr("value", args[i].value)
+    			               .attr("id", args[i].id)
+    			               .appendTo(cell)
+    		  } else {
+    			  if (args[i].type == "select") {
+    		    	  var basket = $("<select/>").attr("id", args[i].id)
+    		    	                             .appendTo(cell)
+    		    	  for (var j in args[i].options) {
+    		    		  var opt = args[i].options[j]
+    		    		  $("<option/>").attr("value", opt.value).html(opt.name).appendTo(basket)
+    		    	  }
+ 
+    			  }
+    		  }
+    	  }
+    	  $("<tr/>").append(cell).appendTo($("#commands"))
+          return btn
+      }
+
+      function sendArgCommand(obj, cmd, callback) {
+    	  obj.parent().children().each(function(i){
+    		  var id = $(this).attr("id")
+    		  if (id != undefined) {
+    			  cmd = cmd.replace('$' + id, $(this).val())
+    		  }
+    	  })
+    	  sendCommand(cmd, callback)
+      }
+      
+      function makeCmd(caption, args, cmd) {
+    	  makeCmdButton(caption, args).click(function(){
+              sendArgCommand($(this), cmd, function(status, result){})
+          })
+      }
+
+      function makeCmdSensors(caption, args, cmd) {
+	      makeCmdButton(caption, args).click(function(){
+              sendArgCommand($(this), cmd, function(status, result){
+                  setTimeout(function(){getSensors(false)}, 100)
+              })
+	      })
+      }
+
+      function makeCmdPicture(caption, args, cmd) {
+    	  makeCmdButton(caption, args).click(function(){
+              sendArgCommand($(this), cmd, function(status, result){
+          	      g_Objects = result
+        	      //drawHead()
+        	      //makeObjTable()
+            	  $('#camera').prop('src', "static/test.jpg?" + Math.random())
+              })
+          })
+      }
+
+      function CreateInput(id, defaultValue) {
+    	  return $("<input/>").attr("type", "textfield")
+                              .attr("id", id)
+                              .attr("value", defaultValue)
+      }
+
+      function readExtractorParameters(table) {
+    	  table.empty()
+    	  var tableV = table
+          sendCommand("CmdExtractorGetParameters()", function(status, result){
+        	  $.each(result, function (key, value) {
+        		  var inp = CreateInput(key, value)
+        		  $("<tr/>").append($("<td/>").html(key))
+        		            .append($("<td/>").append(inp.addClass("extractorParameters")))
+        		            .appendTo(tableV)
+              });
+        	  $("<input/>").attr("type", "button")
+        	               .attr("value", "READ")
+        	               .click(function(){
+        	            	   readExtractorParameters(table)
+        	                })
+        	               .appendTo($("<td/>").appendTo($("<tr/>").appendTo(table)))
+
+        	  $("<input/>").attr("type", "button")
+       	                   .attr("value", "WRITE")
+       	                   .click(function(){
+       	                	   var values = {}
+       	                	   $.each($(".extractorParameters"), function(){
+       	                			values[this.id] = this.value
+       	                	   })
+       	                	   sendCommand("CmdExtractorSetParameters(" + JSON.stringify(values) + ")", function(status, result){
+       	                		readExtractorParameters(tableV)
+       	                	   })
+        	                })
+       	                   .appendTo($("<td/>").appendTo($("<tr/>").appendTo(table)))
+          })
+      }
+
+      $(document).ready(function() {
+
+          $("#send0").click(function() {
+              sendServo(0)
+          })
+          $("#send1").click(function() {
+              sendServo(1)
+          })
+          $("#send2").click(function() {
+              sendServo(2)
+          })
+          $("#send3").click(function() {
+              sendServo(3)
+          })
+
+          $("#sensors").click(function(){
+               if ($("#sensors").val() == "PULL SENSORS") {
+                   $("#sensors").val("STOP SENSORS")
+                } else {
+                   $("#sensors").val("PULL SENSORS")
+                }
+          })
+
+          $("#geom").click(function(){
+              sendGeometry()
+          })
+
+          $("#mhead").click(function(e){
+        	  var pos = $(this).position()
+        	  var w = $(this).attr("height") / 2
+        	  var cx = e.pageX - pos.left
+        	  var cy = (e.pageY-pos.top) - w
+        	  
+        	  var x = Math.floor(cx * (GM3 + GD) / w)
+        	  var z = Math.floor(cy * (GM3 + GD) / w)
+
+              $("#gx").val(x)
+              $("#gz").val(z)
+              sendGeometry()
+          })
+
+          $("#topmap").topmap({
+  			MinS: MinS,
+  			MaxS: MaxS,
+  			GD: GD,
+  			GM3: GM3,
+  			GH: GH,
+  			GC: GC,
+  			GR: GR,
+  			CC: CC,
+  			CH: CH,
+  			CV: CV,
+  			getServo: function(s) {
+				return $("#s" + s).val()
+			},
+			updateB : function(b) {
+				$("#gb").val(b)
+				sendGeometry()
+			},
+			MessageElement: $("#cam_range")
+          })
+
+    	  makeCmdButton("SHUDOWN", []).click(function(){
+              $.get( "/shutdown" , function( data ) {
+                  $("#response").html(data);
+              });
+    	  })
+          makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
+          makeCmd("HEAD RIGHT", [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BR$s:$a')")
+          makeCmd("HEAD LEFT",  [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BL$s:$a')")
+    	  makeCmdSensors("OPEN", [], "CmdOpen()")
+    	  makeCmdPicture("CONTROL AND D", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', 'test.jpg')")
+    	  makeCmd("CONTROL ONLY", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', None)")
+    	  makeCmd("GET CONTROLS", [], "CmdGetControlPoints()")
+    	  makeCmd("GRAB AT", [{type:"textfield", value:"150", id:"d"}], "CmdIGrabAt($d)")
+    	  makeCmd("PICK AT", [{type:"textfield", value:"150", id:"d"},{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabAtAndPlace($d,$basket)")
+          makeCmd("GRAB FROM VIEW", [{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabFromAndPlace($basket)")
+          makeCmdPicture("PREVIEW", [], "CmdIPreview('test.jpg')")
+          makeCmdPicture("LOOK", [], "CmdILook('test.jpg')")
+          makeCmdPicture("FIND", [], "CmdIFind('test.jpg')")
+          makeCmd("FIND AND PICK", [], "CmdIFindAndGrab()")
+          makeCmdPicture("START NAVIGATE", [], "CmdStartNavigate('test.jpg')")
+          makeCmd("GRAB at XY", [{type:"textfield", value:"160", id:"x"}, {type:"textfield", value:"120", id:"y"}], "CmdGrabAtXY($x,$y)")
+          
+
+          $("#move_forward").click(function(){
+              sendCommand("CmdMoveForward(" + $("#move_time").val() + ")",
+            		  function(status, result){
+                      })
+          })
+
+          $("#move_back").click(function(){
+              sendCommand("CmdMoveBack(" + $("#move_time").val() + ")",
+            		  function(status, result){
+                      })
+          })
+
+          $("#move_left").click(function(){
+              sendCommand("CmdMoveLeft(" + $("#move_time").val() + ")",
+            		  function(status, result){
+                      })
+          })
+
+          $("#move_right").click(function(){
+              sendCommand("CmdMoveRight(" + $("#move_time").val() + ")",
+            		  function(status, result){
+                      })
+          })
+          
+          $("#move_Move").click(function(){
+              sendCommand("CmdMove(" + $("#move_X").val() + "," + $("#move_B").val() + ")",
+            		  function(status, result){
+                      })
+          })
+          
+          $("#camera").click(function(e){
+            var posX = $(this).offset().left
+            var posY = $(this).offset().top
+            sendCommand("CmdMoveToViewAndPreview(" + (e.pageX - posX) + ',' + (240 - (e.pageY - posY)) + ", 'test.jpg')",
+                function(status, result){
+                    $('#camera').prop('src', "static/test.jpg?" + Math.random())
+                });
+          })
+
+          readExtractorParameters($("#extractorParams"))
+
+          scheduleSensors()
+
+          initServos()
+      })
+    </script>
+  </head>
+  <body>
+    <h1>Maps</h2>
+    <table>
+      <tr>
+        <td><canvas id="topmap" width="600" height="600"/></td>
+        <td><canvas id="mhead" width="600" height="600"/></td>
+      <tr>
+      <tr>
+        <td id="cam_range"></td>
+        <td></td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td><h1>Low level control</h1></td>
+        <td><h1>Location</h1></td>
+        <td><h1>Geometry</h1></td>
+      </tr>
+      <tr>
+        <td>
+          <table>
+          	<tr>
+          		<td>GRIPPER</td>
+          		<td><div id="slider0" style="width:300px;"></div></td>
+          		<td><input id="s0" class="svalue" type="textfield" value="2500" width="3" /></td>
+      			<td><input id="send0" type="button" value=">"/></td>
+          	</tr>
+          	<tr>
+      			<td>G</td>
+          		<td><div id="slider1" style="width:300px;"></div></td>
+          		<td><input id="s1" class="svalue" type="textfield" value="2500" width="3" /></td>
+      			<td><input id="send1" type="button" value=">"/></td>
+          	</tr>
+          	<tr>
+      			<td>A</td>
+          		<td><div id="slider2" style="width:300px;"></div></td>
+          		<td><input id="s2" class="svalue" type="textfield" value="2500" width="3" /></td>
+      			<td><input id="send2" type="button" value=">"/></td>
+          	</tr>
+          	<tr>
+      			<td>B</td>
+          		<td><div id="slider3" style="width:300px;"></div></td>
+          		<td><input id="s3" class="svalue" type="textfield" value="2500" width="3" /></td>
+      			<td><input id="send3" type="button" value=">"/></td>
+          	</tr>
+          	<tr>
+          		<td></td>
+      		</tr>
+          	<tr>
+          		<td>
+          			<div id="sensor0">sensor 0</div>
+          			<div id="sensor1">sensor 1</div>
+          			<div id="compass0">compass 0</div>
+          			<div id="compass1">compass 1</div>
+          			<div id="compass2">compass 2</div>
+          		</td>
+          		<td>
+          			<input id="sensors" type="button" value="PULL SENSORS"/>
+          			<input id="get_sg" type="checkbox"/>SERVO/GEOMETRY
+          		</td>
+          	</tr>
+          </table>
+        </td>
+        <td>
+        	<table>
+        		<tr>
+          			<td>LOOK A</td>
+      				<td><div id="lookFrom" style="width:200px;"></div></td>
+      				<td><input id="lookFrom_s" type="textfield" value="2500" width="3" /></td>
+      				<td><input id="lookFrom_send" type="button" value=">"/></td>
+      				<td>d=<span id="lookFrom_d">-</span></td>
+      			</tr>
+      			<tr>
+          			<td>GRAB OPEN</td>
+      				<td><div id="grabOpen" style="width:200px;"></div></td>
+      				<td><input id="grabOpen_s" type="textfield" value="180" width="3" /></td>
+      				<td><input id="grabOpen_send" type="button" value=">"/></td>
+      			</tr>
+      			<tr>
+      				<td>GRAB CLOSED</td>
+      				<td><div id="grabClosed" style="width:200px;"></div></td>
+      				<td><input id="grabClosed_s" type="textfield" value="180" width="3" /></td>
+      				<td><input id="grabClosed_send" type="button" value=">"/></td>
+      			</tr>
+      		</table>
+        </td>
+        <td>
+        	<table>
+          		<tr>
+          			<td>X = <input type="textfield" id="gx" value="157"></td>
+          		</tr>
+          		<tr>
+          			<td>B = <input type="textfield" id="gb" value="2500"></td>
+          		</tr>
+          		<tr>
+          			<td>Z = <input type="textfield" id="gz" value="-164"></td>
+          		</tr>
+          		<tr>
+          			<td><input id="geom" type="button" value="SEND GEOMERTY"></td>
+          		</tr>
+        	</table>
+        </td>
+      </tr>
+    </table>
+    <table>
+     <tr>
+       <th>Camera</th>
+       <th>Commands</th>
+       <th>Objects</th>
+     </tr>
+     <tr>
+       <td>
+	     <table id="extractorParams"></table>
+	   </td>
+	   <td>
+	     <table id="commands">
+		</table>
+	   </td>
+	   <td>
+	     <table id="obj_table"></table>
+	   </td>
+	   <td>
+	     <table>
+	        <tr>
+	          <td></td>
+	          <td><input type="button" id="move_forward" value="^"></td>
+	          <td></td>
+	        </tr>
+	        <tr>
+	          <td><input type="button" id="move_left" value="<"></td>
+	          <td><input type="textfield" id="move_time" value="3"></td>
+	          <td><input type="button" id="move_right" value=">"></td>
+	        </tr>
+	        <tr>
+	          <td></td>
+	          <td><input type="button" id="move_back" value="v"></td>
+	          <td></td>
+	        </tr>
+	     </table>
+	     <table>
+	        <tr>
+	          <td>B=<input type="textfield" id="move_B" value="0"></td>
+	          <td>X=<input type="textfield" id="move_X" value="100"></td>
+	          <td><input type="button" id="move_Move" value="Move"></td>
+	        </tr>
+	     </table>
+	   </td>
+	 </tr>
+	</table>
+    <table>
+		<tr>
+			<td>Status: <span id="cmd_status" /></td>
+		</tr>
+		<tr>
+			<td>Result: <span id="cmd_result" /></td>
+		</tr>
+	</table>
+
+    <p>
+      <img id="camera" class="rotate180"/>
+    </p>
+    <h3>commands</h3>
+    <ul>
+      <li><B>R</B>pin - read pin</li>  
+      <li><B>L</B>pin - set pin LOW</li>  
+      <li><B>H</B>pin - set pin HIGH</li>  
+      <li><B>S</B>[L|R] - stepper step Left or Right</li>  
+      <li><B>D</B>sec - stepper delay</li>  
+      <li><B>X</B>[s|d]num - static/dynamic compass row data, num samples</li>  
+      <li><B>C</B>[s|d]num - static/dynamic compass azimuth, num samples</li>
+      <li><B>P</B>channel<B>:</B>value - set servo value</li>
+      <li><B>M</B>channel<B>:</B>min<B>:</B>max - set servo min and max</li>
+      <li><B>B</B>[L|R]sec:sec - move and record the head motor Left or Right for specified sec, continue to record after stop for specified sec</li> 
+    </ul>    
+    <h3>pins</h3>
+    <table border = 3>
+      <tr>
+          <td>{{ pins[39] }}</td>
+          <td>{{ pins[37] }}</td>
+          <td>{{ pins[35] }}</td>
+          <td>{{ pins[33] }}</td>
+          <td>{{ pins[31] }}</td>
+          <td>{{ pins[29] }}</td>
+          <td>{{ pins[27] }}</td>
+          <td>{{ pins[25] }}</td>
+          <td>{{ pins[23] }}</td>
+          <td>{{ pins[21] }}</td>
+          <td>{{ pins[19] }}</td>
+          <td>{{ pins[17] }}</td>
+          <td>{{ pins[15] }}</td>
+          <td>{{ pins[13] }}</td>
+          <td>{{ pins[11] }}</td>
+          <td>{{ pins[9] }}</td>
+          <td>{{ pins[7] }}</td>
+          <td>{{ pins[5] }}</td>
+          <td>{{ pins[3] }}</td>
+          <td>{{ pins[1] }}</td>
+      </tr>
+      <tr>
+          <td bgcolor="black">G</td>
+          <td>26</td>
+          <td>19</td>
+          <td>13</td>
+          <td>6</td>
+          <td>5</td>
+          <td>I2C0 SDA</td>
+          <td bgcolor="black">G</td>
+          <td>11</td>
+          <td>9</td>
+          <td>10</td>
+          <td bgcolor="orange">3.3V</td>
+          <td>22</td>
+          <td>27</td>
+          <td>17</td>
+          <td bgcolor="black">G</td>
+          <td>4</td>
+          <td>3</td>
+          <td>2</td>
+          <td bgcolor="orange">3.3V</td>
+      </tr>
+      <tr>
+          <td>21</td>
+          <td>20</td>
+          <td>16</td>
+          <td bgcolor="black">G</td>
+          <td>12</td>
+          <td bgcolor="black">G</td>
+          <td>I2C SCL</td>
+          <td>7</td>
+          <td>8</td>
+          <td>25</td>
+          <td bgcolor="black">G</td>
+          <td>24</td>
+          <td>23</td>
+          <td bgcolor="black">G</td>
+          <td>18</td>
+          <td>15</td>
+          <td>14</td>
+          <td bgcolor="black">G</td>
+          <td bgcolor="red">5V</td>
+          <td bgcolor="red">5V</td>
+      </tr>
+      <tr>
+          <td>{{ pins[40] }}</td>
+          <td>{{ pins[38] }}</td>
+          <td>{{ pins[36] }}</td>
+          <td>{{ pins[34] }}</td>
+          <td>{{ pins[32] }}</td>
+          <td>{{ pins[30] }}</td>
+          <td>{{ pins[28] }}</td>
+          <td>{{ pins[26] }}</td>
+          <td>{{ pins[24] }}</td>
+          <td>{{ pins[22] }}</td>
+          <td>{{ pins[20] }}</td>
+          <td>{{ pins[18] }}</td>
+          <td>{{ pins[16] }}</td>
+          <td>{{ pins[14] }}</td>
+          <td>{{ pins[12] }}</td>
+          <td>{{ pins[10] }}</td>
+          <td>{{ pins[8] }}</td>
+          <td>{{ pins[6] }}</td>
+          <td>{{ pins[4] }}</td>
+          <td>{{ pins[2] }}</td>
+      </tr>
+    </table>
+    <ul>
+      <li><B>S</B> - sensors</li>  
+      <li><B>ST</B> - stepper</li>
+      <li><B>M</B> - motors</li>      
+      <li><B>I2C-1</B> - servo and static compass</li>      
+      <li><B>I2C-0</B> - dynamic compass</li>      
+    </ul>
+  </body>
+</html>

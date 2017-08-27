@@ -1,0 +1,40 @@
+CC=g++
+SRC=../head/visionModule
+
+CFLAGS=-I$(SRC)
+
+all: libvisionModule.so
+
+libvisionModule.so: visionModule.o jpeg.o image.o gradient.o egb.o clustering.o jpegimage.o statimg.o validator.o kp.o
+	$(CC) -shared -o libvisionModule.so $^
+
+visionModule.o: $(SRC)/module/visionModule.cpp
+	$(CC) -c $(CFLAGS) $<
+
+jpeg.o: $(SRC)/utils/jpeg.cpp
+	$(CC) -c $(CFLAGS) $<
+
+image.o: $(SRC)/utils/image.cpp
+	$(CC) -c $(CFLAGS) $<
+
+gradient.o: $(SRC)/gradient/gradient.cpp
+	$(CC) -c $(CFLAGS) $<
+
+egb.o: $(SRC)/egb/egb.cpp
+	$(CC) -c $(CFLAGS) $<
+
+clustering.o: $(SRC)/clustering/clustering.cpp
+	$(CC) -c $(CFLAGS) $<
+
+jpegimage.o: $(SRC)/jpeg/jpegimage.cpp
+	$(CC) -c $(CFLAGS) $<
+
+statimg.o: $(SRC)/statimg/statimg.cpp
+	$(CC) -c $(CFLAGS) $<
+
+validator.o: $(SRC)/objects/validator.cpp
+	$(CC) -c $(CFLAGS) $<
+
+kp.o: $(SRC)/kp/kp.cpp
+	$(CC) -c $(CFLAGS) $<
+
