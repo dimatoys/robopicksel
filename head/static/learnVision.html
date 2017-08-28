@@ -1,0 +1,172 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Label frames</title>
+    <script src="jquery-1.11.3.min.js"></script>
+    <script src="pics5.js"></script>
+    <script>
+
+colors = ["", "white", "blue", "green", "pink"]
+
+function JSONImage(canvas) {
+
+    var This = {
+    	Canvas: canvas,
+    	Ctx: canvas[0].getContext('2d'),
+        
+        LoadImage: function(data, name){
+            this.Width = data["width"]
+            this.Height = data["height"]
+            this.Depth = data["depth"]
+            this.Data = data["data"]
+            
+            this.Name = name
+            
+            this.Mask = new Array(this.Width * this.Height)
+            for (var i = 0; i < this.Mask.length; i++) {
+                this.Mask[i] = 0
+            }
+        },
+        
+        SetScale: function(scale) {
+            this.Scale = scale
+            
+            this.Canvas[0].width = this.Width * this.Scale
+            this.Canvas[0].height = this.Height * this.Scale
+            
+            for (var y = 0; y < this.Height; y++) {
+                for (var x = 0; x < this.Width; x++) {
+                    this.DrawCell(x, y)
+                }
+            }
+        },
+
+        DrawCell : function(x, y){
+            var i = (y * this.Width + x) * this.Depth
+            this.Ctx.fillStyle = 'rgb(' + this.Data[i] + ',' + this.Data[i+1] + ',' + this.Data[i+2] + ')' ;
+            this.Ctx.fillRect(x * this.Scale, y * this.Scale, this.Scale, this.Scale);
+            var color = colors[this.Mask[y * this.Width + x]]
+            if (color.length > 0) {
+                //alert(x + "," + y + "(" + i + ")=" + this.Mask[i])
+                this.Ctx.beginPath();
+                this.Ctx.strokeStyle=color;
+                this.Ctx.rect(x * this.Scale + 1, y * this.Scale + 1, this.Scale - 2, this.Scale - 2); 
+                this.Ctx.stroke();
+            }
+        },
+        
+        Generate: function() {
+            var result = "{'name': '" + this.Name + "', 'data':["
+            for (var i = 0; i < this.Mask.length; i++) {
+                result += this.Mask[i] + ", "
+            }
+            result += "]}"
+            return result
+        }
+    }
+	
+    This.Canvas.click(function(e){
+		var x = Math.floor((e.pageX - e.target.offsetLeft) / This.Scale);
+		var y = Math.floor((e.pageY - e.target.offsetTop) / This.Scale);
+        var i = y * This.Width + x
+        
+        This.Mask[i] = ((This.Mask[i] >= 3 ? 0 : This.Mask[i]) + 1) % 3
+        This.DrawCell(x, y)
+        
+        var s = 0
+        for (x = 0; x < This.Width; x++) {
+            var i = y * This.Width + x
+            var c = This.Mask[i]
+            if (s > 0) {
+                if (c == 1 || c == 2) {
+                    s = 0
+                } else {
+                    if (c != s) {
+                        This.Mask[i] = s
+                        This.DrawCell(x, y)
+                    }
+                }
+            } else {
+                if (c == 1) {
+                    s = 3
+                } else {
+                    if (c == 2) {
+                        s = 4
+                    } else {
+                        if (c != 0) {
+                            This.Mask[i] = 0
+                            This.DrawCell(x, y)
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+        if (old == 3) {
+            while(++x < This.Width && This.Mask[++i] == 3) {
+                This.Mask[i] = 0
+                This.DrawCell(x, y)
+            }
+        } else {
+            if (This.Mask[i] == 1) {
+                while(++x < This.Width && This.Mask[++i] == 0) {
+                    This.Mask[i] = 3
+                    This.DrawCell(x, y)
+                }
+            }
+        }
+	})
+    
+    return This
+}
+
+$(document).ready(function() {
+    var ji = JSONImage($("#canvas"))
+    //ji.LoadImage(g_pictures_set["1502667084"])
+    //ji.SetScale($("#scale").val())
+    
+    for (var name in g_pictures_set) {
+        var name = $("<option/>").text(name).appendTo($("#pics"))
+    }
+
+    $("#load").click(function(){
+        var name = $("#pics :selected").text()
+        ji.LoadImage(g_pictures_set[name], name)
+        ji.SetScale($("#scale").val())
+    })
+
+    $("#zoomout").click(function(){
+        var val = $("#scale").val()
+        if (val-- > 4) {
+            $("#scale").val(val)
+            ji.SetScale($("#scale").val())
+        }
+    })
+    
+    $("#zoomin").click(function(){
+        var val = $("#scale").val()
+        if (val++ < 15) {
+            $("#scale").val(val)
+            ji.SetScale($("#scale").val())
+        }
+    })
+    
+    $("#generate").click(function(){
+        $("#result").val(ji.Generate())
+    })
+})
+    </script>
+  </head>
+  <body>
+    <select id="pics"/>
+    <input type="button" id="load" value="LOAD"/><br>
+    <input type="button" id="zoomout" value="-"/>
+    <input id="scale" value="5" size="2"/>
+    <input type="button" id="zoomin" value="+"/><br>
+    <input type="button" id="generate" value="GENERATE">
+  	<canvas id="canvas"></canvas>
+    <textarea id="result"></textarea>
+  </body>
+</html>
