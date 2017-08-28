@@ -7,6 +7,9 @@
     <script>
 
 colors = ["", "white", "blue", "green", "pink"]
+startx = undefined
+starty = undefined
+
 
 function JSONImage(canvas) {
 
@@ -36,16 +39,16 @@ function JSONImage(canvas) {
             
             for (var y = 0; y < this.Height; y++) {
                 for (var x = 0; x < this.Width; x++) {
-                    this.DrawCell(x, y)
+                    this.DrawCell(x, y, this.Mask[x + y * this.Width])
                 }
             }
         },
 
-        DrawCell : function(x, y){
+        DrawCell : function(x, y, s){
             var i = (y * this.Width + x) * this.Depth
             this.Ctx.fillStyle = 'rgb(' + this.Data[i] + ',' + this.Data[i+1] + ',' + this.Data[i+2] + ')' ;
             this.Ctx.fillRect(x * this.Scale, y * this.Scale, this.Scale, this.Scale);
-            var color = colors[this.Mask[y * this.Width + x]]
+            var color = colors[s]
             if (color.length > 0) {
                 //alert(x + "," + y + "(" + i + ")=" + this.Mask[i])
                 this.Ctx.beginPath();
@@ -64,13 +67,55 @@ function JSONImage(canvas) {
             return result
         }
     }
-	
+
+    This.Canvas.mousedown(function(e){
+		startx = Math.floor((e.pageX - e.target.offsetLeft) / This.Scale);
+		starty = Math.floor((e.pageY - e.target.offsetTop) / This.Scale);
+        var i = starty * This.Width + startx
+
+        var s = $("input[name=label]:checked").val()
+        This.Mask[i] = s
+        This.DrawCell(startx, starty, s)
+    })
+    
+    This.Canvas.mouseup(function(e){
+		var x = Math.floor((e.pageX - e.target.offsetLeft) / This.Scale);
+		var y = Math.floor((e.pageY - e.target.offsetTop) / This.Scale);
+        var s = $("input[name=label]:checked").val()
+        //var i = y * This.Width + x
+        if (x > startx) {
+        	xfrom = startx
+        	xto = x
+        } else {
+        	xfrom = x
+        	xto = startx
+        }
+        if (y > starty) {
+        	yfrom = starty
+        	yto = y
+        } else {
+        	yfrom = y
+        	yto = starty
+        }
+        for (y = yfrom; y <= yto; y++) {
+        	for (x = xfrom; x <= xto; x++) {
+                This.Mask[y * This.Width + x] = s
+                This.DrawCell(x, y, s)
+        	}
+        }
+    })
+
+    This.Canvas.mousemove(function(e){
+    	
+    })
+/*	
     This.Canvas.click(function(e){
 		var x = Math.floor((e.pageX - e.target.offsetLeft) / This.Scale);
 		var y = Math.floor((e.pageY - e.target.offsetTop) / This.Scale);
         var i = y * This.Width + x
         
-        This.Mask[i] = ((This.Mask[i] >= 3 ? 0 : This.Mask[i]) + 1) % 3
+        var s = $("input[name=label]:checked").val()
+        This.Mask[i] = This.Mask[i] == s ? 0: s
         This.DrawCell(x, y)
         
         var s = 0
@@ -118,14 +163,12 @@ function JSONImage(canvas) {
             }
         }
 	})
-    
+*/    
     return This
 }
 
 $(document).ready(function() {
     var ji = JSONImage($("#canvas"))
-    //ji.LoadImage(g_pictures_set["1502667084"])
-    //ji.SetScale($("#scale").val())
     
     for (var name in g_pictures_set) {
         var name = $("<option/>").text(name).appendTo($("#pics"))
@@ -165,7 +208,10 @@ $(document).ready(function() {
     <input type="button" id="zoomout" value="-"/>
     <input id="scale" value="5" size="2"/>
     <input type="button" id="zoomin" value="+"/><br>
-    <input type="button" id="generate" value="GENERATE">
+    <input type="button" id="generate" value="GENERATE"><br>
+    <input type="radio" name="label" value="0">Clean<br>
+    <input type="radio" name="label" value="1" checked>Object<br>
+    <input type="radio" name="label" value="2">Shadow<br>
   	<canvas id="canvas"></canvas>
     <textarea id="result"></textarea>
   </body>
