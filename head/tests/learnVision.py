@@ -1791,12 +1791,71 @@ class ConvLearn:
                 DrawRect(img, obj_from - 2, y - 2, 4, 4, (255, 255, 255))
                 DrawRect(img, obj_to - 2, y - 2, 4, 4, (255, 0, 0))
         img.save(fileName, "PNG")
+
+    def MoveExtract(self, x, y, sx, sy, maxsteps):
+        lastx = x
+        lasty = y
+        gap = 0
+        for steps in range(maxsteps):
+            x = x + sx
+            y = y + sy
+            if self.GetPredictedValue(self.Dump, x, y) > self.Threshold:
+                lastx = x
+                lasty = y
+                if gap > 0:
+                    gap = gap - 1
+            else:
+                gap = gap + 1
+                if gap > maxGap2:
+                    break
+        return (lastx, lasty)
+
+    def AddToFrontier(self, x1, y1):
+        if not self.Map[x1 + y1 * self.W1]:
+            self.Frontier.append((x1, y1))
+
+    def AddNeiborsToFrontier(self, x1, y1):
+        if x1 > 0:
+            self.AddToFrontier(x1 - 1, y1)
+        if y1 > 0:
+            self.AddToFrontier(x1, y1 - 1)
+        if x1 + 1 < self.W1:
+            self.AddToFrontier(x1 + 1, y1)
+        if y1 + 1 < self.H1:
+            self.AddToFrontier(x1, y1 + 1)
         
     def ExtractObject(self, x1, y1):
-        pass
+        self.Frontier = []
+        leftx = self.MoveExtract(x1, y1, -self.Step2, 0, self.Step1 / self.Step2)
+        if leftx <= x1 - self.Step1:
+            # prooved both
+            nx1 = x1 - 1
+            ny1 = y1
+            self.Map[x1 + y1 * self.W1] = 1
+            self.Map[nx1 + ny1 * self.W1] = 1
+            self.AddNeiborsToFrontier(x1, y1)
+            self.AddNeiborsToFrontier(nx1, ny1)
+        else:
+            if x1 - letfx < self.MaxGap2 * self.Step2:
+                #not prooved
+                return
+            else:
+                #prooved origin only
+                nx1 = x1 - 1
+                ny1 = y1
+                self.Map[x1 + y1 * self.W1] = 1
+                self.Map[nx1 + ny1 * self.W1] = 0
+                self.AddNeiborsToFrontier(x1, y1)
+        
+        while len(self.Frontier) > 0:
+            pass        
     
     def DetectObjects(self, dump, threshold, step1, step2, maxGap2):
         self.Threshold = threshold
+        self.Step1 = step1
+        self.Step2 = step2
+        self.Dump = dump
+        self.MaxGap2= maxGap2
         self.W1 = dump.Width / step1 - 1
         self.H1 = dump.Height / step1 - 1
         self.Map = [None] * (self.W1 * self.H1)
