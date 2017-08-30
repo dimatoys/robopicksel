@@ -1,5 +1,5 @@
 from math import sin, cos, atan, pi, acos, asin
-from PIL import Image
+from PIL import Image, ImageDraw
 import json
 
 import numpy as np
@@ -1663,7 +1663,152 @@ def MakeConvMatrix(level):
             r = x
     return (result, r)
 
-def ConvMatrixTest():
+class ConvLearn:
+    def __init__(self, arealevel):
+        self.X = []
+        self.Y = []
+        self.AreaLevel = arealevel
+        (self.Points, self.R) = MakeConvMatrix(self.AreaLevel)
+
+    def GetAreaValues(self, dump, x, y):
+        rec = []
+        for dx,dy in self.Points:
+            pixel = dump.GetPixel(x + dx, y + dy)
+            rec.append(pixel[0])
+            rec.append(pixel[1])
+            rec.append(pixel[2])
+        return rec
+
+    def AddDump(self, dump, labels):
+        lstat = {}
+        for y in range(self.R, dump.Height - self.R):
+            for x in range(self.R, dump.Width - self.R):
+                
+                label = labels[x + y * dump.Width]
+                if label == 2:
+                    continue
+                if label == 3:
+                    label = 1
+                if label in lstat:
+                    lstat[label] = lstat[label] + 1
+                else:
+                    lstat[label] = 1
+                self.Y.append((label))
+
+                self.X.append(self.GetAreaValues(dump, x, y))
+        print lstat
+
+    def Learn(self, s):
+        self.Pr = TPolyRegression(s)
+        self.Pr.Learn(self.X, self.Y)
+        
+    def SetR(self, s, r):
+        self.Pr = TPolyRegression(s)
+        self.Pr.R = np.array(r)
+        
+    def GetPredictedValue(self, dump, x, y):
+        return self.Pr.GetValue(self.GetAreaValues(dump, x, y))
+    
+    def DrawLabeledPicture(self, cwdump, scale, threshold, fileName):
+        img = Image.new('RGB', (cwdump.Width * scale, cwdump.Height *scale), "black")
+        draw = ImageDraw.Draw(img)
+        for y in range(self.R, cwdump.Height - self.R):
+            for x in range(self.R, cwdump.Width - self.R):
+                if self.GetPredictedValue(cwdump, x, y) > threshold:
+                    v = 255
+                else:
+                    v = 0
+                draw.rectangle(((x * scale, y * scale), (x * scale + scale - 1, y * scale + scale - 1)), fill=cwdump.GetPixel(x, y), outline=(v,v,v))
+        del draw
+        img.save(fileName, "PNG")
+    
+    def GetLeftBorder(self, dump, x, y, step2, maxGap2):
+        x = x - step2
+        gap = 0
+        minx = x
+        while x >= self.R:
+            if self.GetPredictedValue(dump, x, y) > self.Threshold:
+                gap = 0
+                minx = x
+            else:
+                gap = gap + 1
+                if gap > maxGap2:
+                    if step2 > 1:
+                        return self.GetLeftBorder(dump, minx, y, 1, maxGap2)
+                    else:
+                        return minx
+            x = x - step2
+        return minx
+
+    def GetRightBorder(self, dump, x, y, step2, maxGap2):
+        x = x + step2
+        gap = 0
+        maxx = x
+        while x < dump.Width - self.R:
+            if self.GetPredictedValue(dump, x, y) > self.Threshold:
+                gap = 0
+                maxx = x
+            else:
+                gap = gap + 1
+                if gap > maxGap2:
+                    if step2 > 1:
+                        return self.GetRightBorder(dump, maxx, y, 1, maxGap2)
+                    else:
+                        return maxx
+            x = x + step2
+        return maxx
+        
+    def CountL2(self, dump, threshold, step1, step2, maxGap2):
+        self.Threshold = threshold
+        result = {}
+        for y in range(step1, dump.Height - step1, step1):
+            obj_from = None
+            last_obj = None
+            objsx = []
+            for x in range(step1, dump.Width - step1, step1):
+                if self.GetPredictedValue(dump, x, y) > self.Threshold:
+                    if not obj_from:
+                        obj_from = self.GetLeftBorder(dump, x, y, step2, maxGap2)
+                    last_obj = x
+                else:
+                    if obj_from:
+                        obj_to = self.GetRightBorder(dump, last_obj, y, step2, maxGap2)
+                        objsx.append((obj_from, obj_to))
+                        obj_from = None
+                        
+            if len(objsx) > 0:
+                result[y] = objsx
+        return result            
+
+    def DrawDetectedImage(self, dump, fileName, detRes):
+        img = Image.new('RGB', (dump.Width, dump.Height),)
+        for y in range(dump.Height):
+            for x in range(dump.Width):
+                img.putpixel((x, y), dump.GetPixel(x, y))
+                
+        for y, objsx in detRes.items():
+            for obj_from, obj_to in objsx:
+                DrawRect(img, obj_from - 2, y - 2, 4, 4, (255, 255, 255))
+                DrawRect(img, obj_to - 2, y - 2, 4, 4, (255, 0, 0))
+        img.save(fileName, "PNG")
+        
+    def ExtractObject(self, x1, y1):
+        pass
+    
+    def DetectObjects(self, dump, threshold, step1, step2, maxGap2):
+        self.Threshold = threshold
+        self.W1 = dump.Width / step1 - 1
+        self.H1 = dump.Height / step1 - 1
+        self.Map = [None] * (self.W1 * self.H1)
+        for y1 in range(self.H1):
+            #print (y1 + 1) * step1
+            for x1 in range(self.W1):
+                #print (x1 + 1) * step1
+                if not self.Map[x1 + y1 * self.W1]:
+                    if self.GetPredictedValue(dump, x, y) > self.Threshold:
+                        self.ExtractObject(x1, y1)
+                    
+def ConvMatrixTest1():
     global pixelpics
     (points, r) = MakeConvMatrix(3)
     name = '1502667084'
@@ -1689,6 +1834,126 @@ def ConvMatrixTest():
             Y.append((label))
     pr.Learn(X,Y)
 
+def ConvMatrixTest2():
+    
+    cw = '1502667194'
+
+    global pixelpics
+    pics = pixelpics.keys()
+    pics.remove(cw)
+    
+    cl = ConvLearn(1)
+    
+    for name in pics:
+        print name
+        cl.AddDump(Dump("../dumps/%s.dump" % name), pixelpics[name])
+        
+    print "learn"
+    cl.Learn(2)
+    print cl.Pr.R
+
+    """
+    print "count result"
+    cwdump = Dump("../dumps/%s.dump" % cw)
+    values = []
+    for y in range(cl.R, cwdump.Height - cl.R):
+        for x in range(cl.R, cwdump.Width - cl.R):
+            values.append(cl.GetPredictedValue(cwdump, x, y))
+
+    print "get the best threshold"
+    cwlabels = pixelpics[cw]
+    steps = 20
+    threshold = None
+    bestGood = 0
+    for ts in range(steps):
+        skip = 0
+        good = 0
+        fp = 0
+        neg = 0
+        t = ts / float(steps)
+        vi = 0
+        for y in range(cl.R, cwdump.Height - cl.R):
+            for x in range(cl.R, cwdump.Width - cl.R):
+                i = x + y * cwdump.Width
+                if cwlabels[i] == 2:
+                    skip = skip + 1
+                else:
+                    if values[vi] > t:
+                        if cwlabels[i] > 0:
+                            good = good + 1
+                        else:
+                            fp = fp + 1
+                    else:
+                        if cwlabels[i] > 0:
+                            neg = neg + 1
+                        else:
+                            good = good + 1
+                vi = vi + 1
+        print "th=%f good=%d neg=%d fp=%d skip=%d" % (t, good, neg, fp, skip)
+        if good > bestGood:
+            threshold = t
+            bestGood = good
+    print "best threshold: %f, doog=%d" % (threshold, bestGood)
+    """
+    
+    threshold = 0.1
+    
+    print "draw cw"
+    scale = 10
+    cl.DrawLabeledPicture(cwdump, scale, threshold, 'cw0.png')
+    
+def ConvMatrixTest3():
+    cl = ConvLearn(1)
+    cl.SetR(2, [1.32433886e-01,
+                6.26838325e-03,
+                -7.42018708e-03,
+                1.85654775e-03,
+                1.34534411e-04,
+                -2.32869503e-04,
+                1.24865567e-04,
+                5.17856248e-05,
+                -9.45425805e-05,
+                3.90237888e-05])
+    
+    cwdump = Dump("../dumps/%s.dump" % '1502667194')
+    
+    cl.DrawLabeledPicture(cwdump, 10, 0.1, 'cw1.png')
+
+def ConvMatrixL2():
+    cl = ConvLearn(1)
+    cl.SetR(2, [1.32433886e-01,
+                6.26838325e-03,
+                -7.42018708e-03,
+                1.85654775e-03,
+                1.34534411e-04,
+                -2.32869503e-04,
+                1.24865567e-04,
+                5.17856248e-05,
+                -9.45425805e-05,
+                3.90237888e-05])
+
+    cwdump = Dump("../dumps/%s.dump" % '1502667194')
+
+    detRes = cl.CountL2(cwdump, 0.1, 20, 2, 2)
+    print detRes
+    cl.DrawDetectedImage(cwdump, "cw2.png", detRes)
+
+def ConvDetect():
+    cl = ConvLearn(1)
+    cl.SetR(2, [1.32433886e-01,
+                6.26838325e-03,
+                -7.42018708e-03,
+                1.85654775e-03,
+                1.34534411e-04,
+                -2.32869503e-04,
+                1.24865567e-04,
+                5.17856248e-05,
+                -9.45425805e-05,
+                3.90237888e-05])
+
+    cwdump = Dump("../dumps/%s.dump" % '1502667194')
+
+    cl.DetectObjects(cwdump, 0.1, 20, 2, 2)
 #Test2()
 #Im1()
 #Draw1("3500-2500.jpg")
@@ -1728,4 +1993,8 @@ def ConvMatrixTest():
 #DumpSmall()
 #MakeJSONDump()
 #ConvTest()
-ConvMatrixTest()
+#ConvMatrixTest1()
+#ConvMatrixTest2()
+#ConvMatrixTest3()
+#ConvMatrixL2()
+ConvDetect()
