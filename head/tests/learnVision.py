@@ -1806,49 +1806,81 @@ class ConvLearn:
                     gap = gap - 1
             else:
                 gap = gap + 1
-                if gap > maxGap2:
+                if gap > self.MaxGap2:
                     break
         return (lastx, lasty)
 
-    def AddToFrontier(self, x1, y1):
-        if not self.Map[x1 + y1 * self.W1]:
-            self.Frontier.append((x1, y1))
+    #def AddToFrontier(self, x1, y1):
+    #    print "Map", x1, y1, self.Map[x1 + y1 * self.W1]
+    #    if self.Map[x1 + y1 * self.W1] == -1:
+    #        self.Frontier.append((x1, y1))
 
-    def AddNeiborsToFrontier(self, x1, y1):
-        if x1 > 0:
-            self.AddToFrontier(x1 - 1, y1)
-        if y1 > 0:
-            self.AddToFrontier(x1, y1 - 1)
-        if x1 + 1 < self.W1:
-            self.AddToFrontier(x1 + 1, y1)
-        if y1 + 1 < self.H1:
-            self.AddToFrontier(x1, y1 + 1)
+    def SetMap(self, x1, y1, v):
+        self.Map[x1 + y1 * self.W1] = v
         
+    def GetMap(self, x1, y1):
+        return self.Map[x1 + y1 * self.W1]
+
     def ExtractObject(self, x1, y1):
         self.Frontier = []
-        leftx = self.MoveExtract(x1, y1, -self.Step2, 0, self.Step1 / self.Step2)
-        if leftx <= x1 - self.Step1:
+        (leftx, lefty) = self.MoveExtract(x1 * self.Step1, y1 * self.Step1, -self.Step2, 0, self.Step1 / self.Step2)
+        obj = {"left": {}, "right": {}, "top": {}, "bottom": {}}
+        if leftx <= (x1 - 1) * self.Step1:
             # prooved both
             nx1 = x1 - 1
             ny1 = y1
-            self.Map[x1 + y1 * self.W1] = 1
-            self.Map[nx1 + ny1 * self.W1] = 1
-            self.AddNeiborsToFrontier(x1, y1)
-            self.AddNeiborsToFrontier(nx1, ny1)
+            self.Frontier.append((x1, y1))
+            self.SetMap(x1, y1, 1)
+            self.Frontier.append((nx1, ny1))
+            self.SetMap(nx1, ny1, 1)
         else:
-            if x1 - letfx < self.MaxGap2 * self.Step2:
+            if x1 * self.Step1 - leftx < self.MaxGap2 * self.Step2:
                 #not prooved
-                return
+                return None
             else:
                 #prooved origin only
                 nx1 = x1 - 1
                 ny1 = y1
-                self.Map[x1 + y1 * self.W1] = 1
-                self.Map[nx1 + ny1 * self.W1] = 0
-                self.AddNeiborsToFrontier(x1, y1)
+                self.Frontier.append((x1, y1))
+                self.SetMap(x1, y1, 1)
+                self.SetMap(nx1, ny1, 0)
+                obj["left"][y1 * self.Step1] = leftx
         
         while len(self.Frontier) > 0:
-            pass        
+            (x1, y1) = self.Frontier.pop()
+            if x1 > 0:
+                if not(self.GetMap(x1 - 1, y1) == 1):
+                    (leftx, lefty) = self.MoveExtract(x1 * self.Step1, y1 * self.Step1, -self.Step2, 0, self.Step1 / self.Step2)
+                    if leftx <= (x1 - 1) * self.Step1:
+                        self.SetMap(x1 - 1, y1, 1)
+                        self.Frontier.apend((x1 - 1, y1))
+                    else:
+                        obj["left"][y1 * self.Step1] = leftx
+            if y1 > 0:
+                if not(self.GetMap(x1, y1 - 1) == 1):
+                    (topx, topy) = self.MoveExtract(x1 * self.Step1, y1 * self.Step1, 0, -self.Step2, self.Step1 / self.Step2)
+                    if topy <= (y1 - 1) * self.Step1:
+                        self.SetMap(x1, y1 - 1, 1)
+                        self.Frontier.append((x1, y1 - 1))
+                    else:
+                        obj["top"][x1 * self.Step1] = topy
+            if x1 + 1 < self.W1:
+                if not(self.GetMap(x1 + 1, y1) == 1):
+                    (rightx, righty) = self.MoveExtract(x1 * self.Step1, y1 * self.Step1, self.Step2, 0, self.Step1 / self.Step2)
+                    if rightx >= (x1 + 1) * self.Step1:
+                        self.SetMap(x1 + 1, y1, 1)
+                        self.Frontier.append((x1 + 1, y1))
+                    else:
+                        obj["right"][y1 * self.Step1] = rightx
+            if y1 + 1 < self.H1:
+                if not(self.GetMap(x1, y1 + 1) == 1):
+                    (bottomx, bottomy) = self.MoveExtract(x1 * self.Step1, y1 * self.Step1, 0, self.Step2, self.Step1 / self.Step2)
+                    if bottomy <= (y1 + 1) * self.Step1:
+                        self.SetMap(x1, y1 + 1, 1)
+                        self.Frontier.append((x1, y1 + 1))
+                    else:
+                        obj["bottom"][x1 * self.Step1] = bottomy
+        return obj
     
     def DetectObjects(self, dump, threshold, step1, step2, maxGap2):
         self.Threshold = threshold
@@ -1858,14 +1890,18 @@ class ConvLearn:
         self.MaxGap2= maxGap2
         self.W1 = dump.Width / step1 - 1
         self.H1 = dump.Height / step1 - 1
-        self.Map = [None] * (self.W1 * self.H1)
+        self.Map = [-1] * (self.W1 * self.H1)
+        objects = []
         for y1 in range(self.H1):
             #print (y1 + 1) * step1
             for x1 in range(self.W1):
                 #print (x1 + 1) * step1
-                if not self.Map[x1 + y1 * self.W1]:
-                    if self.GetPredictedValue(dump, x, y) > self.Threshold:
-                        self.ExtractObject(x1, y1)
+                if self.Map[x1 + y1 * self.W1] == -1:
+                    if self.GetPredictedValue(dump, x1 * self.Step1, y1 * self.Step1) > self.Threshold:
+                        obj = self.ExtractObject(x1, y1)
+                        if obj:
+                            objects.append(obj)
+        return objects
                     
 def ConvMatrixTest1():
     global pixelpics
@@ -2010,9 +2046,38 @@ def ConvDetect():
                 -9.45425805e-05,
                 3.90237888e-05])
 
-    cwdump = Dump("../dumps/%s.dump" % '1502667194')
+    cw = '1502667194'
 
-    cl.DetectObjects(cwdump, 0.1, 20, 2, 2)
+    cwdump = Dump("../dumps/%s.dump" % cw)
+
+    objects = cl.DetectObjects(cwdump, 0.1, 20, 2, 2)
+    
+    img = Image.new('RGB', (cwdump.Width, cwdump.Height),)
+    for y in range(cwdump.Height):
+        for x in range(cwdump.Width):
+            img.putpixel((x, y), cwdump.GetPixel(x, y))
+
+    for obj in objects:
+        for x, y in obj["left"].items():
+            DrawRect(img, x - 2, y - 2, 4, 4, (255, 255, 255))
+        for x, y in obj["right"].items():
+            DrawRect(img, x - 2, y - 2, 4, 4, (255, 0, 0))
+        for y, x in obj["top"].items():
+            DrawRect(img, x - 2, y - 2, 4, 4, (0, 255, 0))
+        for y, x in obj["bottom"].items():
+            DrawRect(img, x - 2, y - 2, 4, 4, (0, 0, 255))
+
+    img.save("cw4-1.png", "PNG")
+
+    img2 = Image.new('RGB', (cwdump.Width, cwdump.Height),)
+    for y in range(cwdump.Height):
+        for x in range(cwdump.Width):
+            img2.putpixel((x, y), cwdump.GetPixel(x, y))
+
+
+    img2.save("cw4-2.png", "PNG")
+
+
 #Test2()
 #Im1()
 #Draw1("3500-2500.jpg")
