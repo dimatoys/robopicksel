@@ -10,7 +10,7 @@ include_directories(/opt/local/include)
 include_directories(../head/visionModule)
 
 set (FTEST_SRC
-    ../head/visionModule/module/fireTest.cpp
+    ../head/visionModule/tests/fireTest.cpp
     ../head/visionModule/utils/jpeg.cpp
     ../head/visionModule/utils/image.cpp
     ../head/visionModule/module/visionModule.cpp

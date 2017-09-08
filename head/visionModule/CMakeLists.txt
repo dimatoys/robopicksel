@@ -25,7 +25,8 @@ set(SRC_VISION_MODULE
     #cvpyr/cvpyr.cpp
     #objects/validator.cpp
     statimg/statimg.cpp
-    kp/kp.cpp)
+    kp/kp.cpp
+    dlearning/dlearning.cpp)
 
 add_library(visionModule SHARED ${SRC_VISION_MODULE})
 target_link_libraries(visionModule jpeg)
