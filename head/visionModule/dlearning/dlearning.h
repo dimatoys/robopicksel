@@ -19,12 +19,19 @@ public:
     
     TPolyRegression PR;
     
+    int StepL1;
+    int StepL2;
+    
     TDeepLearningExtractorFactory() :
         PR(S) {
         PR.SetR(R, 3 * Points, 1);
+        
+        AddParameter("StepL1", &StepL1, 20);
+        AddParameter("StepL2", &StepL2, 3);
     }
 
     TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image);
+    virtual void DestroyExtractor(TSegmentsExtractor* extractor) {}
 };
 
 

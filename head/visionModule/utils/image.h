@@ -26,7 +26,7 @@ struct TArea {
 	int MaxX;
 	int MaxY;
 	char AtBorder;
-        unsigned char ObjectType;
+	unsigned char ObjectType;
 
 	TArea() {}
 
@@ -38,7 +38,7 @@ struct TArea {
 		MaxX = area.MaxX;
 		MaxY = area.MaxY;
 		AtBorder = area.AtBorder;
-                ObjectType = area.ObjectType;
+		ObjectType = area.ObjectType;
 	}
 
 	TArea(int x, int y) {
@@ -48,7 +48,7 @@ struct TArea {
 		MinY = y;
 		MaxY = y;
 		AtBorder = 0;
-                ObjectType = 0;
+		ObjectType = 0;
 	}
 
 	void Add(int x, int y) {
@@ -474,6 +474,9 @@ public:
 	std::map<std::string,double*> DoubleParameters;
 
 	virtual TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image) = 0;
+    virtual void DestroyExtractor(TSegmentsExtractor* extractor) {
+        delete extractor;
+    }
 
 	void AddParameter(const char* name, int* ptr) {
 		std::string str(name);

@@ -139,7 +139,7 @@ void ExtractFeatures(TMutableImage<unsigned char>* image,
 
 		debugImage.SaveJpg(debugImageFileName);
 	}
-	delete segmenter;
+	extractorFactury->DestroyExtractor(segmenter);
 
 	printf("ExtractFeatures: Ok\n");
 }

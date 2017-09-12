@@ -31,7 +31,7 @@ g_DumpTemplate = None
 CameraWidth = "320"
 CameraHeight = "240"
 CameraMode = "7"
-CameraDefAlgorithm = "statimg"
+CameraDefAlgorithm = "dlearning"
 
 CameraViewAngleX = 0.9773843811168246
 CameraViewAngleY = 0.5410520681182421
