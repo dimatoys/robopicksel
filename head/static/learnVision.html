@@ -30,7 +30,7 @@ function JSONImage(canvas) {
                 this.Mask[i] = 0
             }
         },
-        
+
         SetScale: function(scale) {
             this.Scale = scale
             
@@ -57,7 +57,7 @@ function JSONImage(canvas) {
                 this.Ctx.stroke();
             }
         },
-        
+
         Generate: function() {
             var result = "{'name': '" + this.Name + "', 'data':["
             for (var i = 0; i < this.Mask.length; i++) {

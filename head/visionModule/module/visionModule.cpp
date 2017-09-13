@@ -94,7 +94,7 @@ void ExtractFeatures(TMutableImage<unsigned char>* image,
 		obj.MaxX = area->MaxX;
 		obj.MaxY = area->MaxY;
 		obj.BorderBits = area->AtBorder;
-                obj.ObjectType = area->ObjectType;
+		obj.ObjectType = area->ObjectType;
 		printf("show: size=%d x=%d..%d y=%d..%d bb=%d type=%d\n", obj.Size, obj.MinX, obj.MaxX, obj.MinY, obj.MaxY, obj.BorderBits, obj.ObjectType);
 
 		if (++numObjects >= maxObjects) {

@@ -34,6 +34,10 @@ def main():
                            MaxS = g_Head.MaxS,
                            pins = g_Head.Pins)
 
+@app.route("/dumps/<path:path>")
+def dumps(path):
+    return send_from_directory('../dumps', path)
+
 @app.route("/servo/<id>/<v>")
 def servo(id, v):
     value = g_Head.SetServo(int(id), int(v))
