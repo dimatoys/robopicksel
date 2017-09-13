@@ -16,7 +16,7 @@ add_library(visionModule SHARED ${MODULE}/module/visionModule.cpp
                                 ${MODULE}/statimg/statimg.cpp
                                 #${MODULE}/cvpyr/cvpyr.cpp
                                 ${MODULE}/objects/validator.cpp
-                                ${MODULE}/kp/kp.cpp)
+                                ${MODULE}/kp/kp.cpp
+                                ${MODULE}/dlearning/dlearning.cpp)
 
 target_link_libraries(visionModule jpeg)
-

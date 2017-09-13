@@ -2,7 +2,8 @@
 //#include "clustering/clustering.h"
 #include "jpeg/jpegimage.h"
 #include "statimg/statimg.h"
-#include "kp/kp.h"
+//#include "kp/kp.h"
+#include "dlearning/dlearning.h"
 
 #include <ctime>
 
@@ -14,8 +15,8 @@ void extractorInit(TObjectsExtractor* data, const char* algorithm) {
 		if (strcmp(algorithm, "statimg") == 0) {
 			factory = new TStatImgExtractorFactory();
 		} else {
-                    if (strcmp(algorithm, "kp") == 0) {
-                        factory = new TKeyPointsExtractorFactory();
+                    if (strcmp(algorithm, "dlearning") == 0) {
+                        factory = new TDeepLearningExtractorFactory();
                     } else {
 			factory = new TJpegExtractorFactory();
                     }
@@ -138,7 +139,7 @@ void ExtractFeatures(TMutableImage<unsigned char>* image,
 
 		debugImage.SaveJpg(debugImageFileName);
 	}
-	delete segmenter;
+	extractorFactury->DestroyExtractor(segmenter);
 
 	printf("ExtractFeatures: Ok\n");
 }

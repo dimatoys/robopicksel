@@ -483,34 +483,19 @@ def modelPoly(i, x):
     
   
 def PolyTest():
-    p = TModelPoly([1, 2, 3, 4])
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()    
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()
-    p.Next()    
-
+  for n in range(1,20):  
+    i = 0
+    p = TModelPoly([1] * n)
+    s = -1
+    result = ""
+    while p.S < 10:
+        i = i + 1
+        p.Next()
+        if p.S > s:
+            result = result + str(i) + ", "
+            s = p.S
+    print n, result
+ 
 def DrawTurn4(file):
     from numpy.linalg import inv
     import numpy as np
@@ -1669,6 +1654,7 @@ class ConvLearn:
         self.Y = []
         self.AreaLevel = arealevel
         (self.Points, self.R) = MakeConvMatrix(self.AreaLevel)
+        print self.Points
 
     def GetAreaValues(self, dump, x, y):
         rec = []
@@ -1944,12 +1930,14 @@ def ConvMatrixTest2():
         cl.AddDump(Dump("../dumps/%s.dump" % name), pixelpics[name])
         
     print "learn"
-    cl.Learn(2)
+    cl.Learn(1)
     print cl.Pr.R
+
+
+    cwdump = Dump("../dumps/%s.dump" % cw)
 
     """
     print "count result"
-    cwdump = Dump("../dumps/%s.dump" % cw)
     values = []
     for y in range(cl.R, cwdump.Height - cl.R):
         for x in range(cl.R, cwdump.Width - cl.R):
@@ -2077,6 +2065,9 @@ def ConvDetect():
 
     img2.save("cw4-2.png", "PNG")
 
+def Compatibility():
+    pr = TPolyRegression(2)
+    print pr.GetPolyArray([1,2,3])
 
 #Test2()
 #Im1()
@@ -2121,4 +2112,5 @@ def ConvDetect():
 #ConvMatrixTest2()
 #ConvMatrixTest3()
 #ConvMatrixL2()
-ConvDetect()
+#ConvDetect()
+Compatibility()

@@ -26,7 +26,7 @@ struct TArea {
 	int MaxX;
 	int MaxY;
 	char AtBorder;
-        unsigned char ObjectType;
+	unsigned char ObjectType;
 
 	TArea() {}
 
@@ -38,7 +38,7 @@ struct TArea {
 		MaxX = area.MaxX;
 		MaxY = area.MaxY;
 		AtBorder = area.AtBorder;
-                ObjectType = area.ObjectType;
+		ObjectType = area.ObjectType;
 	}
 
 	TArea(int x, int y) {
@@ -48,7 +48,7 @@ struct TArea {
 		MinY = y;
 		MaxY = y;
 		AtBorder = 0;
-                ObjectType = 0;
+		ObjectType = 0;
 	}
 
 	void Add(int x, int y) {
@@ -474,6 +474,9 @@ public:
 	std::map<std::string,double*> DoubleParameters;
 
 	virtual TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image) = 0;
+    virtual void DestroyExtractor(TSegmentsExtractor* extractor) {
+        delete extractor;
+    }
 
 	void AddParameter(const char* name, int* ptr) {
 		std::string str(name);
@@ -540,5 +543,76 @@ public:
 	}
 };
 
+struct ILearningDataSource {
+
+    // dimension
+    unsigned int D;
+    
+    // number of records
+    unsigned int N;
+    
+    virtual double NextElement() = 0;
+    virtual bool NextRecord() = 0;
+    
+    bool NextRecord(double* values);
+    void ReadAll(double* values);
+};
+
+class TPolyRegression {
+    
+public:
+
+    unsigned char S;
+    double* R;
+    double* MX;
+    double* PX;
+    unsigned int XD;
+    unsigned int XS;
+    unsigned int YD;
+    
+    TPolyRegression(unsigned char s) {
+        S = s;
+        R = NULL;
+        MX = NULL;
+        PX = NULL;
+    }
+
+    ~TPolyRegression() {
+        if (R != NULL) {
+            delete R;
+        }
+        if (MX != NULL) {
+            delete MX;
+        }
+        if (PX != NULL) {
+            delete PX;
+        }
+    }
+    
+    bool GenerateMX(ILearningDataSource* x);
+    
+    void NewY(ILearningDataSource* y);
+    
+    bool Learn(ILearningDataSource* x, ILearningDataSource* y);
+    
+    void PrepareX(const double* x);
+    
+    void Predict(double* y);
+    
+    void GetValue(const double* x, double* y);
+    
+    void SetR(const double* r, unsigned int xd, unsigned int yd);
+};
+
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
+
+/*
+ counts polynom components values:
+ s - max power
+ d - dimension
+ x - vector of X
+ r - result
+ */
+
+double* fv(unsigned char s, unsigned char d, const double* x, double* r);

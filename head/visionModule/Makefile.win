@@ -1,12 +1,15 @@
 CC=g++
 SRC=../head/visionModule
 
-CFLAGS=-I$(SRC)
+CFLAGS=-I$(SRC) -fPIC
 
-all: libvisionModule.so
+all: libvisionModule.so dlearningTest
 
-libvisionModule.so: visionModule.o jpeg.o image.o gradient.o egb.o clustering.o jpegimage.o statimg.o validator.o kp.o
+libvisionModule.so: visionModule.o jpeg.o image.o gradient.o egb.o clustering.o jpegimage.o statimg.o validator.o kp.o dlearning.o
 	$(CC) -shared -o libvisionModule.so $^
+
+dlearningTest: jpeg.o image.o dlearningTest.o dlearning.o
+	$(CC) -o dlearningTest $^ -ljpeg
 
 visionModule.o: $(SRC)/module/visionModule.cpp
 	$(CC) -c $(CFLAGS) $<
@@ -38,3 +41,9 @@ validator.o: $(SRC)/objects/validator.cpp
 kp.o: $(SRC)/kp/kp.cpp
 	$(CC) -c $(CFLAGS) $<
 
+dlearning.o: $(SRC)/dlearning/dlearning.cpp
+	$(CC) -c $(CFLAGS) $<
+
+dlearningTest.o: $(SRC)/tests/dlearningTest.cpp
+	$(CC) -c $(CFLAGS) $<
+ 
