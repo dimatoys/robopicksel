@@ -6,6 +6,7 @@ class TStatImgSegmentsExtractor : public TSegmentsExtractor {
 
 	TMutableImage<unsigned short> AnomalyMatrix;
     double* A;
+    int ASize;
     
     double GetPixelAnomaly(int x, int y);
     void MakeSmoothing();
@@ -22,13 +23,17 @@ public:
 	    AnomalyMatrix(image->Width / parameters->AreaCell, image->Height / parameters-> AreaCell, 1) {
 		Parameters = parameters;
 		Image = image;
-        A = new double[Image->Depth * Parameters->RegressionMatrix.Depth];
+        A = NULL;
 	}
 
 	void ExtractSegments(std::list<TArea>& area);
 	void DrawDebugInfo(TMutableRGBImage* image);
 
-	~TStatImgSegmentsExtractor(){}
+	~TStatImgSegmentsExtractor(){
+		if (A != NULL) {
+			delete A;
+		}
+	}
 
 };
 
@@ -66,6 +71,19 @@ double TStatImgSegmentsExtractor::GetAreaAnomaly(int ax, int ay) {
 }
 
 void TStatImgSegmentsExtractor::MakeSmoothing() {
+
+	int size = Image->Depth * Parameters->RegressionMatrix.Depth;
+	if (A == NULL) {
+		ASize = size;
+		A = new double[ASize];
+	} else {
+		if (ASize != size) {
+			delete A;
+			ASize = size;
+			A = new double[ASize];
+		}
+	}
+
 	int n = Parameters->RegressionMatrix.Depth;
 	double* rm = Parameters->RegressionMatrix.Cell(0, 0);
     double* a = A;
@@ -223,7 +241,7 @@ void TStatImgSegmentsExtractor::ExtractSegments(std::list<TArea>& areas) {
 
 	
     if (Parameters->RegressionMatrix.ReAllocate(Image->Width, Image->Height, Parameters->RegressionLevel)) {
-	MakeRegressionMatrix(&Parameters->RegressionMatrix);
+    	MakeRegressionMatrix(&Parameters->RegressionMatrix);
     }
 
     int biggestCoreIdx = -1;
