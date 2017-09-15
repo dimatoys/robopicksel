@@ -383,3 +383,12 @@ void TDeepLearningSegmentsExtractor::DrawDebugInfo(TMutableRGBImage* image){
         }
     }
 }
+/*
+ 1505247485
+ * 1505247578
+ 
+ *  1505247611
+ * 1505247639
+ * 
+ * 
+ */
