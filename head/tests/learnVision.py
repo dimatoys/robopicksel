@@ -1,4 +1,4 @@
-from math import sin, cos, atan, pi, acos, asin
+from math import sin, cos, atan, pi, acos, asin, sqrt
 from PIL import Image, ImageDraw
 import json
 
@@ -1422,8 +1422,17 @@ pictures = {
     }
 
 class Dump:
-    def __init__(self, file):
-        (self.Width, self.Height, self.Depth, self.Data) = LoadDump(file)
+    
+    def __init__(self, width, height, depth, data):
+        self.Width = width
+        self.Height = height
+        self.Depth = depth
+        self.Data = data
+        
+    @classmethod
+    def FromFileName(cls, filename):
+        (width, height, depth, data) = LoadDump(filename)
+        return cls(width, height, depth, data)
     
     def SaveAsPicture(self, file, format, scale=1):
         img = Image.frombytes('RGB', (self.Width, self.Height), self.Data)
@@ -1437,6 +1446,25 @@ class Dump:
     
     def GetDict(self):
         return {"width": self.Width, "height": self.Height, "depth": self.Depth, "data": map(ord, self.Data)}
+    
+    def GetScaled(self, n):
+        width = self.Width / n
+        height = self.Height / n
+        
+        data = []
+        cellSq = n * n
+        for cy in range(height):
+            for cx in range(width):
+                sum = [0] * self.Depth
+                for iy in range(n):
+                    for ix in range(n):
+                        pixel = self.GetPixel(cx * n + ix, cy * n + iy)
+                        for d in range(self.Depth):
+                            sum[d] = sum[d] + pixel[d]
+                for d in range(self.Depth):
+                    sum[d] = sum[d] / cellSq
+                data.append(sum)
+        return Dump(width, height, self.Depth, data)
 
 def DrawRect(img, x, y, w, h, c):
     for i in range(w):
@@ -1614,14 +1642,14 @@ def CountOptimal3():
         print "%d %d %3d %3.2f %s %s" % (l1, l2, minerror, bestthreshold, str(ltime), str(rtime))
 
 def DumpSmall():
-    dump = Dump("../dumps/%s.dump" % "1502667194")
+    dump = Dump.FromFileName("../dumps/%s.dump" % "1502667194")
     dump.SaveAsPicture("a.png", "PNG", 0.1)
 
 def MakeJSONDump():
     dumps = ['1502667084', '1502667129', '1502667148', '1502667166', '1502667194']
     pics = {}
     for dumpName in dumps:
-        pics[dumpName] = Dump("../dumps/%s.dump" % dumpName).GetDict()
+        pics[dumpName] = Dump.FromFileName("../dumps/%s.dump" % dumpName).GetDict()
     print "g_pictures_set = " + json.dumps(pics)
 
 def ConvTest():
@@ -1893,7 +1921,7 @@ def ConvMatrixTest1():
     global pixelpics
     (points, r) = MakeConvMatrix(3)
     name = '1502667084'
-    dump = Dump("../dumps/%s.dump" % name)
+    dump = Dump.FromFileName("../dumps/%s.dump" % name)
     labels = pixelpics[name]
     pr = TPolyRegression(1)
     X = []
@@ -1927,14 +1955,14 @@ def ConvMatrixTest2():
     
     for name in pics:
         print name
-        cl.AddDump(Dump("../dumps/%s.dump" % name), pixelpics[name])
+        cl.AddDump(Dump.FromFileName("../dumps/%s.dump" % name), pixelpics[name])
         
     print "learn"
     cl.Learn(1)
     print cl.Pr.R
 
 
-    cwdump = Dump("../dumps/%s.dump" % cw)
+    cwdump = Dump.FromFileName("../dumps/%s.dump" % cw)
 
     """
     print "count result"
@@ -1998,7 +2026,7 @@ def ConvMatrixTest3():
                 -9.45425805e-05,
                 3.90237888e-05])
     
-    cwdump = Dump("../dumps/%s.dump" % '1502667194')
+    cwdump = Dump.FromFileName("../dumps/%s.dump" % '1502667194')
     
     cl.DrawLabeledPicture(cwdump, 10, 0.1, 'cw1.png')
 
@@ -2015,7 +2043,7 @@ def ConvMatrixL2():
                 -9.45425805e-05,
                 3.90237888e-05])
 
-    cwdump = Dump("../dumps/%s.dump" % '1502667194')
+    cwdump = Dump.FromFileName("../dumps/%s.dump" % '1502667194')
 
     detRes = cl.CountL2(cwdump, 0.1, 20, 2, 2)
     print detRes
@@ -2036,7 +2064,7 @@ def ConvDetect():
 
     cw = '1502667194'
 
-    cwdump = Dump("../dumps/%s.dump" % cw)
+    cwdump = Dump.FromFileName("../dumps/%s.dump" % cw)
 
     objects = cl.DetectObjects(cwdump, 0.1, 20, 2, 2)
     
@@ -2068,6 +2096,211 @@ def ConvDetect():
 def Compatibility():
     pr = TPolyRegression(2)
     print pr.GetPolyArray([1,2,3])
+
+class TAutoLearning:
+    
+    def __init__(self, cellSize):
+        self.CellSize = cellSize
+        self.MinBgPart = 0.7
+        self.MinArt = 2
+        self.MinObj = 25
+
+    def AddDump(self, file):
+        self.Sdump = Dump.FromFileName(file).GetScaled(self.CellSize)
+    
+    def CheckThreshold(self, dump, rgb, thr, bPrint):
+        rmap = []
+        background = 0
+        for a in dump.Data:
+            d0 = rgb[0] - a[0]
+            d1 = rgb[1] - a[1]
+            d2 = rgb[2] - a[2]
+            if d0 * d0 + d1 * d1 + d2 * d2 > thr:
+                c = 1
+            else:
+                c = 0
+                background = background + 1
+            rmap.append(c)
+        if background < len(dump.Data) * self.MinBgPart:
+            return -1
+        
+        ba = 0
+        oa = 0
+        an = 2
+        for i in range(len(rmap)):
+            if rmap[i] == 1:
+                rmap[i] = an
+                size = 1
+                frontier = [i]
+                while len(frontier) > 0:
+                    t = frontier.pop()
+                    x = t % dump.Width
+                    y = t / dump.Width
+                    if (x > 0) and (rmap[t - 1] == 1):
+                        frontier.append(t - 1)
+                        size = size + 1
+                        rmap[t - 1] = an
+                    if (x < dump.Width - 1) and (rmap[t + 1] == 1):
+                        frontier.append(t + 1)
+                        size = size + 1
+                        rmap[t + 1] = an
+                    if (y > 0) and (rmap[t - dump.Width] == 1):
+                        frontier.append(t - dump.Width)
+                        size = size + 1
+                        rmap[t - dump.Width] = an
+                    if (y < dump.Height - 1) and (rmap[t + dump.Width] == 1):
+                        frontier.append(t + dump.Width)
+                        size = size + 1
+                        rmap[t + dump.Width] = an
+                        
+                if size >= self.MinArt:
+                    ba = ba + 1
+                    if size >= self.MinObj:
+                        oa = oa + 1
+                an = an + 1
+                
+        if bPrint:
+            i = 0
+            for cy in range(dump.Height):
+                s = ""
+                for cx in range(dump.Width):
+                    if rmap[i] > 0:
+                        v = chr(rmap[i] + ord('@'))
+                    else:
+                        v = '.'
+                    s = s + v
+                    i = i + 1
+                print s
+            
+        if ba == 0:
+            return 1
+        else:
+            if ba == 1:
+                if oa == 1:
+                    return 0
+                else:
+                    return 1
+            else:
+                return -1
+    
+    def GetMinThreshold(self, rgb):
+        min = 0
+        max = 256 * 256 * 256
+        
+        while min < max:
+            thr = (min + max) / 2
+            ba = self.CheckThreshold(self.Sdump, rgb, thr, False)
+            if ba < 0:
+                min = thr + 1
+            else:
+                if ba > 0:
+                    max = thr - 1
+                else:
+                    max = thr
+        
+        if ba == 0:
+            return min
+        else:
+            return  None
+    
+    def FindBestCell(self):
+        tmin = 256 * 256 * 256
+        tmax = -1
+        s = ""
+        for i in range(len(self.Sdump.Data)):
+            if i % self.Sdump.Width == 0:
+                print s
+                s = ""
+            rgb = self.Sdump.Data[i]
+            thr = self.GetMinThreshold(rgb)
+            if thr:
+                r = chr(int(thr / 1000) + ord('0'))
+            else:
+                r = ' '
+            s = s + r
+        print s
+    
+    def Print(self, rgb, thr):
+        i = 0
+        for cy in range(self.Sdump.Height):
+            s = ""
+            for cx in range(self.Sdump.Width):
+                d = (rgb[0] - self.Sdump.Data[i][0]) * (rgb[0] - self.Sdump.Data[i][0]) + (rgb[1] - self.Sdump.Data[i][1]) * (rgb[1] - self.Sdump.Data[i][1]) + (rgb[2] - self.Sdump.Data[i][2]) * (rgb[2] - self.Sdump.Data[i][2])
+                v = {True: "R", False: "."}[d > thr]
+                s = s + v
+                i = i + 1
+            print s
+                
+
+def AutoLearn():
+    cellSize = 10
+    learn = '1502667194'
+
+    dump = Dump.FromFileName("../dumps/%s.dump" % learn)
+    width = (dump.Width / cellSize) * cellSize
+    height = (dump.Height / cellSize) * cellSize
+
+    print width, height
+
+    a = []
+    cellSq = float(cellSize * cellSize)
+    for cy in range(0, height, cellSize):
+        for cx in range(0, width, cellSize):
+            rgb = [0, 0, 0]
+            for iy in range(cellSize):
+                for ix in range(cellSize):
+                    pixel = dump.GetPixel(cx + ix, cy + iy)
+                    rgb[0] = rgb[0] + pixel[0]
+                    rgb[1] = rgb[1] + pixel[1]
+                    rgb[2] = rgb[2] + pixel[2]
+            rgb[0] = rgb[0] / cellSq
+            rgb[1] = rgb[1] / cellSq
+            rgb[2] = rgb[2] / cellSq
+            a.append(rgb)
+
+    """
+    i = 0
+    for cy in range(0, height, cellSize):
+        s = ""
+        for cx in range(0, width, cellSize):
+            s = s + (" %3d-%3d-%3d" % (a[i][0], a[i][1], a[i][2]))
+            i = i + 1
+        print s
+    """
+    thr = 500
+    
+    rgb = a[0]
+    i = 0
+    for cy in range(0, height, cellSize):
+        s = ""
+        for cx in range(0, width, cellSize):
+            d = (rgb[0] - a[i][0]) * (rgb[0] - a[i][0]) + (rgb[1] - a[i][1]) * (rgb[1] - a[i][1]) + (rgb[2] - a[i][2]) * (rgb[2] - a[i][2])
+            v = {True: "R", False: "."}[d > thr]
+            #s = s + (" %5d" % (d))
+            s = s + v
+            i = i + 1
+        print s
+     
+def AutoLearn2():
+    # '1502667084', '1502667129', '1502667148', '1502667166', '1502667194'
+    cellSize = 10
+    #file = '1502667194'
+    file = '1502667166'
+
+
+    learn = TAutoLearning(cellSize)
+    learn.AddDump("../dumps/%s.dump" % file)
+    learn.FindBestCell()
+    
+    """
+    #rgb = learn.A[10 * learn.CW + 11]
+    rgb = learn.Sdump.Data[0]
+    
+    thr = learn.GetMinThreshold(rgb)
+    if thr:
+        print "threshold=", thr
+        print learn.CheckThreshold(learn.Sdump, rgb, thr, True)
+    """
 
 #Test2()
 #Im1()
@@ -2113,4 +2346,7 @@ def Compatibility():
 #ConvMatrixTest3()
 #ConvMatrixL2()
 #ConvDetect()
-Compatibility()
+#Compatibility()
+#AutoLearn()
+AutoLearn2()
+
