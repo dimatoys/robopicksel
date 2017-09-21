@@ -2069,6 +2069,118 @@ def Compatibility():
     pr = TPolyRegression(2)
     print pr.GetPolyArray([1,2,3])
 
+def OnePictireLearning():
+    files = {'1502667084': {"background": (121,61,206,143), "object": (131,76, 192, 135)},
+             '1502667129': {},
+             '1502667148': {},
+             '1502667166': {},
+             '1502667194': {}}
+    
+    learn = '1502667084'
+    
+    dump = Dump("../dumps/%s.dump" % learn)
+    
+    (bx1, by1, bx2, by2) = files[learn]["background"]
+    (ox1, oy1, ox2, oy2) = files[learn]["object"]
+
+    x = []
+    y = []
+    
+    for sy in range(dump.Height):
+        for sx in range(dump.Width):
+            if sx < bx1 or sx > bx2 or sy < by1 or sy > by2:
+                x.append((sx,sy))
+                y.append(dump.GetPixel(sx, sy))
+
+    pr = TPolyRegression(0)
+    pr.Learn(x, y)
+    
+    print pr.R
+    
+    """
+    db = 0
+    nb = 0
+    for sy in range(dump.Height):
+        for sx in range(dump.Width):
+            if sx < bx1 or sx > bx2 or sy < by1 or sy > by2:
+                v = pr.GetValue((sx, sy))
+                r = dump.GetPixel(sx, sy)
+                db += (v[0] - r[0]) * (v[0] - r[0]) + (v[1] - r[1]) * (v[1] - r[1]) + (v[2] - r[2]) * (v[2] - r[2]) 
+                nb += 3
+    
+    do = 0
+    no = 0
+    for sy in range(dump.Height):
+        for sx in range(dump.Width):
+            if sx > ox1 and sx < ox2 and sy > oy1 and sy < oy2:
+                v = pr.GetValue((sx, sy))
+                r = dump.GetPixel(sx, sy)
+                do += (v[0] - r[0]) * (v[0] - r[0]) + (v[1] - r[1]) * (v[1] - r[1]) + (v[2] - r[2]) * (v[2] - r[2]) 
+                no += 3
+                
+    print nb, db / nb
+    print no, do / no
+    """
+    
+    thr = 3500
+    fp = 0
+    b = 0
+    for sy in range(dump.Height):
+        for sx in range(dump.Width):
+            if sx < bx1 or sx > bx2 or sy < by1 or sy > by2:
+                v = pr.GetValue((sx, sy))
+                r = dump.GetPixel(sx, sy)
+                if (v[0] - r[0]) * (v[0] - r[0]) + (v[1] - r[1]) * (v[1] - r[1]) + (v[2] - r[2]) * (v[2] - r[2]) >= thr: 
+                    fp = fp + 1
+                b = b + 1
+    
+    neg = 0
+    n = 0
+    for sy in range(dump.Height):
+        for sx in range(dump.Width):
+            if sx > ox1 and sx < ox2 and sy > oy1 and sy < oy2:
+                v = pr.GetValue((sx, sy))
+                r = dump.GetPixel(sx, sy)
+                if (v[0] - r[0]) * (v[0] - r[0]) + (v[1] - r[1]) * (v[1] - r[1]) + (v[2] - r[2]) * (v[2] - r[2]) < thr: 
+                    neg = neg + 1
+                n = n + 1
+    
+    print thr, b, fp, fp * 100.0 / b
+    print thr, n, neg, neg * 100.0 / n
+    
+    #cw = '1502667129'
+    #cw = '1502667148'
+    cw = '1502667166'
+    #cw = '1502667194'
+    dump2 = Dump("../dumps/%s.dump" % cw)
+    img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
+    for sy in range(0, dump2.Height, 3):
+        for sx in range(0, dump2.Width, 3):
+            v = pr.GetValue((sx, sy))
+            r = dump2.GetPixel(sx, sy)
+            if (v[0] - r[0]) * (v[0] - r[0]) + (v[1] - r[1]) * (v[1] - r[1]) + (v[2] - r[2]) * (v[2] - r[2]) >= thr:
+                img.putpixel((sx, sy), (255, 255, 255))
+            
+    img.save("%s-l.png" % cw, 'PNG')
+    
+    
+    """
+    appr = Image.new('RGB', (dump.Width, dump.Height))
+    for sy in range(dump.Height):
+        for sx in range(dump.Width):
+            v = pr.GetValue((sx, sy))
+            appr.putpixel((sx,sy), (int(v[0]), int(v[1]), int(v[2])))
+    appr.save("%s-a.png" % learn, 'PNG')
+    """
+
+    """
+    img = Image.frombytes('RGB', (dump.Width, dump.Height), dump.Data)
+    draw = ImageDraw.Draw(img)
+    draw.rectangle(((bx1, by1), (bx2, by2)))
+    draw.rectangle(((ox1, oy1), (ox2, oy2)))
+    img.save("%s.png" % learn, 'PNG')
+    """
+
 #Test2()
 #Im1()
 #Draw1("3500-2500.jpg")
@@ -2113,4 +2225,6 @@ def Compatibility():
 #ConvMatrixTest3()
 #ConvMatrixL2()
 #ConvDetect()
-Compatibility()
+#Compatibility()
+OnePictireLearning()
+
