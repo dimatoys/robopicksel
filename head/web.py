@@ -34,9 +34,11 @@ def main():
                            MaxS = g_Head.MaxS,
                            pins = g_Head.Pins)
 
-@app.route("/dumps/<path:path>")
+@app.route("/dumps/<path>")
 def dumps(path):
-    return send_from_directory('../dumps', path)
+    (width, height, depth, data) = LoadDump('../dumps/%s.dump' % path)
+    dump = {"width": width, "height": height, "depth": depth}
+    return Response(json.dumps(dump), content_type='text/plain; charset=utf-8')
 
 @app.route("/servo/<id>/<v>")
 def servo(id, v):

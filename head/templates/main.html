@@ -651,6 +651,10 @@
                     $('#camera').prop('src', "static/test.jpg?" + Math.random())
                 });
           })
+          
+          $("#loaddump").click(function(){
+              
+          })
 
           readExtractorParameters($("#extractorParams"))
 
@@ -801,8 +805,8 @@
 	     </table>
 	     <table>
 	        <tr>
-	          <td>B=<input type="textfield" id="move_B" value="0"></td>
-	          <td>X=<input type="textfield" id="move_X" value="100"></td>
+	          <td>B=<input type="textfield" id="move_B" value="0"/></td>
+	          <td>X=<input type="textfield" id="move_X" value="100"/></td>
 	          <td><input type="button" id="move_Move" value="Move"></td>
 	        </tr>
 	     </table>
@@ -818,9 +822,52 @@
 		</tr>
 	</table>
 
-    <p>
-      <img id="camera" class="rotate180"/>
-    </p>
+    <table>
+        <tr>
+            <td>
+                <img id="camera" class="rotate180"/>
+            </td>
+            <td>
+                <canvas id="dump"/>
+            </td>
+            <td>
+                <table>
+                    <tr>
+                        <td>
+                            <input type="textfield" id="dumpname"/>
+                            <inout type="button" id="loaddump" value="LOAD"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="radio" name="camera_action"/>Move to the point
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="radio" name="camera_action"/>Learn object
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="radio" name="camera_action"/>Learn background
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="radio" name="camera_action"/>Clear learning
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="button" value="-" id="zoomout"/><label id="scale">1</label><input type="button" value="+" id="zoomout"/>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+   
     <h3>commands</h3>
     <ul>
       <li><B>R</B>pin - read pin</li>  
