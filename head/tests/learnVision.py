@@ -2216,9 +2216,10 @@ class TAutoLearning:
         self.MinBgPart = 0.7
         self.MinArt = 2
         self.MinObj = 25
+        self.SDumps = []
 
     def AddDump(self, file):
-        self.Sdump = Dump.FromFileName(file).GetScaled(self.CellSize)
+        self.SDumps.append(Dump.FromFileName(file).GetScaled(self.CellSize))
     
     def CheckThreshold(self, dump, rgb, thr, bPrint):
         rmap = []
@@ -2301,14 +2302,17 @@ class TAutoLearning:
         
         while min < max:
             thr = (min + max) / 2
-            ba = self.CheckThreshold(self.Sdump, rgb, thr, False)
-            if ba < 0:
-                min = thr + 1
-            else:
-                if ba > 0:
-                    max = thr - 1
+            for sdump in self.SDumps:
+                ba = self.CheckThreshold(sdump, rgb, thr, False)
+                if ba < 0:
+                    min = thr + 1
+                    break
                 else:
-                    max = thr
+                    if ba > 0:
+                        max = thr - 1
+                        break
+            if ba == 0:
+                max = thr
         
         if ba == 0:
             return min
@@ -2317,24 +2321,30 @@ class TAutoLearning:
     
     def FindBestCell(self):
         tmin = 256 * 256 * 256
-        tmax = -1
+        rgbmin = None
         s = ""
-        for i in range(len(self.Sdump.Data)):
-            if i % self.Sdump.Width == 0:
-                print s
-                s = ""
-            rgb = self.Sdump.Data[i]
-            thr = self.GetMinThreshold(rgb)
-            if thr:
-                r = chr(int(thr / 1000) + ord('0'))
-            else:
-                r = ' '
-            s = s + r
-        print s
+        for sdump in self.SDumps:
+            for i in range(len(sdump.Data)):
+                if i % sdump.Width == 0:
+                    print s
+                    s = ""
+                rgb = sdump.Data[i]
+                thr = self.GetMinThreshold(rgb)
+                if thr:
+                    r = chr(int(thr / 1000) + ord('0'))
+                    if thr < tmin:
+                        tmin = thr
+                        rgbmin = rgb
+                else:
+                    r = ' '
+                s = s + r
+            print s
+            print
+        print tmin, rgbmin
     
     def Print(self, rgb, thr):
         i = 0
-        for cy in range(self.Sdump.Height):
+        for cy in range(self.SDumps[0].Height):
             s = ""
             for cx in range(self.Sdump.Width):
                 d = (rgb[0] - self.Sdump.Data[i][0]) * (rgb[0] - self.Sdump.Data[i][0]) + (rgb[1] - self.Sdump.Data[i][1]) * (rgb[1] - self.Sdump.Data[i][1]) + (rgb[2] - self.Sdump.Data[i][2]) * (rgb[2] - self.Sdump.Data[i][2])
@@ -2397,11 +2407,11 @@ def AutoLearn2():
     # '1502667084', '1502667129', '1502667148', '1502667166', '1502667194'
     cellSize = 10
     #file = '1502667194'
-    file = '1502667166'
 
 
     learn = TAutoLearning(cellSize)
-    learn.AddDump("../dumps/%s.dump" % file)
+    learn.AddDump("../dumps/%s.dump" % '1502667166')
+    learn.AddDump("../dumps/%s.dump" % '1502667084')
     learn.FindBestCell()
     
     """
