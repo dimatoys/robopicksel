@@ -1,6 +1,8 @@
 from ctypes import *
 import time
 import datetime
+import os
+import os.path
 
 '''
 http://picamera.readthedocs.org/en/release-1.10/fov.html#camera-modes
@@ -47,6 +49,8 @@ CameraLocalDumpTemplate = "../dumps/%ld.dump"
 #CameraDumpFile = "1477542292"
 CameraDumpFile = "1502667084"
 #CameraDumpFile = "1477542307"
+
+Metadata = Node
 
 def Print(message):
 	global g_Logger
@@ -191,6 +195,16 @@ class Vision(Structure):
 		if g_PiCamera is not None:
 			g_PiCamera.close()
 
+class MetadataManagement:
+    def __init__(self):
+        self.Load()
+
+    def Load(self):
+        self.Data = {}
+    
+    def Update(self):
+        pass
+
 def InitCamera(type, mode, logger, head):
 	global g_VisionModule
 	global CameraRemoteDumpTemplate
@@ -206,6 +220,7 @@ def InitCamera(type, mode, logger, head):
 	global g_CameraParameters
 	global g_Head
 	global g_DumpTemplate
+    global Metadata
 
 	g_Mode = mode
 	g_CameraParameters = {}
@@ -245,6 +260,8 @@ def InitCamera(type, mode, logger, head):
 
 	g_Logger = logger
 	g_Head = head
+    
+    Metadata = MetadataManagement()
 
 def VisionInstance():
 	return Vision()
@@ -292,13 +309,23 @@ def CameraYToAngle(y):
 	global CameraViewAngleY
 	return (float(y) / float(g_CameraParameters["height"]) - 0.5) * CameraViewAngleY
 
+def GetDumps():
+    global g_DumpTemplate
+    result = []
+    for f in os.listdir(os.path.dirname(g_DumpTemplate)):
+        result.append(f.replace(".dump", ""))
+    return result
+
 def LoadDump(fileName):
 	global g_DumpTemplate
-	f = open(g_DumpTemplate % int(fileName), 'rb')
-	h = bytearray(f.read(12))
-	data = f.read()
-	width = h[0] + 256 * (h[1] + 256 * (h[2] + 256 * h[3]))
-	height = h[4] + 256 * (h[5] + 256 * (h[6] + 256 * h[7]))
-	depth = h[8] + 256 * (h[9] + 256 * (h[10] + 256 * h[11]))
-	return (width, height, depth, data)
+	try:
+		f = open(g_DumpTemplate % int(fileName), 'rb')
+		h = bytearray(f.read(12))
+		data = f.read()
+		width = h[0] + 256 * (h[1] + 256 * (h[2] + 256 * h[3]))
+		height = h[4] + 256 * (h[5] + 256 * (h[6] + 256 * h[7]))
+		depth = h[8] + 256 * (h[9] + 256 * (h[10] + 256 * h[11]))
+		return (width, height, depth, data)
+	except:
+		return None
 

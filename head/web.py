@@ -8,7 +8,7 @@ from flask import request
 import json
 
 from Commands import Commands
-from Camera import InitCamera
+from Camera import InitCamera, LoadDump, GetDumps, Metadata
 
 print "Run: web.py"
 
@@ -18,27 +18,25 @@ g_Commands = None
 
 @app.route("/")
 def main():
-    return render_template('main.html',
-                           GM = g_Head.M,
-                           GM2 = g_Head.M2,
-                           GD = g_Head.D,
-                           GH = g_Head.H,
-                           GC = g_Head.C,
-                           GR = g_Head.R,
-                           CC = g_Head.CC,
-                           CH = g_Head.CH,
-                           CV = g_Head.CV,
-                           SH = g_Head.SH,
-                           GRH = g_Head.GRH,
-                           MinS = g_Head.MinS,
-                           MaxS = g_Head.MaxS,
-                           pins = g_Head.Pins)
+    return render_template('main.html', pins = g_Head.Pins)
+
+@app.route("/dumps")
+def dumpslist():
+    dumps = GetDumps()
+    return Response(json.dumps(dumps), content_type='text/plain; charset=utf-8')
 
 @app.route("/dumps/<path>")
 def dumps(path):
-    (width, height, depth, data) = LoadDump('../dumps/%s.dump' % path)
-    dump = {"width": width, "height": height, "depth": depth}
-    return Response(json.dumps(dump), content_type='text/plain; charset=utf-8')
+    dump = LoadDump(path)
+    if dump:
+        (width, height, depth, data) = dump
+        return Response(json.dumps({"width": width, "height": height, "depth": depth, "data": map(ord, data)}), content_type='text/plain; charset=utf-8')
+    else:
+        return Response(json.dumps({}), content_type='text/plain; charset=utf-8')
+
+@app.route("/metadata")
+def metadata():
+    return Response(json.dumps(Metadata.Data), content_type='text/plain; charset=utf-8')
 
 @app.route("/servo/<id>/<v>")
 def servo(id, v):
@@ -53,14 +51,6 @@ def read_sensors():
                 "servos": g_Head.ReadServos()}
 
     return Response(json.dumps(response), content_type='text/plain; charset=utf-8')
-
-@app.route("/geometry/<x>/<b>/<z>")
-def geometry(x, b, z):
-    g_Head.MoveXZ(int(x), int(z))
-    g_Head.SetB(int(b))
-    servos = g_Head.ReadServos()
-    return Response("{'status': 'ok', 'servos': [%d, %d, %d, %d]}" % (servos[0], servos[1], servos[2], servos[3]),
-        content_type='text/plain; charset=utf-8')
 
 @app.route("/command/<cmd>")
 def command(cmd):

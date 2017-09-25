@@ -99,37 +99,6 @@ class HeadLocal(object):
 	# center of gripper
 	GRS = 10
 
-	def MoveXZ(self, x, z):
-		x1 = x - self.D
-		m3 = (self.M + self.M2) / 2
-		s = x1 * x1 + z * z
-		ss = sqrt(s)
-		sinaf = (s + self.D * self.D - m3 * m3) / (2 * self.D * ss)
-		if sinaf > 1:
-			sinaf = 1.0
-		else:
-			if sinaf < -1:
-				sinaf = -1.0
-		if z > 0:
-			f = asin(x1 / ss)
-		else:
-			f = pi - asin(x1 / ss)
-		a = asin(sinaf) - f
-		sinag = (z - self.D * sin(a)) / m3
-		if sinag > 1:
-			sinag = 1.0
-		else:
-			if sinag < -1:
-				sinag = -1
-		if self.D * cos(a) < x1:
-			g = asin(sinag) - a
-		else:
-			g = (pi - asin(sinag)) - a
-
-		time_a = self.SetAngle(self.DOF_A, a)
-		time_g = self.SetAngle(self.DOF_G, g)
-		return max(time_a, time_g)
-
 	def SetB(self, b):
 		self.SetServo(self.DOF_B, b)
 	

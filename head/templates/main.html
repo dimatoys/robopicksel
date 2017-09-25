@@ -12,25 +12,10 @@
     </style>
     <script src="/static/jquery-1.11.3.min.js"></script>
     <script src="/static/jquery-ui-1.11.4/jquery-ui.min.js"></script>
-    <script src="/static/head.map.js"></script>
     <script type="text/javascript">
 
-    GM = {{ GM }}
-    GM2 = {{ GM2 }}
-    GD = {{ GD }}
-    GH = {{ GH}}
-    GC = {{ GC }}
-    GR = {{ GR }}
-    CC = {{ CC }}
-    CH = {{ CH }}
-    CV = {{ CV }}
-    SH = {{ SH}}
-    GRH = {{ GRH }}
-    MinS = {{ MinS }}
-    MaxS = {{ MaxS }}
-
-    GM3 = (GM + GM2) / 2
-
+    MinS = 0
+    MaxS = 5000
 /*
 "awb_mode"
 
@@ -78,26 +63,10 @@
 
     function sendServo(id) {
         var query = "/servo/"+id+"/"+$("#s" + id).val()
-        $.get( query , function( data ) {
-          drawHead()
-        });
-    }
-
-    function sendGeometry() {
-        var query = "/geometry/" + $("#gx").val() +"/" +$("#gb").val() + "/" + $("#gz").val()
-        $.get( query , function( data ) {
-          eval("res = " + data)
-          var servos = res['servos']
-          for (var i = 0; i < 4; i++) {
-              $("#s" + i).val(servos[i])
-              $("#slider" + i).slider( "option", "value", servos[i] )
-          }
-          drawHead()
-        });
+        $.get( query , function( data ) {});
     }
 
     function initServos() {
-    	//sendGeometry();
     	getSensors(true);
     }
 
@@ -115,7 +84,6 @@
                     $("#slider" + i).slider( "option", "value", servos[i] )
                 }
                 $("#gb").val(servos[3])
-                drawHead()
             }
         })
     }
@@ -163,201 +131,6 @@
         })
     }
 
-
-    function drawHead() {
-
-        var size = 10
-
-        var mheadElement = document.getElementById("mhead")
-        var c = mheadElement.getContext("2d")
-        var w = mheadElement.height / 2
-        var scale = w / (GM3 + GD)
-
-        var a = ($("#s2").val() - (MaxS + MinS) / 2) * Math.PI / (MaxS - MinS)
-        var g = ($("#s1").val() - (MaxS + MinS) / 2) * Math.PI / (MaxS - MinS)
-
-        var x0 = GD
-        var y0 = 0
-
-        var x1 = x0 + Math.floor(Math.cos(a) * GD)
-        var y1 = y0 + Math.floor(Math.sin(a) * GD)
-
-        var x = $("#gx").val()
-        var z = $("#gz").val()
-        var min = Math.floor(Math.sqrt(GD * GD + GM3 * GM3))
-
-        var cx = x * scale
-        var cz = z * scale + w
-        var ch = GH * scale + w
-        var cmin = min * scale
-
-        var x2 = x1 + Math.floor(Math.cos(a + g) * GM3)
-        var y2 = y1 + Math.floor(Math.sin(a + g) * GM3)
-
-        var ox2 = x1 + Math.floor(Math.cos(a + g) * GM)
-        var oy2 = y1 + Math.floor(Math.sin(a + g) * GM)
-
-        var x3 = x1 + Math.floor(Math.cos(a + g) * GC + Math.cos(a + g - Math.PI / 2) * GR)
-        var y3 = y1 + Math.floor(Math.sin(a + g) * GC + Math.sin(a + g - Math.PI / 2) * GR)
-
-        var ca0 = a + g + CC
-        var sinca0 = Math.sin(ca0)
-        if (sinca0 > 0) {
-            cx4 = (x3 + Math.floor((GH - y3) * Math.cos(ca0) / sinca0)) * scale
-            cy4 = ch
-        } else {
-            cy4 = 0
-        }
-
-        var ca1 = a + g + CC + CV / 2
-        var sinca1 = Math.sin(ca1)
-        if (sinca1 > 0) {
-            cx5 = (x3 + Math.floor((GH - y3) * Math.cos(ca1) / sinca1)) * scale
-            cy5 = ch
-        } else {
-            cy5 = 0
-        }
-
-        var ca2 = a + g + CC - CV / 2
-        var sinca2 = Math.sin(ca2)
-        if (sinca2 > 0) {
-            cx6 = (x3 + Math.floor((GH - y3) * Math.cos(ca2) / sinca2)) * scale
-            cy6 = ch
-        } else {
-            cy6 = 0
-        }
-
-        var cx0 = x0 * scale
-        var cy0 = y0 * scale + w
-
-        var cx1 = x1 * scale
-        var cy1 = y1 * scale + w
-
-        var cx2 = x2 * scale
-        var cy2 = y2 * scale + w
-
-        var cox2 = ox2 * scale
-        var coy2 = oy2 * scale + w
-
-        var cx3 = x3 * scale
-        var cy3 = y3 * scale + w
-
-        c.fillStyle = "#FFF"
-        c.lineWidth = 1
-
-        c.fillRect(0, 0, mheadElement.width, w * 2)
-        
-        c.strokeStyle = "#000"
-        c.beginPath()
-        c.strokeRect(0, 0, mheadElement.width, w * 2)
-        for (var n = 50; n < GM3 + GD; n += 50) {
-        	var r = n * scale
-        	c.moveTo(0, w - r)
-        	c.lineTo(mheadElement.width, w - r)
-        	c.moveTo(0, w + r)
-        	c.lineTo(mheadElement.width, w + r)
-        }
-        for (var n = 50; n * scale < mheadElement.width; n += 50) {
-        	var r = n * scale
-        	c.moveTo(r, 0)
-        	c.lineTo(r, w * 2)
-        }
-        c.stroke()
-
-        c.strokeStyle = "#F88"
-        c.lineWidth = 5
-        c.beginPath()
-        c.moveTo(0, ch)
-        c.lineTo(mheadElement.width, ch)
-
-        c.stroke()
-
-        c.strokeStyle = "#8F8"
-        c.beginPath()
-        c.moveTo(0, cz)
-        c.lineTo(mheadElement.width, cz)
-        c.moveTo(cx, 0)
-        c.lineTo(cx, w * 2)
-        c.moveTo(cx0,0)
-        c.arc(cx0, cy0, w, -Math.PI/2, Math.PI * 3 / 2, false)
-        c.moveTo(cx0,cy0 - cmin)
-        c.arc(cx0, cy0, cmin, -Math.PI/2, Math.PI * 3 / 2, false)
-        c.stroke()
-
-        c.strokeStyle = "#88F"
-        c.fillStyle = "#88F"
-        c.font = "12px Arial";
-        c.beginPath()
-
-        c.moveTo(cx0 + size, cy0)
-        c.arc(cx0, cy0, size, 0, 2 * Math.PI, false)
-
-        c.moveTo(cx1 + size, cy1)
-        c.arc(cx1, cy1, size, 0, 2 * Math.PI, false)
-    	c.fillText(x1 + "," + y1, cx1 + size, cy1 - size);
-
-
-        c.moveTo(cox2 + size, coy2)
-        c.arc(cox2, coy2, size, 0, 2 * Math.PI, false)
-
-        c.moveTo(cx3 + size, cy3)
-        c.arc(cx3, cy3, size, 0, 2 * Math.PI, false)
-
-        c.moveTo(0,w)
-        c.lineTo(cx0, cy0)
-        c.lineTo(cx1, cy1)
-        c.lineTo(cx2, cy2)
-    	c.fillText(x2 + "," + y2, cx2 + size, cy2 - size);
-
-        c.stroke()
-
-        c.strokeStyle = "#F88"
-        c.lineWidth = 1
-        c.beginPath()
-        c.moveTo(0, w)
-        c.lineTo(mheadElement.width, w)
-        
-        if (cy4 == ch) {
-            c.moveTo(cx3, cy3)
-            c.lineTo(cx4, cy4)
-        }
-        if (cy5 == ch) {
-            c.moveTo(cx3, cy3)
-            c.lineTo(cx5, cy5)
-        }
-        if (cy6 == ch) {
-            c.moveTo(cx3, cy3)
-            c.lineTo(cx6, cy6)
-        }
-
-        c.moveTo(0,(GH - SH) * scale + w)
-        c.lineTo(mheadElement.width, (GH - SH) * scale + w)
-
-        c.moveTo(0, (GH - GRH) * scale + w)
-        c.lineTo(mheadElement.width, (GH - GRH) * scale + w)
-
-        c.stroke()
-
-        $("#topmap").topmap("redraw", g_Objects)
-        
-    }
-
-    function makeObjTable() {
-    	table = $("#obj_table")
-    	table.empty()
-        for (var i in g_Objects) {
-        	tr = $("<tr/>").appendTo(table)
-        	lookToButton = $('<input/>').attr("type", "button")
-        	                            .attr("value", "CmdGrabAt(" + g_Objects[i].x + "," + g_Objects[i].y + ")")
-        	                            .click(function(){
-        	                            	sendCommand($(this).attr("value"), function(status, result){
-        	                            		setTimeout(function(){getSensors(true)}, 100)
-        	                            	} )
-        	                            })
-        	$("<td/>").append(lookToButton).appendTo(tr)
-        }
-    }
-    
       $(function() {
         for (var i = 0; i < 4; i++) {
             $( "#slider" + i ).slider({
@@ -483,8 +256,6 @@
     	  makeCmdButton(caption, args).click(function(){
               sendArgCommand($(this), cmd, function(status, result){
           	      g_Objects = result
-        	      //drawHead()
-        	      //makeObjTable()
             	  $('#camera').prop('src', "static/test.jpg?" + Math.random())
               })
           })
@@ -528,7 +299,76 @@
           })
       }
 
-      $(document).ready(function() {
+function JSONImage(canvas) {
+
+    var This = {
+    	Canvas: canvas,
+    	Ctx: canvas[0].getContext('2d'),
+        Scale: 1,
+        
+        LoadImage: function(data){
+            this.Width = data["width"]
+            this.Height = data["height"]
+            this.Depth = data["depth"]
+            this.Data = data["data"]
+            this.Draw()
+        },
+        
+        GetFromServer: function(file) {
+            jsonImage = this
+            $.ajax({url: "/dumps/" + file,
+                    dataType: "json"})
+             .done(function(json){
+                 jsonImage.LoadImage(json)
+             })
+        },
+
+        Draw: function() {
+            
+            this.Canvas[0].width = this.Width * this.Scale
+            this.Canvas[0].height = this.Height * this.Scale
+            
+            for (var y = 0; y < this.Height; y++) {
+                for (var x = 0; x < this.Width; x++) {
+                    this.DrawCell(x, y)
+                }
+            }
+        },
+
+        DrawCell : function(x, y){
+            var i = (y * this.Width + x) * this.Depth
+            this.Ctx.fillStyle = 'rgb(' + this.Data[i] + ',' + this.Data[i+1] + ',' + this.Data[i+2] + ')' ;
+            this.Ctx.fillRect(x * this.Scale, y * this.Scale, this.Scale, this.Scale);
+        },
+    }
+
+    return This
+}
+
+function MetadataManagement() {
+    var This = {
+        
+        Data: undefined,
+        
+        Load: function() {
+            mm = this
+            $.ajax({url: "/metadata",
+                    dataType: "json"})
+             .done(function(json){
+                 mm.Data = json
+             })
+        }
+    }
+    
+    This.Load()
+    
+    return This
+}
+
+var DumpImage = undefined
+var Metadata  = undefined
+
+    $(document).ready(function() {
 
           $("#send0").click(function() {
               sendServo(0)
@@ -551,46 +391,7 @@
                 }
           })
 
-          $("#geom").click(function(){
-              sendGeometry()
-          })
-
-          $("#mhead").click(function(e){
-        	  var pos = $(this).position()
-        	  var w = $(this).attr("height") / 2
-        	  var cx = e.pageX - pos.left
-        	  var cy = (e.pageY-pos.top) - w
-        	  
-        	  var x = Math.floor(cx * (GM3 + GD) / w)
-        	  var z = Math.floor(cy * (GM3 + GD) / w)
-
-              $("#gx").val(x)
-              $("#gz").val(z)
-              sendGeometry()
-          })
-
-          $("#topmap").topmap({
-  			MinS: MinS,
-  			MaxS: MaxS,
-  			GD: GD,
-  			GM3: GM3,
-  			GH: GH,
-  			GC: GC,
-  			GR: GR,
-  			CC: CC,
-  			CH: CH,
-  			CV: CV,
-  			getServo: function(s) {
-				return $("#s" + s).val()
-			},
-			updateB : function(b) {
-				$("#gb").val(b)
-				sendGeometry()
-			},
-			MessageElement: $("#cam_range")
-          })
-
-    	  makeCmdButton("SHUDOWN", []).click(function(){
+     	  makeCmdButton("SHUDOWN", []).click(function(){
               $.get( "/shutdown" , function( data ) {
                   $("#response").html(data);
               });
@@ -652,9 +453,54 @@
                 });
           })
           
-          $("#loaddump").click(function(){
+          $("#loaddumps").click(function(){
+              $.ajax({url: "/dumps",
+                      dataType: "json"})
+               .done(function(json){
+                   var sel = $("#dumps").empty()
+                   $.each(json, function(idx, value){
+                       $("<option/>").text(value)
+                                     .appendTo(sel)
+                                     
+                   })
+               })
+          })
+          
+          DumpImage = JSONImage($("#dump"))
+        
+          $("#dumps").change(function(){
+              $(this).find("option:selected" )
+                     .each(function(){
+                         DumpImage.GetFromServer($(this).text())
+/*
+                $.ajax({url: "/dumps/" + $(this).text(),
+                                 dataType: "json"})
+                          .done(function(json){
+                              DumpImage.LoadImage(json)
+                         })
+*/
+                     })
+          })
+          
+          $("#zoomin").click(function(){
+              DumpImage.Scale = parseInt($("#scale").text()) + 1
+              console.log("Scale:"+DumpImage.Scale)
+              DumpImage.Draw()
+              $("#scale").text(DumpImage.Scale)
               
           })
+          
+          $("#zoomout").click(function(){
+              DumpImage.Scale = parseInt($("#scale").text()) - 1
+              console.log("Scale:"+DumpImage.Scale)
+              if (DumpImage.Scale < 1) {
+                  DumpImage.Scale = 1
+              }
+              DumpImage.Draw()
+              $("#scale").text(DumpImage.Scale)
+          })
+          
+          Metadata = MetadataManagement()
 
           readExtractorParameters($("#extractorParams"))
 
@@ -665,17 +511,6 @@
     </script>
   </head>
   <body>
-    <h1>Maps</h2>
-    <table>
-      <tr>
-        <td><canvas id="topmap" width="600" height="600"/></td>
-        <td><canvas id="mhead" width="600" height="600"/></td>
-      <tr>
-      <tr>
-        <td id="cam_range"></td>
-        <td></td>
-      </tr>
-    </table>
     <table>
       <tr>
         <td><h1>Low level control</h1></td>
@@ -750,22 +585,6 @@
       			</tr>
       		</table>
         </td>
-        <td>
-        	<table>
-          		<tr>
-          			<td>X = <input type="textfield" id="gx" value="157"></td>
-          		</tr>
-          		<tr>
-          			<td>B = <input type="textfield" id="gb" value="2500"></td>
-          		</tr>
-          		<tr>
-          			<td>Z = <input type="textfield" id="gz" value="-164"></td>
-          		</tr>
-          		<tr>
-          			<td><input id="geom" type="button" value="SEND GEOMERTY"></td>
-          		</tr>
-        	</table>
-        </td>
       </tr>
     </table>
     <table>
@@ -834,10 +653,12 @@
                 <table>
                     <tr>
                         <td>
-                            <input type="textfield" id="dumpname"/>
-                            <inout type="button" id="loaddump" value="LOAD"/>
+                            <select id="dumps"/>
+                            <input type="button" id="loaddumps" value="LOAD LIST"/>&nbsp;
+                            <input type="button" value="-" id="zoomout"/>&nbsp;<label id="scale">1</label>&nbsp;<input type="button" value="+" id="zoomin"/>
                         </td>
                     </tr>
+<!--
                     <tr>
                         <td>
                             <input type="radio" name="camera_action"/>Move to the point
@@ -858,11 +679,7 @@
                             <input type="radio" name="camera_action"/>Clear learning
                         </td>
                     </tr>
-                    <tr>
-                        <td>
-                            <input type="button" value="-" id="zoomout"/><label id="scale">1</label><input type="button" value="+" id="zoomout"/>
-                        </td>
-                    </tr>
+-->
                 </table>
             </td>
         </tr>
