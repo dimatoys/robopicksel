@@ -56,6 +56,37 @@ CameraDumpFile = "1502667084"
 Settings = None
 Metadata = None
 
+def GetSettings():
+	global Settings
+	if Settings == None:
+		Settings = SettingsManagement()
+	return Settings.Data
+
+def SaveSettings():
+	global Settings
+	if Settings:
+		Settings.Save()
+
+def GetMetadata():
+	global Metadata
+	if Metadata == None:
+		Metadata = MetadataManagement()
+	return Metadata.Data
+
+def MetadataSave():
+	global Metadata
+	if Metadata:
+		return Metadata.Save()
+	else:
+		return None
+
+def MetadataSet(data):
+	global Metadata
+	if Metadata:
+		return Metadata.Set(data)
+	else:
+		return None
+
 def Print(message):
 	global g_Logger
 	if g_Logger:
@@ -223,27 +254,31 @@ class MetadataManagement:
 		self.Load()
 
 	def Load(self):
-		global Settings
 		global MetadataDir
-		if "Metadata" in Settings.Data:
-			fileName = Settings.Data["Metadata"]["file"]
+		settings = GetSettings()
+		if "Metadata" in settings:
+			fileName = settings["Metadata"]["file"]
 			f = open(MetadataDir + fileName)
 			if f:
 				self.Data = json.load(f)
 				f.close()
 		else:
-			Settings.Data["Metadata"] = {}
+			settings["Metadata"] = {}
 		self.Data = {}
 
-	def Update(self):
-		global Settings
+	def Set(self, data):
+		self.Data = data
+		return self.Save()
+
+	def Save(self):
 		global MetadataDir
-		Settings.Data["Metadata"]["file"] = datetime.datetime.now().strftime("%Y%m%d_%H%m%S")
+		settings = GetSettings()
+		settings["Metadata"]["file"] = datetime.datetime.now().strftime("%Y%m%d_%H%m%S")
 		f = open(MetadataDir + fileName, "w+")
 		f.write(json.dumps(self.Data, sort_keys=True, indent=2, separators=(',', ': ')))
 		f.close()
-		Settings.Save()
-		return Settings.Data["Metadata"]["file"]
+		SettingsSave()
+		return settings["Metadata"]["file"]
 		
 
 def InitCamera(type, mode, logger, head):
@@ -302,9 +337,6 @@ def InitCamera(type, mode, logger, head):
 
 	g_Logger = logger
 	g_Head = head
-
-	Settings = SettingsManagement()
-	Metadata = MetadataManagement()
 
 def VisionInstance():
 	return Vision()

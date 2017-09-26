@@ -357,7 +357,22 @@ function MetadataManagement() {
              .done(function(json){
                  mm.Data = json
              })
-        }
+        },
+        
+        Update: function(updateFunc, successFunc){
+            mm = this
+            $.ajax({url: "/metadata",
+                    dataType: "json"})
+             .done(function(json){
+                 mm.Data = json
+                 updateFunc(mm.Data)
+                 $.ajax({type: "POST",
+						 url: "/metadata",
+						 data: {text: jQuery.parseJSON(mm.Dataifname)},
+						 success: successFunc
+						 })
+             })
+		}
     }
     
     This.Load()
@@ -472,13 +487,6 @@ var Metadata  = undefined
               $(this).find("option:selected" )
                      .each(function(){
                          DumpImage.GetFromServer($(this).text())
-/*
-                $.ajax({url: "/dumps/" + $(this).text(),
-                                 dataType: "json"})
-                          .done(function(json){
-                              DumpImage.LoadImage(json)
-                         })
-*/
                      })
           })
           
