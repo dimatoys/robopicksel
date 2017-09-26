@@ -36,7 +36,13 @@ def dumps(path):
 
 @app.route("/metadata")
 def metadata():
-    return Response(json.dumps(Metadata.Data), content_type='text/plain; charset=utf-8')
+	global Metadata
+	if "text" in request.form:
+		Metadata.Data = json.loads(request.form["text"])
+		id = Metadata.Update()
+		return Response("{'file': %s}" % id, content_type='text/plain; charset=utf-8')
+	else:	
+		return Response(json.dumps(Metadata.Data), content_type='text/plain; charset=utf-8')
 
 @app.route("/servo/<id>/<v>")
 def servo(id, v):

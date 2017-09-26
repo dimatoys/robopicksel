@@ -3,6 +3,7 @@ import time
 import datetime
 import os
 import os.path
+import json
 
 '''
 http://picamera.readthedocs.org/en/release-1.10/fov.html#camera-modes
@@ -40,6 +41,8 @@ CameraViewAngleY = 0.5410520681182421
 
 CameraRemoteDumpTemplate = "/home/pi/projects/dumps/%ld.dump"
 CameraLocalDumpTemplate = "../dumps/%ld.dump"
+SettingsFile = "settings.json"
+MetadataDir="../metadata/"
 
 #CameraLocalDump = "../dumps/1438146364.dump"
 #CameraLocalDump = "../dumps/1436252235.dump"
@@ -50,7 +53,8 @@ CameraLocalDumpTemplate = "../dumps/%ld.dump"
 CameraDumpFile = "1502667084"
 #CameraDumpFile = "1477542307"
 
-Metadata = Node
+Settings = None
+Metadata = None
 
 def Print(message):
 	global g_Logger
@@ -195,15 +199,52 @@ class Vision(Structure):
 		if g_PiCamera is not None:
 			g_PiCamera.close()
 
-class MetadataManagement:
-    def __init__(self):
-        self.Load()
+class SettingsManagement:
+	def __init__(self):
+		self.Load()
 
-    def Load(self):
-        self.Data = {}
-    
-    def Update(self):
-        pass
+	def Load(self):
+		global SettingsFile
+		try:
+			f = open(SettingsFile)
+			self.Data = json.load(f)
+			f.close()
+		except:
+			self.Data = {}
+
+	def Save(self):
+		global SettingsFile
+		f = open(SettingsFile, "w+")
+		f.write(json.dumps(self.Data, sort_keys=True, indent=2, separators=(',', ': ')))
+		f.close()
+
+class MetadataManagement:
+	def __init__(self):
+		self.Load()
+
+	def Load(self):
+		global Settings
+		global MetadataDir
+		if "Metadata" in Settings.Data:
+			fileName = Settings.Data["Metadata"]["file"]
+			f = open(MetadataDir + fileName)
+			if f:
+				self.Data = json.load(f)
+				f.close()
+		else:
+			Settings.Data["Metadata"] = {}
+		self.Data = {}
+
+	def Update(self):
+		global Settings
+		global MetadataDir
+		Settings.Data["Metadata"]["file"] = datetime.datetime.now().strftime("%Y%m%d_%H%m%S")
+		f = open(MetadataDir + fileName, "w+")
+		f.write(json.dumps(self.Data, sort_keys=True, indent=2, separators=(',', ': ')))
+		f.close()
+		Settings.Save()
+		return Settings.Data["Metadata"]["file"]
+		
 
 def InitCamera(type, mode, logger, head):
 	global g_VisionModule
@@ -220,7 +261,8 @@ def InitCamera(type, mode, logger, head):
 	global g_CameraParameters
 	global g_Head
 	global g_DumpTemplate
-    global Metadata
+	global Settings
+	global Metadata
 
 	g_Mode = mode
 	g_CameraParameters = {}
@@ -260,8 +302,9 @@ def InitCamera(type, mode, logger, head):
 
 	g_Logger = logger
 	g_Head = head
-    
-    Metadata = MetadataManagement()
+
+	Settings = SettingsManagement()
+	Metadata = MetadataManagement()
 
 def VisionInstance():
 	return Vision()
