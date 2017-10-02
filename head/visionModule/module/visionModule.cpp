@@ -33,6 +33,11 @@ void extractorInit(TObjectsExtractor* data, const char* algorithm) {
 		data->Parameters[data->NumParameters].Name = it->first.c_str();
 		data->Parameters[data->NumParameters++].Type = TYPE_FLOAT;
 	}
+
+	for(std::map<std::string,std::string*>::const_iterator it = factory->StringParameters.begin(); it != factory->StringParameters.end(); ++it) {
+		data->Parameters[data->NumParameters].Name = it->first.c_str();
+		data->Parameters[data->NumParameters++].Type = TYPE_STRING;
+	}
 }
 
 void extractorSetInt(TObjectsExtractor* data, const char* parameter, int value) {
@@ -63,6 +68,16 @@ double extractorGetDouble(TObjectsExtractor* data, const char* parameter) {
 	double value = 0;
 	((TExtractorFactory*)data->Factory)->Get(parameter, &value);
 	return value;
+}
+
+void extractorSetString(TObjectsExtractor* data, const char* parameter, const char* value) {
+	((TExtractorFactory*)data->Factory)->Set(parameter, value);
+}
+
+const char* extractorGetString(TObjectsExtractor* data, const char* parameter) {
+	std::string value = "";
+	((TExtractorFactory*)data->Factory)->Get(parameter, &value);
+	return value.c_str();
 }
 
 void ExtractFeatures(TMutableImage<unsigned char>* image,

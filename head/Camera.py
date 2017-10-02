@@ -67,7 +67,7 @@ def SaveSettings():
 	if Settings:
 		Settings.Save()
 
-def GetMetadata():
+def MetadataGet():
 	global Metadata
 	if Metadata == None:
 		Metadata = MetadataManagement()
@@ -113,7 +113,7 @@ class TObjectsExtractor(Structure):
 			self.ParametersMap = {}
 			Print("NumParams=%d" % self.NumParameters)
 			for i in range(self.NumParameters):
-				self.ParametersMap[self.Parameters[i].Name] = [{"type": "int"}, {"type": "float"}][self.Parameters[i].Type]
+				self.ParametersMap[self.Parameters[i].Name] = [{"type": "int"}, {"type": "float"}, {"type": "string"}][self.Parameters[i].Type]
 
 	def Set(self, values):
 		global g_VisionModule
@@ -121,20 +121,18 @@ class TObjectsExtractor(Structure):
 			for param, value in values.items():
 				if param in self.ParametersMap:
 					Print("extr:%s = %s" % (param, value))
-					if self.ParametersMap[param]["type"] == "int":
-						g_VisionModule.extractorSetInt(byref(self), param, int(value))
-					else:
-						g_VisionModule.extractorSetDouble(byref(self), param, float(value))
+					{"int": lambda param, value: g_VisionModule.extractorSetInt(byref(self), param, int(value)),
+					 "float": lambda param, value: g_VisionModule.extractorSetDouble(byref(self), param, float(value)),
+					 "string": lambda param, value: g_VisionModule.extractorSetString(byref(self), param, str(value))}[self.ParametersMap[param]["type"]](param, value)
 
 	def Get(self):
 		global g_VisionModule
 		if g_VisionModule:
 			values = {}
 			for param, desc in self.ParametersMap.items():
-				if desc["type"] == "int":
-					values[param] = g_VisionModule.extractorGetInt(byref(self), param)
-				else:
-					values[param] = g_VisionModule.extractorGetDouble(byref(self), param)
+				values[param] = {"int": lambda param: g_VisionModule.extractorGetInt(byref(self), param),
+								 "float": lambda param: g_VisionModule.extractorGetDouble(byref(self), param),
+								 "string": lambda param: g_VisionModule.extractorGetString(byref(self), param)}[desc["type"]](param)
 			return values
 		else:
 			return None
@@ -264,7 +262,7 @@ class MetadataManagement:
 				f.close()
 		else:
 			settings["Metadata"] = {}
-		self.Data = {}
+			self.Data = {}
 
 	def Set(self, data):
 		self.Data = data
@@ -274,10 +272,10 @@ class MetadataManagement:
 		global MetadataDir
 		settings = GetSettings()
 		settings["Metadata"]["file"] = datetime.datetime.now().strftime("%Y%m%d_%H%m%S")
-		f = open(MetadataDir + fileName, "w+")
+		f = open(MetadataDir + settings["Metadata"]["file"], "w+")
 		f.write(json.dumps(self.Data, sort_keys=True, indent=2, separators=(',', ': ')))
 		f.close()
-		SettingsSave()
+		SaveSettings()
 		return settings["Metadata"]["file"]
 		
 
@@ -330,10 +328,13 @@ def InitCamera(type, mode, logger, head):
 	g_VisionModule.extractorInit.argtypes = [POINTER(TObjectsExtractor), c_char_p]
 	g_VisionModule.extractorSetInt.argtypes = [POINTER(TObjectsExtractor), c_char_p, c_int]
 	g_VisionModule.extractorSetDouble.argtypes = [POINTER(TObjectsExtractor), c_char_p, c_double]
+	g_VisionModule.extractorSetString.argtypes = [POINTER(TObjectsExtractor), c_char_p, c_char_p]
 	g_VisionModule.extractorGetInt.argtypes = [POINTER(TObjectsExtractor), c_char_p]
 	g_VisionModule.extractorGetInt.restype = c_int
 	g_VisionModule.extractorGetDouble.argtypes = [POINTER(TObjectsExtractor), c_char_p]
 	g_VisionModule.extractorGetDouble.restype = c_double
+	g_VisionModule.extractorGetString.argtypes = [POINTER(TObjectsExtractor), c_char_p]
+	g_VisionModule.extractorGetString.restype = c_char_p
 
 	g_Logger = logger
 	g_Head = head
@@ -373,6 +374,23 @@ def CameraSetValues(values):
 		if param in keys:
 			Print("cam:%s = %s" % (param, value))
 			g_CameraParameters[param] = value
+
+def LearnExtractor(tags, pictures):
+	metadata = MetadataGet()
+	lp = ""
+	mp = metadata["images"]
+	for p in pictures:
+		if p in mp:
+			lp = "%s/%s,%s,%s,%s,%s" % (lp, p, mp[p]["X"], mp[p]["Y"], mp[p]["RIn"], mp[p]["ROut"])
+	
+	ExtractorSet({"LearningPictures": lp})
+	dlv = ExtractorGet()
+	if dlv and "LearningVector" in dlv:
+		if "dlearning" not in metadata:
+			metadata["dlearning"] = {}
+		metadata["dlearning"]["LearningPictures"] = lp
+		metadata["dlearning"]["LearningVector"] = dlv["LearningVector"]
+		MetadataSave()
 
 def CameraXToAngle(x):
 	global g_CameraParameters

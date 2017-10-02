@@ -267,35 +267,35 @@
                               .attr("value", defaultValue)
       }
 
-      function readExtractorParameters(table) {
+      function readExtractorParameters() {
+    	  var table = $("#extractorParams")
     	  table.empty()
-    	  var tableV = table
           sendCommand("CmdExtractorGetParameters()", function(status, result){
         	  $.each(result, function (key, value) {
         		  var inp = CreateInput(key, value)
         		  $("<tr/>").append($("<td/>").html(key))
         		            .append($("<td/>").append(inp.addClass("extractorParameters")))
-        		            .appendTo(tableV)
+        		            .appendTo(table)
               });
         	  $("<input/>").attr("type", "button")
         	               .attr("value", "READ")
         	               .click(function(){
-        	            	   readExtractorParameters(table)
+        	            	   readExtractorParameters()
         	                })
         	               .appendTo($("<td/>").appendTo($("<tr/>").appendTo(table)))
 
-        	  $("<input/>").attr("type", "button")
-       	                   .attr("value", "WRITE")
-       	                   .click(function(){
-       	                	   var values = {}
-       	                	   $.each($(".extractorParameters"), function(){
+        	   $("<input/>").attr("type", "button")
+							.attr("value", "WRITE")
+							.click(function(){
+								var values = {}
+								$.each($(".extractorParameters"), function(){
        	                			values[this.id] = this.value
-       	                	   })
-       	                	   sendCommand("CmdExtractorSetParameters(" + JSON.stringify(values) + ")", function(status, result){
-       	                		readExtractorParameters(tableV)
-       	                	   })
-        	                })
-       	                   .appendTo($("<td/>").appendTo($("<tr/>").appendTo(table)))
+								})
+								sendCommand("CmdExtractorSetParameters(" + JSON.stringify(values) + ")", function(status, result){
+       	                		readExtractorParameters()
+								})
+							})
+							.appendTo($("<td/>").appendTo($("<tr/>").appendTo(table)))
           })
       }
 
@@ -306,11 +306,12 @@ function JSONImage(canvas) {
     	Ctx: canvas[0].getContext('2d'),
         Scale: 1,
         
-        LoadImage: function(data){
+        LoadImage: function(data, file){
             this.Width = data["width"]
             this.Height = data["height"]
             this.Depth = data["depth"]
             this.Data = data["data"]
+			this.File = file
             this.Draw()
         },
         
@@ -319,12 +320,20 @@ function JSONImage(canvas) {
             $.ajax({url: "/dumps/" + file,
                     dataType: "json"})
              .done(function(json){
-                 jsonImage.LoadImage(json)
+                 jsonImage.LoadImage(json, file)
              })
         },
 
         Draw: function() {
-            
+			this.DrawImage()
+		},
+        
+        DrawImage : function() {
+			
+			if (this.Data == undefined) {
+				return false
+			}
+
             this.Canvas[0].width = this.Width * this.Scale
             this.Canvas[0].height = this.Height * this.Scale
             
@@ -333,6 +342,8 @@ function JSONImage(canvas) {
                     this.DrawCell(x, y)
                 }
             }
+            
+            return true
         },
 
         DrawCell : function(x, y){
@@ -345,17 +356,89 @@ function JSONImage(canvas) {
     return This
 }
 
-function MetadataManagement() {
+function LearningJSONImage(canvas,
+							dumpNameObj,
+							xobj,
+							yobj,
+							rinobj,
+							routobj,
+							labelsobj,
+							metadata) {
+	This = JSONImage(canvas)
+
+	This.DumpNameObj = dumpNameObj
+	This.XObj = xobj
+	This.YObj = yobj
+	This.RInObj = rinobj
+	This.ROutObj = routobj
+	This.LabelsObj = labelsobj
+	This.Metadata = metadata
+	This.CurrentFile == undefined
+
+	This.Draw = function() {
+		if (this.File != this.CurrentFile) {
+			if (this.File in this.Metadata.Data.images) {
+				var imgMetadata = this.Metadata.Data.images[this.File]
+				this.XObj.val(imgMetadata.X)
+				this.YObj.val(imgMetadata.Y)
+				this.RInObj.val(imgMetadata.RIn)
+				this.ROutObj.val(imgMetadata.ROut)
+				this.LabelsObj.val(imgMetadata.Labels)
+			} else {
+				this.XObj.val(this.Width / 2)
+				this.YObj.val(this.Height / 2)
+				this.RInObj.val(this.Height / 8)
+				this.ROutObj.val(this.Height / 4)
+				this.LabelsObj.val("")
+			}
+			this.DumpNameObj.text(this.File)
+			this.CurrentFile = this.File
+		}
+
+		if (this.DrawImage()) {
+			var x = this.XObj.val() * this.Scale
+			var y = this.YObj.val() * this.Scale
+			var r1 = this.RInObj.val() * this.Scale
+			var r2 = this.ROutObj.val() * this.Scale
+
+			this.Ctx.beginPath()
+			this.Ctx.arc(x, y, r1, 0, 2 * Math.PI, false);
+			this.Ctx.arc(x, y, r2, 0, 2 * Math.PI, false);
+			this.Ctx.strokeStyle = '#FFFFFF';
+			this.Ctx.stroke();
+		}
+	}
+	
+	This.Save = function(success){
+		learningImage = this
+		this.Metadata.Update(function(data){
+			if (!("images" in data)) {
+				data.images = {}
+			}
+			data.images[learningImage.File] = {X: learningImage.XObj.val(),
+											   Y: learningImage.YObj.val(),
+											   RIn: learningImage.RInObj.val(),
+											   ROut: learningImage.ROutObj.val(),
+											   Labels: learningImage.LabelsObj.val()}
+		},
+		success)
+	}
+
+	return This
+}
+
+function MetadataManagement(callback) {
     var This = {
         
         Data: undefined,
         
-        Load: function() {
+        Load: function(callabck) {
             mm = this
             $.ajax({url: "/metadata",
                     dataType: "json"})
              .done(function(json){
                  mm.Data = json
+                 callback(mm.Data)
              })
         },
         
@@ -368,16 +451,91 @@ function MetadataManagement() {
                  updateFunc(mm.Data)
                  $.ajax({type: "POST",
 						 url: "/metadata",
-						 data: {text: jQuery.parseJSON(mm.Dataifname)},
+						 data: {text: JSON.stringify(mm.Data)},
 						 success: successFunc
 						 })
              })
 		}
     }
     
-    This.Load()
+    This.Load(callback)
     
     return This
+}
+
+function TagsFilter(filter) {
+	return {
+		Filter: filter.match(/[+-/][^-+/]*/g),
+		Check: function(tagsSet) {
+			var inc = true
+			for (var i in this.Filter) {
+				var op = this.Filter[i][0]
+				if (op == '/') {
+					if (inc) {
+						return true
+					}
+					inc = true
+				} else {
+					if (inc) {
+						var tagIn = this.Filter[i].substr(1) in tagsSet
+						if (op == '+') {
+							inc = tagIn
+						} else {
+							if (op == '-') {
+								inc = !tagIn
+							}
+						}
+					} 
+				}
+			}
+			return inc
+		}
+	}
+}
+
+
+Dumps = []
+
+function UpdateDumps() {
+	var sel = $("#dumps").empty()
+	var allTags = {}
+	var filter = TagsFilter($("#flabels").val())
+	$.each(Dumps, function(idx, value){
+		tagsSet = {}
+		if (value in Metadata.Data.images) {
+			tagsList = Metadata.Data.images[value].Labels.split(",")
+			for (var i in tagsList) {
+				allTags[tagsList[i]] = 1
+				tagsSet[tagsList[i]] = 1
+			}
+			tags = " " + Metadata.Data.images[value].Labels
+		} else {
+			tags = ""
+		}
+
+		if (!filter.Check(tagsSet)) {
+			return
+		}
+
+		$("<option/>").text(value + tags)
+					  .val(value)
+					  .appendTo(sel)
+	})
+
+	$("#dump_tags").empty()
+	for (var tag in allTags) {
+		$("<a/>").text(tag)
+				 .appendTo($("#dump_tags"))
+				 .click(function(){
+					var tags = $("#llabels").val()
+					if (tags != "") {
+						tags += ","
+					}
+					$("#llabels").val(tags + $(this).text())
+				 })
+		$("<span/>").text(", ")
+					.appendTo($("#dump_tags"))
+	}
 }
 
 var DumpImage = undefined
@@ -472,21 +630,15 @@ var Metadata  = undefined
               $.ajax({url: "/dumps",
                       dataType: "json"})
                .done(function(json){
-                   var sel = $("#dumps").empty()
-                   $.each(json, function(idx, value){
-                       $("<option/>").text(value)
-                                     .appendTo(sel)
-                                     
-                   })
+						Dumps = json
+						UpdateDumps()
                })
           })
-          
-          DumpImage = JSONImage($("#dump"))
-        
+
           $("#dumps").change(function(){
               $(this).find("option:selected" )
                      .each(function(){
-                         DumpImage.GetFromServer($(this).text())
+                         DumpImage.GetFromServer($(this).val())
                      })
           })
           
@@ -507,14 +659,52 @@ var Metadata  = undefined
               DumpImage.Draw()
               $("#scale").text(DumpImage.Scale)
           })
-          
-          Metadata = MetadataManagement()
 
-          readExtractorParameters($("#extractorParams"))
+        $("#save_learning").click(function(){
+			DumpImage.Save(function(){
+				UpdateDumps()
+			})
+		})
 
-          scheduleSensors()
+        $("#update_learning").click(function(){
+			DumpImage.Draw()
+		})
+		
+		$("#vlearn").click(function(){
+			var tags = $("#flabels").val()
+			var dumps = ""
+			var sep = ""
+			$("#dumps").find("option")
+					   .each(function(i, e) {
+							dumps += sep + "'" + $(e).val() + "'"
+							sep = ","
+						})
+			var cmd = "CmdLearnDLearning('" + tags + "',[" + dumps + "])"
+			console.log(cmd)
+			sendCommand(cmd,
+				function(status, result){
+					readExtractorParameters()
+				})
+		})
 
-          initServos()
+		Metadata = MetadataManagement(function(){
+			$("#loaddumps").click()
+		})
+
+		DumpImage = LearningJSONImage($("#dump"),
+									  $("#ldump"),
+									  $("#lcx"),
+									  $("#lcy"),
+									  $("#lro"),
+									  $("#lrb"),
+									  $("#llabels"),
+									  Metadata)
+
+        readExtractorParameters()
+
+        scheduleSensors()
+
+        initServos()
       })
     </script>
   </head>
@@ -653,44 +843,82 @@ var Metadata  = undefined
         <tr>
             <td>
                 <img id="camera" class="rotate180"/>
-            </td>
-            <td>
                 <canvas id="dump"/>
             </td>
-            <td>
-                <table>
-                    <tr>
-                        <td>
-                            <select id="dumps"/>
-                            <input type="button" id="loaddumps" value="LOAD LIST"/>&nbsp;
-                            <input type="button" value="-" id="zoomout"/>&nbsp;<label id="scale">1</label>&nbsp;<input type="button" value="+" id="zoomin"/>
-                        </td>
-                    </tr>
-<!--
-                    <tr>
-                        <td>
-                            <input type="radio" name="camera_action"/>Move to the point
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input type="radio" name="camera_action"/>Learn object
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input type="radio" name="camera_action"/>Learn background
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input type="radio" name="camera_action"/>Clear learning
-                        </td>
-                    </tr>
--->
-                </table>
-            </td>
         </tr>
+        <tr>
+			<td>
+				<input type="button" value="-" id="zoomout"/>&nbsp;<label id="scale">1</label>&nbsp;<input type="button" value="+" id="zoomin"/>
+			</td>
+		</tr>
+		<tr>
+			<td>
+                <table>
+					<tr>
+						<th>Dumps</th>
+						<th>Selected</th>
+					</tr>
+					<tr>
+						<td>
+							<table>
+								<tr>
+									<td id="list_tags"/>
+								</tr>
+								<tr>
+									<td>
+										Tags:<input type="textfield" id="flabels" />
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<select id="dumps" size=15 multiple/>
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<input type="button" id="loaddumps" value="RELOAD"/>&nbsp;
+										<input type="button" id="vlearn" value="V-LEARN"/>&nbsp;
+									</td>
+								</tr>
+							</table>
+						</td>
+						<td>
+							<table>
+								<tr>
+									<td>
+										Dump: <label id="ldump" />
+									</td>
+								</tr>
+								<tr>
+									<td id="dump_tags"/>
+								</tr>
+								<tr>
+									<td>
+										Tags: <input type="textfield" id="llabels" />
+									</td>
+								</tr>
+								<tr>
+									<td>
+										Center: (<input type="textfield" id="lcx" size=1 value="160"/>,<input type="textfield" id="lcy" size=1 value="120"/>)
+									</td>
+								</tr>
+								<tr>
+									<td>
+										Robj=<input type="textfield" id="lro" size=1 value="40"/> Rbg=<input type="textfield" id="lrb" size=1 value="80"/>
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<input type="button" value="UPDATE" id="update_learning">
+										<input type="button" value="SAVE" id="save_learning">
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+                </table>
+			</td>
+		</tr>
     </table>
    
     <h3>commands</h3>

@@ -88,6 +88,15 @@ TSegmentsExtractor* TDeepLearningExtractorFactory::CreateExtractor(TMutableImage
 	return instance;
 }
 
+void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
+	if (name == "LearningPictures") {
+		return;
+	}
+	if (name == "LearningVector") {
+		return;
+	}
+}
+
 bool TDeepLearningSegmentsExtractor::GetL1(int x, int y) {
     double v[3];
     double r;

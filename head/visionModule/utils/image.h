@@ -472,11 +472,13 @@ public:
 
 	std::map<std::string,int*> IntParameters;
 	std::map<std::string,double*> DoubleParameters;
+	std::map<std::string, std::string*> StringParameters;
 
 	virtual TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image) = 0;
     virtual void DestroyExtractor(TSegmentsExtractor* extractor) {
         delete extractor;
     }
+    virtual void ParameterUpdated(std::string name){}
 
 	void AddParameter(const char* name, int* ptr) {
 		std::string str(name);
@@ -486,6 +488,11 @@ public:
 	void AddParameter(const char* name, double* ptr) {
 		std::string str(name);
 		DoubleParameters[str] = ptr;
+	}
+
+	void AddParameter(const char* name, std::string* ptr) {
+		std::string str(name);
+		StringParameters[str] = ptr;
 	}
 
 	void AddParameter(const char* name, int* ptr, int value) {
@@ -498,11 +505,17 @@ public:
 		*ptr = value;
 	}
 
+	void AddParameter(const char* name, std::string* ptr, std::string value) {
+		AddParameter(name, ptr);
+		*ptr = value;
+	}
+
 	bool Set(const char* name, int value) {
 		std::string str(name);
 		std::map<std::string,int*>::iterator it = IntParameters.find(str);
 		if (it != IntParameters.end()) {
 			*(it->second) = value;
+			ParameterUpdated(str);
 			return true;
 		} else {
 			return false;
@@ -514,11 +527,26 @@ public:
 		std::map<std::string,double*>::iterator it = DoubleParameters.find(str);
 		if (it != DoubleParameters.end()) {
 			*(it->second) = value;
+			ParameterUpdated(str);
 			return true;
 		} else {
 			return false;
 		}
 	}
+
+	bool Set(const char* name, const char* value) {
+		std::string str(name);
+		std::string svalue(value);
+		std::map<std::string,std::string*>::iterator it = StringParameters.find(str);
+		if (it != StringParameters.end()) {
+			*(it->second) = svalue;
+			ParameterUpdated(str);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 
 	bool Get(const char* name, int* value) {
 		std::string str(name);
@@ -535,6 +563,17 @@ public:
 		std::string str(name);
 		std::map<std::string,double*>::iterator it = DoubleParameters.find(str);
 		if (it != DoubleParameters.end()) {
+			*value = *(it->second);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool Get(const char* name, std::string* value) {
+		std::string str(name);
+		std::map<std::string,std::string*>::iterator it = StringParameters.find(str);
+		if (it != StringParameters.end()) {
 			*value = *(it->second);
 			return true;
 		} else {

@@ -4,7 +4,7 @@ import datetime
 import sys
 from math import *
 
-from Camera import VisionInstance, ExtractorSet, ExtractorGet, ExtractorParmeters, CameraGetValues, CameraSetValues
+from Camera import VisionInstance, ExtractorSet, ExtractorGet, ExtractorParmeters, CameraGetValues, CameraSetValues, LearnExtractor
 from Geometry import TLearning
 
 class Commands(threading.Thread):
@@ -807,4 +807,8 @@ class Commands(threading.Thread):
 		else:
 			status = "too close"
 		self.SetResult({"x": x, "y": y, "rx": rx, "ry": ry, "a": a, "b": b, "d1": d1, "a1":a1, "b1":b1, "rx0": rx0, "d2": d2, "status": status})
+		return self.SUCCESS
+
+	def CmdLearnDLearning(self, tags, dumps):
+		LearnExtractor(tags, dumps)
 		return self.SUCCESS

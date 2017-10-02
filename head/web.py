@@ -8,7 +8,7 @@ from flask import request
 import json
 
 from Commands import Commands
-from Camera import InitCamera, LoadDump, GetDumps, GetMetadata, MetadataSet
+from Camera import InitCamera, LoadDump, GetDumps, MetadataGet, MetadataSet
 
 print "Run: web.py"
 
@@ -34,14 +34,14 @@ def dumps(path):
     else:
         return Response(json.dumps({}), content_type='text/plain; charset=utf-8')
 
-@app.route("/metadata")
+@app.route("/metadata", methods = ['GET', 'POST'])
 def metadata():
 	global Metadata
 	if "text" in request.form:
 		id = MetadataSet(json.loads(request.form["text"]))
 		return Response("{'file': %s}" % id, content_type='text/plain; charset=utf-8')
 	else:	
-		return Response(json.dumps(GetMetadata()), content_type='text/plain; charset=utf-8')
+		return Response(json.dumps(MetadataGet()), content_type='text/plain; charset=utf-8')
 
 @app.route("/servo/<id>/<v>")
 def servo(id, v):

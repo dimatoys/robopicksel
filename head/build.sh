@@ -1,6 +1,6 @@
 
 #REMOTE_ACCOUNT=pi@10.0.0.11
-REMOTE_ACCOUNT=pi@10.0.0.200
+REMOTE_ACCOUNT=pi@10.0.0.199
 REMOTE_PATH=projects/head
 
 function upload {
@@ -65,6 +65,11 @@ shutdown)
     ;;
 local)
     run_local
+    ;;
+    
+cbuild)
+    clean_local
+    build_local
     ;;
 build)
     build_local

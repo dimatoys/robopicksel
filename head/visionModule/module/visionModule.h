@@ -2,6 +2,7 @@ extern "C" {
 
 	const int TYPE_INT = 0;
 	const int TYPE_FLOAT = 1;
+	const int TYPE_STRING = 2;
 	const int MAX_NAME_SIZE = 30;
 
 	struct TExtractorParameter {
@@ -47,6 +48,8 @@ extern "C" {
     int extractorGetInt(TObjectsExtractor* data, const char* parameter);
     void extractorSetDouble(TObjectsExtractor* data, const char* parameter, double value);
     double extractorGetDouble(TObjectsExtractor* data, const char* parameter);
+    void extractorSetString(TObjectsExtractor* data, const char* parameter, const char* value);
+    const char* extractorGetString(TObjectsExtractor* data, const char* parameter);
 
     void streamStart(VisionData* data);
     void writeImage(char* data);

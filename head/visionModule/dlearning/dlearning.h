@@ -22,16 +22,22 @@ public:
     int StepL1;
     int StepL2;
     
+    std::string LearningPictures;
+    std::string LearningVector;
+    
     TDeepLearningExtractorFactory() :
         PR(S) {
         PR.SetR(R, 3 * Points, 1);
         
         AddParameter("StepL1", &StepL1, 20);
         AddParameter("StepL2", &StepL2, 3);
+        AddParameter("LearningPictures", &LearningPictures, "");
+        AddParameter("LearningVector", &LearningVector, "");
     }
 
     TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image);
     virtual void DestroyExtractor(TSegmentsExtractor* extractor) {}
+    virtual void ParameterUpdated(std::string name);
 };
 
 
