@@ -381,7 +381,7 @@ def LearnExtractor(tags, pictures):
 	mp = metadata["images"]
 	for p in pictures:
 		if p in mp:
-			lp = "%s/%s,%s,%s,%s,%s" % (lp, p, mp[p]["X"], mp[p]["Y"], mp[p]["RIn"], mp[p]["ROut"])
+			lp = "%s%s,%s,%s,%s,%s," % (lp, p, mp[p]["X"], mp[p]["Y"], mp[p]["RIn"], mp[p]["ROut"])
 	
 	ExtractorSet({"LearningPictures": lp})
 	dlv = ExtractorGet()

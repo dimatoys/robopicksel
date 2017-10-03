@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project( picam )
 SET(COMPILE_DEFINITIONS -Werror -DLOCAL=0)
 SET(CMAKE_CXX_FLAGS -DRASPBERRYPI=1)
+SET(CMAKE_CXX_STANDARD 11)
 
 #set(raspicam_DIR /home/pi/projects/raspicam-master/build)
 #find_package(raspicam REQUIRED)

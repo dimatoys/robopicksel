@@ -1,5 +1,8 @@
 #include "dlearning.h"
 
+#include <list>
+#include <string>
+
 struct Knot {
     
     unsigned char Status;
@@ -88,8 +91,27 @@ TSegmentsExtractor* TDeepLearningExtractorFactory::CreateExtractor(TMutableImage
 	return instance;
 }
 
+void ReadList(std::string str, std::list<std::string> lst) {
+	int start = 0;
+	for(std::string::size_type i = 0; i < str.size(); ++i) {
+		if (str[i] == ',') {
+			lst.push_back(str.substr(start, i - start));
+			start = i + 1;
+		}
+	}
+}
+
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 	if (name == "LearningPictures") {
+		std::list<std::string> lst;
+		ReadList(LearningPictures, lst);
+		for (std::list<std::string>::iterator it = lst.begin(); it != lst.end();) {
+			std::string name = *it++;
+			int X = std::stoi(*it++);
+			int Y = std::stoi(*it++);
+			int RIn = std::stoi(*it++);
+			int ROut = std::stoi(*it++);
+		}
 		return;
 	}
 	if (name == "LearningVector") {
