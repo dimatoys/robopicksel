@@ -245,7 +245,7 @@ bool TPolyRegression::GenerateMX(ILearningDataSource* data) {
     }
     
     unsigned int size = POLY_SIZE[data->D - 1][S];
-    unsigned int samples = data->N;
+    unsigned int samples = data->GetSize();
 
     //printf("samples=%u size=%u\n", samples, size);
     
@@ -309,7 +309,7 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
     if (R != NULL) {
         delete R;
     }
-    unsigned int samples = datay->N;
+    unsigned int samples = datay->GetSize();
     YD = datay->D;
 
     R = new double[XS * YD];
@@ -375,4 +375,39 @@ void TPolyRegression::SetR(const double* r, unsigned int xd, unsigned int yd) {
     R = new double[XS * YD];
     
     memcpy(R, r, XS * YD * sizeof(double));
+}
+
+double DoublesLearningDatasource::NextElement() {
+	return Data[Position++];
+}
+
+bool DoublesLearningDatasource::NextRecord() {
+	return Data.size() < Position * D;
+}
+
+void DoublesLearningDatasource::Add(double element) {
+	Data.push_back(element);
+}
+
+void TLearningImage::Test(const char* file) {
+	TMutableRGBImage image(Path);
+	int rin2 = RIn * RIn;
+	int rout2 = ROut * ROut;
+	
+	unsigned char in[] = {255, 255, 255};
+	unsigned char out[] = {0, 0, 0};
+	
+	for (int y = 0; y < image.Height; y += 5) {
+		for (int x = 0; x < image.Width; x += 5) {
+			int r2 = (x - X) * (x - X) + (y - Y) * (y - Y);
+			if (r2 <= rin2) {
+				image.DrawPointer(x, y, 2, in);
+			} else {
+				if (r2 >= rout2) {
+					image.DrawPointer(x, y, 2, out);
+				}
+			}
+		}
+	}
+	image.SaveJpg(file);
 }

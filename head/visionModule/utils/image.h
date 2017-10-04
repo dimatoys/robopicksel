@@ -9,6 +9,7 @@
 #include <string.h>
 #include "jpeg.h"
 #include <string>
+#include <vector>
 
 #define NO_BORDER     0
 #define BORDER_LEFT   1
@@ -104,6 +105,11 @@ public:
 	TMutableImage(const char* dumpFileName) {
 		Allocated = false;
 		LoadDump(dumpFileName);
+	}
+
+	TMutableImage(std::string& dumpFileName) {
+		Allocated = false;
+		LoadDump(dumpFileName.c_str());
 	}
 
 	TMutableImage(T* src,
@@ -390,6 +396,11 @@ public:
 		//ColorSpace = JCS_RGB;
 	}
 
+	TMutableRGBImage(std::string& dumpFile) :
+		TMutableImage(dumpFile) {
+		//ColorSpace = JCS_RGB;
+	}
+
 	TMutableRGBImage() {}
 
 	void ConvertToYUV();
@@ -587,12 +598,10 @@ struct ILearningDataSource {
     // dimension
     unsigned int D;
     
-    // number of records
-    unsigned int N;
-    
     virtual double NextElement() = 0;
     virtual bool NextRecord() = 0;
-    
+    virtual unsigned int GetSize() = 0;
+
     bool NextRecord(double* values);
     void ReadAll(double* values);
 };
@@ -643,6 +652,38 @@ public:
     void SetR(const double* r, unsigned int xd, unsigned int yd);
 };
 
+class DoublesLearningDatasource : public ILearningDataSource {
+	std::vector<double> Data;
+	unsigned int Position;
+public:
+	DoublesLearningDatasource(unsigned int d) {
+		D = d;
+		Position = 0;
+	}
+
+	void SetPosition(unsigned int pos) { Position = pos * D;}
+	unsigned int GetSize() {return Data.size() / D;}
+
+	double NextElement();
+	bool NextRecord();
+	void Add(double element);
+};
+
+struct TLearningImage {
+	std::string Path;
+	int X;
+	int Y;
+	int RIn;
+	int ROut;
+
+	void Test(const char* file);
+};
+/*
+class TImagesLearningDataSource : public ILearningDatasource {
+
+
+}
+*/
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
