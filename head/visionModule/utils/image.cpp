@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "image.h"
 /*
@@ -389,12 +390,12 @@ void DoublesLearningDatasource::Add(double element) {
 	Data.push_back(element);
 }
 
-Label TLearningImage::GetLabel(int x, int y) {
-	int r2 = (x - X) * (x - X) + (y - Y) * (y - Y);
-	if (r2 <= rin2) {
+TLearningImage::Label TLearningImage::GetLabel(int x, int y) {
+	int r2 = sqrt((x - X) * (x - X) + (y - Y) * (y - Y));
+	if (r2 <= RIn) {
 		return OBJECT;
 	} else {
-		if (r2 >= rout2) {
+		if (r2 >= ROut) {
 			return BACKGROUND;
 		} else {
 			return UNKNOWN;
@@ -416,7 +417,7 @@ void TLearningImage::Test(const char* file) {
 			switch(GetLabel(x, y)) {
 			case OBJECT:
 				image.DrawPointer(x, y, 2, in);
-				break
+				break;
 			case BACKGROUND:
 				image.DrawPointer(x, y, 2, out);
 				break;
@@ -440,32 +441,33 @@ void TImagesLearningDataSource::ResetInners() {
 bool TImagesLearningDataSource::NextInnersImage() {
 	if (InnersIt != Images.end()) {
 		Dump.LoadDump(InnersIt->Path.c_str());
-		InnersY = (Y >= RIn ? Y - RIn : 0) - 1;
-		InnersYMax = Y + RIn < Dump.Height ? Y + RIn : Dump.Height - 1;
+		InnersY = (InnersIt->Y >= InnersIt->RIn ? InnersIt->Y - InnersIt->RIn : 0) - 1;
+		InnersYMax = InnersIt->Y + InnersIt->RIn < Dump.Height ? InnersIt->Y + InnersIt->RIn : Dump.Height - 1;
+		++InnersIt;
 		return true;
 	}
 	return false;
 }
 
-bool TImagesLearningDataSource::NextInndersY() {
+bool TImagesLearningDataSource::NextInnersY() {
 	if (++InnersY > InnersYMax) {
 		if (!NextInnersImage()) {
 			return false;
 		}
 	}
-	int d = InnersY - Y;
-	int r = sqrt(RIn * RIn - d * d);
-	InnersX = X >= r ? X - r : 0;
-	InnersXMax = X + r < Dump.Width ? X + r : Dump.Width - 1;
+	int d = InnersY - InnersIt->Y;
+	int r = sqrt(InnersIt->RIn * InnersIt->RIn - d * d);
+	InnersX = InnersIt->X >= r ? InnersIt->X - r : 0;
+	InnersXMax = InnersIt->X + r < Dump.Width ? InnersIt->X + r : Dump.Width - 1;
 	return true;
 }
 
 const unsigned char* TImagesLearningDataSource::NextInner() {
-	if (InnerxX < InnersXMax) {
+	if (InnersX < InnersXMax) {
 		++InnersX;
 	} else {
 		if (!NextInnersY()) {
-			return null;
+			return NULL;
 		}
 	}
 	return Dump.Cell(InnersX, InnersY);

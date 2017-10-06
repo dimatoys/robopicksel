@@ -681,7 +681,7 @@ struct TLearningImage {
 
 	TLearningImage() {}
 
-	TLEarningImage(TLearningImage& image) {
+	TLearningImage(const TLearningImage& image) {
 		Path = image.Path;
 		X = image.X;
 		Y = image.Y;
@@ -711,7 +711,7 @@ public:
 	void AddImage(TLearningImage& image);
 
 	void ResetInners();
-	bool NextInner(unsigned char*);
+	const unsigned char* NextInner();
 
 	void ResetOuters();
 	bool NextOuter(unsigned char*);
