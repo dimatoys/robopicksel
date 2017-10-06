@@ -2217,6 +2217,10 @@ class TAutoLearning:
         self.MinArt = 2
         self.MinObj = 25
         self.SDumps = []
+        self.Cache = None
+        self.Cache2 = {}
+        self.CacheCount = 0
+        self.CacheElements = 0
 
     def AddDump(self, file):
         self.SDumps.append(Dump.FromFileName(file).GetScaled(self.CellSize))
@@ -2340,7 +2344,79 @@ class TAutoLearning:
                 s = s + r
             print s
             print
-        print tmin, rgbmin
+        return (tmin, rgbmin)
+
+    def GetMinThresholdCached(self, rgb):
+        p = 0
+        for c in rgb:
+            p = p * 256 + c
+        if not self.Cache:
+            self.Cache = [-1] * (256 ** len(rgb))
+            thr = self.GetMinThreshold(rgb)
+            self.Cache[p] = thr
+            self.CacheCount = 0
+            self.CacheElements = 1
+        else:
+            thr = self.Cache[p]
+            if thr == -1:
+                thr = self.GetMinThreshold(rgb)
+                self.Cache[p] = thr
+                self.CacheElements = self.CacheElements + 1
+                #print "E:", rgb, " ", thr
+            else:
+                self.CacheCount = self.CacheCount + 1
+                #print "C:", rgb, " ", thr
+        return thr
+
+    def GetMinThresholdCached2(self, rgb):
+        if rgb in self.Cache2:
+            self.CacheCount = self.CacheCount + 1
+            return None
+        thr = self.GetMinThreshold(rgb)
+        self.Cache2[rgb] = True
+        self.CacheElements = self.CacheElements + 1
+        return thr
+    
+    def GradientBoost(self):
+        for sdump in self.SDumps:
+            for rgb in sdump.Data:
+                thr = self.GetMinThresholdCached2(tuple(rgb))
+                if thr:
+                    break
+            if thr:
+                break
+        
+        
+        s = 20
+        idx = []
+        for r in range(-s, s + 1):
+            for g in range(-s, s + 1):
+                for b in range(-s, s + 1):
+                    idx.append((r, g, b))
+        print "sort=", len(idx)
+        idx.sort(key=lambda v: v[0] * v[0] + v[1] * v[1] + v[2] * v[2] )
+
+        success = []
+        if thr:
+            steps = 0
+            cont = True
+            while cont:
+                cont = False
+                steps = steps + 1
+                print steps, " rgb:", rgb, " thr:", thr, " s=", s, " cache=", self.CacheElements, " cacheH=", self.CacheCount
+                for v in idx:
+                    rgbD = (rgb[0] + v[0], rgb[1] + v[1], rgb[2] + v[2])
+                    if rgbD[0] < 0 or rgbD[0] > 255 or rgbD[1] < 0 or rgbD[1] > 255 or rgbD[2] < 0 or rgbD[2] > 255:
+                        continue
+                    thrD = self.GetMinThresholdCached2(rgbD)
+                    #print rgbD, thr
+                    if thrD and thrD < thr:
+                        thr = thrD
+                        rgb = rgbD
+                        cont = True
+                        success.append(v)
+                        break
+        print success
     
     def Print(self, rgb, thr):
         i = 0
@@ -2412,8 +2488,8 @@ def AutoLearn2():
     learn = TAutoLearning(cellSize)
     learn.AddDump("../dumps/%s.dump" % '1502667166')
     learn.AddDump("../dumps/%s.dump" % '1502667084')
-    learn.FindBestCell()
-    
+    #print learn.FindBestCell()
+    learn.GradientBoost()
     """
     #rgb = learn.A[10 * learn.CW + 11]
     rgb = learn.Sdump.Data[0]
@@ -2423,6 +2499,33 @@ def AutoLearn2():
         print "threshold=", thr
         print learn.CheckThreshold(learn.Sdump, rgb, thr, True)
     """
+
+def TestAutoLearning():
+    #cw = '1502667129'
+    #cw = '1502667148'
+    cw = '1502667166'
+    #cw = '1502667194'
+    dump2 = Dump.FromFileName("../dumps/%s.dump" % cw)
+    #thr = 2902
+    #v = (66, 88, 44)
+    thr = 1996 
+    v = (54,85,51)
+    learn = TAutoLearning(10)
+    #learn.AddDump("../dumps/%s.dump" % '1502667166')
+    #learn.AddDump("../dumps/%s.dump" % '1502667084')
+
+    dump = dump2.GetScaled(learn.CellSize)
+    print learn.CheckThreshold(dump, v, thr, True)
+
+    img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
+    for sy in range(0, dump2.Height, 2):
+        for sx in range(0, dump2.Width, 2):
+            r = dump2.GetPixel(sx, sy)
+            if (v[0] - r[0]) * (v[0] - r[0]) + (v[1] - r[1]) * (v[1] - r[1]) + (v[2] - r[2]) * (v[2] - r[2]) >= thr:
+                img.putpixel((sx, sy), (255, 255, 255))
+            
+    img.save("%s-tl.png" % cw, 'PNG')
+
 
 #Test2()
 #Im1()
@@ -2471,5 +2574,6 @@ def AutoLearn2():
 #Compatibility()
 #OnePictireLearning()
 #AutoLearn()
-AutoLearn2()
+#AutoLearn2()
+TestAutoLearning()
 

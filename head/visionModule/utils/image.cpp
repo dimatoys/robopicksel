@@ -389,6 +389,20 @@ void DoublesLearningDatasource::Add(double element) {
 	Data.push_back(element);
 }
 
+Label TLearningImage::GetLabel(int x, int y) {
+	int r2 = (x - X) * (x - X) + (y - Y) * (y - Y);
+	if (r2 <= rin2) {
+		return OBJECT;
+	} else {
+		if (r2 >= rout2) {
+			return BACKGROUND;
+		} else {
+			return UNKNOWN;
+		}
+	}
+
+}
+
 void TLearningImage::Test(const char* file) {
 	TMutableRGBImage image(Path);
 	int rin2 = RIn * RIn;
@@ -399,15 +413,69 @@ void TLearningImage::Test(const char* file) {
 	
 	for (int y = 0; y < image.Height; y += 5) {
 		for (int x = 0; x < image.Width; x += 5) {
-			int r2 = (x - X) * (x - X) + (y - Y) * (y - Y);
-			if (r2 <= rin2) {
+			switch(GetLabel(x, y)) {
+			case OBJECT:
 				image.DrawPointer(x, y, 2, in);
-			} else {
-				if (r2 >= rout2) {
-					image.DrawPointer(x, y, 2, out);
-				}
+				break
+			case BACKGROUND:
+				image.DrawPointer(x, y, 2, out);
+				break;
 			}
 		}
 	}
 	image.SaveJpg(file);
 }
+
+void TImagesLearningDataSource::AddImage(TLearningImage& image){
+	Images.push_back(image);
+}
+
+void TImagesLearningDataSource::ResetInners() {
+	InnersIt = Images.begin();
+	NextInnersImage();
+	InnersX = -1;
+	InnersXMax = -1;
+}
+
+bool TImagesLearningDataSource::NextInnersImage() {
+	if (InnersIt != Images.end()) {
+		Dump.LoadDump(InnersIt->Path.c_str());
+		InnersY = (Y >= RIn ? Y - RIn : 0) - 1;
+		InnersYMax = Y + RIn < Dump.Height ? Y + RIn : Dump.Height - 1;
+		return true;
+	}
+	return false;
+}
+
+bool TImagesLearningDataSource::NextInndersY() {
+	if (++InnersY > InnersYMax) {
+		if (!NextInnersImage()) {
+			return false;
+		}
+	}
+	int d = InnersY - Y;
+	int r = sqrt(RIn * RIn - d * d);
+	InnersX = X >= r ? X - r : 0;
+	InnersXMax = X + r < Dump.Width ? X + r : Dump.Width - 1;
+	return true;
+}
+
+const unsigned char* TImagesLearningDataSource::NextInner() {
+	if (InnerxX < InnersXMax) {
+		++InnersX;
+	} else {
+		if (!NextInnersY()) {
+			return null;
+		}
+	}
+	return Dump.Cell(InnersX, InnersY);
+}
+
+void TImagesLearningDataSource::ResetOuters() {
+
+}
+
+bool TImagesLearningDataSource::NextOuter(unsigned char*) {
+
+}
+

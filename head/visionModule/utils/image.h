@@ -670,20 +670,53 @@ public:
 };
 
 struct TLearningImage {
+
+	enum Label {BACKGROUND, OBJECT, UNKNOWN};
+
 	std::string Path;
 	int X;
 	int Y;
 	int RIn;
 	int ROut;
 
+	TLearningImage() {}
+
+	TLEarningImage(TLearningImage& image) {
+		Path = image.Path;
+		X = image.X;
+		Y = image.Y;
+		RIn = image.RIn;
+		ROut = image.ROut;
+	}
+
+	Label GetLabel(int x, int y);
+
 	void Test(const char* file);
 };
-/*
-class TImagesLearningDataSource : public ILearningDatasource {
 
+class TImagesLearningDataSource {
+	std::list<TLearningImage> Images;
 
-}
-*/
+	std::list<TLearningImage>::iterator InnersIt;
+	TMutableRGBImage Dump;
+	int InnersX;
+	int InnersY;
+	int InnersXMax;
+	int InnersYMax;
+
+	bool NextInnersImage();
+	bool NextInnersY();
+
+public:
+	void AddImage(TLearningImage& image);
+
+	void ResetInners();
+	bool NextInner(unsigned char*);
+
+	void ResetOuters();
+	bool NextOuter(unsigned char*);
+};
+
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
