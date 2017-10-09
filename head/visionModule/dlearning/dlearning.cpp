@@ -91,11 +91,13 @@ TSegmentsExtractor* TDeepLearningExtractorFactory::CreateExtractor(TMutableImage
 	return instance;
 }
 
-void ReadList(std::string str, std::list<std::string> lst) {
+void ReadList(std::string str, std::list<std::string>& lst) {
 	int start = 0;
 	for(std::string::size_type i = 0; i < str.size(); ++i) {
 		if (str[i] == ',') {
-			lst.push_back(str.substr(start, i - start));
+			std::string value = str.substr(start, i - start);
+			printf("ReadList:%s\n", value.c_str());
+			lst.push_back(value);
 			start = i + 1;
 		}
 	}
@@ -103,6 +105,7 @@ void ReadList(std::string str, std::list<std::string> lst) {
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 	if (name == "LearningPictures") {
+		printf("ParametersUpdated\n");
 		std::list<std::string> lst;
 		ReadList(LearningPictures, lst);
 		TImagesLearningDataSource images;
@@ -113,6 +116,7 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 			image.Y = std::stoi(*it++);
 			image.RIn = std::stoi(*it++);
 			image.ROut = std::stoi(*it++);
+			printf("ParametersUpdated: path=%s\n", image.Path.c_str());
 			image.Test("learning_test.jpg");
 			images.AddImage(image);
 		}
