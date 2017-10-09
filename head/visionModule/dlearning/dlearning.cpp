@@ -105,6 +105,7 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 	if (name == "LearningPictures") {
 		std::list<std::string> lst;
 		ReadList(LearningPictures, lst);
+		TLearningImageIterator images;
 		for (std::list<std::string>::iterator it = lst.begin(); it != lst.end();) {
 			TLearningImage image;
 			image.Path = "../dumps/" + *it++ + ".dump";
@@ -113,7 +114,11 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 			image.RIn = std::stoi(*it++);
 			image.ROut = std::stoi(*it++);
 			image.Test("learning_test.jpg");
+			images.Add(image);
 		}
+
+		images.Reset();
+
 		return;
 	}
 	if (name == "LearningVector") {

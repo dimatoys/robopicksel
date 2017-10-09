@@ -694,27 +694,27 @@ struct TLearningImage {
 	void Test(const char* file);
 };
 
+class TLearningImageIterator {
+	TMutableRGBImage Dump;
+	TLearningImage*  Data;
+	int X;
+	int Y;
+public:
+	void Init(TLearningImage* image);
+	const unsigned char* Next(TLearningImage::Label& label);
+}
+
 class TImagesLearningDataSource {
 	std::list<TLearningImage> Images;
 
-	std::list<TLearningImage>::iterator InnersIt;
-	TMutableRGBImage Dump;
-	int InnersX;
-	int InnersY;
-	int InnersXMax;
-	int InnersYMax;
-
-	bool NextInnersImage();
-	bool NextInnersY();
+	std::list<TLearningImage>::iterator ImgsIt;
+	TLearningImageIterator LIIt;
 
 public:
 	void AddImage(TLearningImage& image);
 
-	void ResetInners();
-	const unsigned char* NextInner();
-
-	void ResetOuters();
-	bool NextOuter(unsigned char*);
+	void Reset();
+	const unsigned char* Next();
 };
 
 void ReverseMatrix(int n, double* matrix, double* inv);
