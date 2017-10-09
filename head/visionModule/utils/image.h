@@ -702,17 +702,29 @@ struct TLearningImage {
 	void Test(const char* file);
 };
 
-class TLearningImageIterator {
+class ILearningIterator {
+public:
+	virtual void Reset() = 0;
+	virtual const unsigned char* Next(TLearningImage::Label& label) = 0;
+	double CountDistance(const unsigned char* color, TLearningImage::Label& label);
+	bool GetAverage(TLearningImage::Label& label,
+					unsigned char* avgcolor,
+					unsigned char* mincolor,
+					unsigned char* maxcolor);
+};
+
+class TLearningImageIterator : public ILearningIterator {
 	TMutableRGBImage Dump;
 	TLearningImage*  Data;
 	int X;
 	int Y;
 public:
 	void Init(TLearningImage* image);
+	void Reset();
 	const unsigned char* Next(TLearningImage::Label& label);
 };
 
-class TImagesLearningDataSource {
+class TImagesLearningDataSource : public ILearningIterator {
 	std::list<TLearningImage> Images;
 
 	std::list<TLearningImage>::iterator ImgsIt;
@@ -727,7 +739,11 @@ public:
 
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
-void gradientBoost(TImagesLearningDataSource& images, unsigned char* color);
+
+bool gradientBoost(TImagesLearningDataSource& images, TLearningImage::Label& label, unsigned char* color);
+bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label& label, unsigned char* color);
+unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color);
+
 /*
  counts polynom components values:
  s - max power

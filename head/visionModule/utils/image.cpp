@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <limits>
 
 #include "image.h"
 /*
@@ -427,11 +428,76 @@ void TLearningImage::Test(const char* file) {
 	image.SaveJpg(file);
 }
 
+double countDistance(const unsigned char* color1, const unsigned char* color2) {
+	double result = 0.0;
+	for (int i = 0; i < 3; ++i) {
+		double d = color1[i] - (double)color2[i];
+		result += d * d;
+	}
+	return result;
+}
+
+double ILearningIterator::CountDistance(const unsigned char* color,
+										TLearningImage::Label& label) {
+	Reset();
+	const unsigned char* ecolor;
+	TLearningImage::Label elabel;
+	double result = 0;
+	while((ecolor = Next(elabel))) {
+		if (elabel = label) {
+			result += countDistance(color, ecolor);
+		}
+	}
+	return result;
+}
+
+bool ILearningIterator::GetAverage(TLearningImage::Label& label,
+								   unsigned char* avgcolor,
+								   unsigned char* mincolor,
+								   unsigned char* maxcolor) {
+	double sumcolor[3];
+	for (int i = 0; i < 3; ++i) {
+		sumcolor[i] = 0;
+		mincolor[i] = 255;
+		maxcolor[i] = 0;
+	}
+	Reset();
+	const unsigned char* ecolor;
+	TLearningImage::Label elabel;
+	unsigned int n = 0;
+	while((ecolor = Next(elabel))) {
+		if (elabel = label) {
+			for (int i = 0; i < 3; ++i) {
+				sumcolor[i] += ecolor[i];
+				if (ecolor[i] < mincolor[i]) {
+					mincolor[i] = ecolor[i];
+				}
+				if (ecolor[i] > maxcolor[i]) {
+					maxcolor[i] = ecolor[i];
+				}
+			}
+			++n;
+		}
+	}
+	if (n > 0) {
+		for (int i = 0; i < 3; ++i) {
+			avgcolor[i] = sumcolor[i] / n;
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+void TLearningImageIterator::Reset() {
+	X = -1;
+	Y = 0;
+}
+
 void TLearningImageIterator::Init(TLearningImage* image) {
 	Dump.LoadDump(image->Path);
 	Data = image;
-	X = -1;
-	Y = 0;
+	Reset();
 }
 
 const unsigned char* TLearningImageIterator::Next(TLearningImage::Label& label) {
@@ -467,5 +533,65 @@ const unsigned char* TImagesLearningDataSource::Next(TLearningImage::Label& labe
 	return result;
 }
 
-void gradientBoost(TImagesLearningDataSource& images, unsigned char* color) {
+bool fullIteration(TImagesLearningDataSource& images,
+				   TLearningImage::Label& label,
+				   unsigned char* color) {
+	unsigned char avgcolor[3];
+	unsigned char mincolor[3];
+	unsigned char maxcolor[3];
+	if (images.GetAverage(label, avgcolor, mincolor, maxcolor)) {
+		printf("fullIteration:(%u,%u,%u)-(%u,%u,%u)\n", (unsigned int)mincolor[0], (unsigned int)mincolor[1], (unsigned int)mincolor[2],
+			(unsigned int)maxcolor[0], (unsigned int)maxcolor[1], (unsigned int)maxcolor[2]);
+		unsigned char rgb[3];
+		double min = std::numeric_limits<double>::max();
+		for (rgb[0] = mincolor[0]; rgb[0] <= maxcolor[0]; rgb[0]++) {
+			for (rgb[1] = mincolor[1]; rgb[1] <= maxcolor[1]; rgb[1]++) {
+				for (rgb[2] = mincolor[2]; rgb[2] <= maxcolor[2]; rgb[2]++) {
+					double d = imges.CountDistance(rgb, label);
+					if (d < min) {
+						min = d;
+						memcpy(color, rgb, 3);
+					}
+				}
+			}
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool gradientBoost(TImagesLearningDataSource& images,
+				   TLearningImage::Label& label,
+				   unsigned char* color) {
+
+	unsigned char mincolor[3];
+	unsigned char maxcolor[3];
+	if (images.GetAverage(label, color, mincolor, maxcolor)) {
+		double d = images.CountDistance(label, color);
+		return true;
+	} else {
+		return false;
+	}
+}
+
+unsigned int countErrors(TImagesLearningDataSource& images, const unsigned char* color, double d) {
+	Reset();
+	const unsigned char* ecolor;
+	TLearningImage::Label elabel;
+	unsigned int errors = 0;
+	while((ecolor = Next(elabel))) {
+		if ((elabel == BACKGROUND) || (elabel == OBJECT)) {
+			countDistance(color, ecolor);
+			// TODO
+		}
+	}
+}
+
+unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color) {
+	unsigned char avgcolor[3];
+	unsigned char mincolor[3];
+	unsigned char maxcolor[3];
+	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
+	double d = countDistance(color, avgcolor);
 }

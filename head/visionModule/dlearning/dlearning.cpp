@@ -103,6 +103,14 @@ void ReadList(std::string str, std::list<std::string>& lst) {
 	}
 }
 
+void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
+	unsigned char color[3];
+	fullIteration(images, TLearningImage::BACKGROUND, color);
+	printf("Background color: (%u,%u,%u)\n", (unsigned int)color[0], (unsigned int)color[1], (unsigned int)color[2]);
+
+	unsigned int getOptimalDistance(images, color);
+}
+
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 	if (name == "LearningPictures") {
 		printf("ParametersUpdated\n");
@@ -117,12 +125,11 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 			image.RIn = std::stoi(*it++);
 			image.ROut = std::stoi(*it++);
 			printf("ParametersUpdated: path=%s\n", image.Path.c_str());
-			image.Test("learning_test.jpg");
+			//image.Test("learning_test.jpg");
 			images.AddImage(image);
 		}
 
-		unsigned char color[3];
-		gradientBoost(images, color);
+		Learn(images);
 
 		return;
 	}

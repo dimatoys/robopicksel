@@ -38,6 +38,8 @@ public:
     TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image);
     virtual void DestroyExtractor(TSegmentsExtractor* extractor) {}
     virtual void ParameterUpdated(std::string name);
+
+    void Learn(TImagesLearningDataSource& images);
 };
 
 
