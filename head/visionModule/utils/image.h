@@ -109,7 +109,7 @@ public:
 
 	TMutableImage(std::string& dumpFileName) {
 		Allocated = false;
-		LoadDump(dumpFileName.c_str());
+		LoadDump(dumpFileName);
 	}
 
 	TMutableImage(T* src,
@@ -249,6 +249,14 @@ public:
 	        fwrite(Image, sizeof(T), ImageSize(), outfile);
 	        fclose( outfile );
 	    }
+	}
+
+	void LoadDump(std::string& fileName) {
+		LoadDump(fileName.c_str());
+	}
+
+	void SaveDump(std::string& fileName) {
+		SaveDump(fileName.c_str());
 	}
 
 	int Size() {
@@ -702,7 +710,7 @@ class TLearningImageIterator {
 public:
 	void Init(TLearningImage* image);
 	const unsigned char* Next(TLearningImage::Label& label);
-}
+};
 
 class TImagesLearningDataSource {
 	std::list<TLearningImage> Images;
@@ -714,12 +722,12 @@ public:
 	void AddImage(TLearningImage& image);
 
 	void Reset();
-	const unsigned char* Next();
+	const unsigned char* Next(TLearningImage::Label& label);
 };
 
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
-
+void gradientBoost(TImagesLearningDataSource& images, unsigned char* color);
 /*
  counts polynom components values:
  s - max power

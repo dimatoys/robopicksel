@@ -452,17 +452,20 @@ void TImagesLearningDataSource::AddImage(TLearningImage& image){
 void TImagesLearningDataSource::Reset() {
 	ImgsIt = Images.begin();
 	if (ImgsIt != Images.end()) {
-		LIIt.Init(ImgsIt);
+		LIIt.Init(&*ImgsIt);
 	}
 }
 
-const unsigned char* TLearningImageIterator::Next(TLearningImage::Label& label) {
-	const unsigned char* result = LIIt->Next(label);
+const unsigned char* TImagesLearningDataSource::Next(TLearningImage::Label& label) {
+	const unsigned char* result = LIIt.Next(label);
 	if (result == NULL) {
 		if (ImgsIt != Images.end()) {
-			LIIt.Init(ImgsIt);
-			result = LIIt->Next(label);
+			LIIt.Init(&*ImgsIt);
+			result = LIIt.Next(label);
 		}
 	}
 	return result;
+}
+
+void gradientBoost(TImagesLearningDataSource& images, unsigned char* color) {
 }
