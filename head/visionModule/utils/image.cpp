@@ -575,23 +575,47 @@ bool gradientBoost(TImagesLearningDataSource& images,
 	}
 }
 
-unsigned int countErrors(TImagesLearningDataSource& images, const unsigned char* color, double d) {
-	Reset();
+unsigned int countErrors(TImagesLearningDataSource& images,
+						 const unsigned char* color,
+						 double d,
+						 unsigned int& ned,
+						 unsigned int& fp) {
+	images.Reset();
+	unsigned int pos = 0;
+	neg = 0;
+	fp = 0;
 	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
 	unsigned int errors = 0;
-	while((ecolor = Next(elabel))) {
+	while((ecolor = images.Next(elabel))) {
 		if ((elabel == BACKGROUND) || (elabel == OBJECT)) {
-			countDistance(color, ecolor);
-			// TODO
+			if (countDistance(color, ecolor) < d) {
+				if (elabel == BACKGROUND) {
+					++pos;
+				} else {
+					++fp;
+				}
+			} else {
+				if (elabel == OBJECT) {
+					++pos;
+				} else {
+					++neg;
+				}
+			}
 		}
 	}
+	return pos;
 }
 
-unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color) {
+unsigned int getOptimalDistance(TImagesLearningDataSource& images,
+								const unsigned char* color,
+								unsigned int& ned,
+								unsigned int& fp) {
 	unsigned char avgcolor[3];
 	unsigned char mincolor[3];
 	unsigned char maxcolor[3];
 	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
-	double d = countDistance(color, avgcolor);
+	double d = countDistance(color, avgcolor) / 2.0;
+	countErrors(images, color, d, neg, fp);
+	return (unsigned int)d;
 }

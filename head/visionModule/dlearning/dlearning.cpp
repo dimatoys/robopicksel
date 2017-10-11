@@ -106,9 +106,15 @@ void ReadList(std::string str, std::list<std::string>& lst) {
 void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 	unsigned char color[3];
 	fullIteration(images, TLearningImage::BACKGROUND, color);
-	printf("Background color: (%u,%u,%u)\n", (unsigned int)color[0], (unsigned int)color[1], (unsigned int)color[2]);
+	R = color[0];
+	G = color[1];
+	B = color[2];
+	printf("Background color: (%u,%u,%u)\n", R, G, B);
 
-	unsigned int getOptimalDistance(images, color);
+	unsigned int neg;
+	unsigned int fp;
+	D = getOptimalDistance(images, color, neg, fp);
+	printf("Optimal distance: %u neg=%u fp=%u\n", D, neg, fp);
 }
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {

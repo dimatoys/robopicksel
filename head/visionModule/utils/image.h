@@ -742,7 +742,7 @@ void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
 bool gradientBoost(TImagesLearningDataSource& images, TLearningImage::Label& label, unsigned char* color);
 bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label& label, unsigned char* color);
-unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color);
+unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color, unsigned int& ned, unsigned int& fp);
 
 /*
  counts polynom components values:

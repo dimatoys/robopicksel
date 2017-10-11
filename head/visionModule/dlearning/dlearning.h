@@ -3,7 +3,7 @@
 const unsigned char S = 2;
 const unsigned char Points = 1;
     
-const double R[] = {1.32433886e-01,
+const double V[] = {1.32433886e-01,
                     1.85654775e-03,
                     -7.42018708e-03,
                     6.26838325e-03,
@@ -16,23 +16,26 @@ const double R[] = {1.32433886e-01,
 
 class TDeepLearningExtractorFactory : public TExtractorFactory {
 public:
-    
+
     TPolyRegression PR;
-    
+
     int StepL1;
     int StepL2;
     
     std::string LearningPictures;
-    std::string LearningVector;
-    
+
+    int R;
+    int G;
+    int B;
+    int D;
+
     TDeepLearningExtractorFactory() :
         PR(S) {
-        PR.SetR(R, 3 * Points, 1);
+        PR.SetR(V, 3 * Points, 1);
         
         AddParameter("StepL1", &StepL1, 20);
         AddParameter("StepL2", &StepL2, 3);
         AddParameter("LearningPictures", &LearningPictures, "");
-        AddParameter("LearningVector", &LearningVector, "");
     }
 
     TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image);
