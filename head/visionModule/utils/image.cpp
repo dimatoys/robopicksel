@@ -437,8 +437,8 @@ double countDistance(const unsigned char* color1, const unsigned char* color2) {
 	return result;
 }
 
-double ILearningIterator::CountDistance(const unsigned char* color,
-										TLearningImage::Label& label) {
+double ILearningIterator::CountDistance(TLearningImage::Label& label,
+										 const unsigned char* color) {
 	Reset();
 	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
@@ -451,7 +451,7 @@ double ILearningIterator::CountDistance(const unsigned char* color,
 	return result;
 }
 
-bool ILearningIterator::GetAverage(TLearningImage::Label& label,
+bool ILearningIterator::GetAverage(TLearningImage::Label label,
 								   unsigned char* avgcolor,
 								   unsigned char* mincolor,
 								   unsigned char* maxcolor) {
@@ -465,8 +465,10 @@ bool ILearningIterator::GetAverage(TLearningImage::Label& label,
 	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
 	unsigned int n = 0;
-	while((ecolor = Next(elabel))) {
-		if (elabel = label) {
+	printf("GetAverage: begin iterate\n");
+	while((ecolor = Next(elabel)) != NULL) {
+		//printf("GetAverage: it n=%u label=%u elabel=%u\n", n, (int)label, (int)elabel);
+		if (elabel == label) {
 			for (int i = 0; i < 3; ++i) {
 				sumcolor[i] += ecolor[i];
 				if (ecolor[i] < mincolor[i]) {
@@ -479,6 +481,7 @@ bool ILearningIterator::GetAverage(TLearningImage::Label& label,
 			++n;
 		}
 	}
+	printf("GetAverage: n=%u\n", n);
 	if (n > 0) {
 		for (int i = 0; i < 3; ++i) {
 			avgcolor[i] = sumcolor[i] / n;
@@ -492,12 +495,9 @@ bool ILearningIterator::GetAverage(TLearningImage::Label& label,
 void TLearningImageIterator::Reset() {
 	X = -1;
 	Y = 0;
-}
-
-void TLearningImageIterator::Init(TLearningImage* image) {
-	Dump.LoadDump(image->Path);
-	Data = image;
-	Reset();
+	if (!Dump.IsAllocated()) {
+		Dump.LoadDump(Data.Path);
+	}
 }
 
 const unsigned char* TLearningImageIterator::Next(TLearningImage::Label& label) {
@@ -507,34 +507,38 @@ const unsigned char* TLearningImageIterator::Next(TLearningImage::Label& label) 
 		}
 		X = 0;
 	}
-	label = Data->GetLabel(X, Y);
+	label = Data.GetLabel(X, Y);
 	return Dump.Cell(X, Y);
 }
 
 void TImagesLearningDataSource::AddImage(TLearningImage& image){
-	Images.push_back(image);
+	TLearningImageIterator it(image);
+	Images.push_back(it);
 }
 
 void TImagesLearningDataSource::Reset() {
 	ImgsIt = Images.begin();
 	if (ImgsIt != Images.end()) {
-		LIIt.Init(&*ImgsIt);
+		ImgsIt->Reset();
 	}
 }
 
 const unsigned char* TImagesLearningDataSource::Next(TLearningImage::Label& label) {
-	const unsigned char* result = LIIt.Next(label);
-	if (result == NULL) {
-		if (ImgsIt != Images.end()) {
-			LIIt.Init(&*ImgsIt);
-			result = LIIt.Next(label);
+	while(true) {
+		const unsigned char* result = ImgsIt->Next(label);
+		if (result != NULL) {
+			return result;
 		}
+		if (++ImgsIt == Images.end()) {
+			return NULL;
+		}
+		ImgsIt->Reset();
 	}
-	return result;
+	return NULL;
 }
 
 bool fullIteration(TImagesLearningDataSource& images,
-				   TLearningImage::Label& label,
+				   TLearningImage::Label label,
 				   unsigned char* color) {
 	unsigned char avgcolor[3];
 	unsigned char mincolor[3];
@@ -545,9 +549,10 @@ bool fullIteration(TImagesLearningDataSource& images,
 		unsigned char rgb[3];
 		double min = std::numeric_limits<double>::max();
 		for (rgb[0] = mincolor[0]; rgb[0] <= maxcolor[0]; rgb[0]++) {
+			printf("R=%u\n", (unsigned int)rgb[0]);
 			for (rgb[1] = mincolor[1]; rgb[1] <= maxcolor[1]; rgb[1]++) {
 				for (rgb[2] = mincolor[2]; rgb[2] <= maxcolor[2]; rgb[2]++) {
-					double d = imges.CountDistance(rgb, label);
+					double d = images.CountDistance(label, rgb);
 					if (d < min) {
 						min = d;
 						memcpy(color, rgb, 3);
@@ -562,7 +567,7 @@ bool fullIteration(TImagesLearningDataSource& images,
 }
 
 bool gradientBoost(TImagesLearningDataSource& images,
-				   TLearningImage::Label& label,
+				   TLearningImage::Label label,
 				   unsigned char* color) {
 
 	unsigned char mincolor[3];
@@ -578,7 +583,7 @@ bool gradientBoost(TImagesLearningDataSource& images,
 unsigned int countErrors(TImagesLearningDataSource& images,
 						 const unsigned char* color,
 						 double d,
-						 unsigned int& ned,
+						 unsigned int& neg,
 						 unsigned int& fp) {
 	images.Reset();
 	unsigned int pos = 0;
@@ -588,15 +593,15 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 	TLearningImage::Label elabel;
 	unsigned int errors = 0;
 	while((ecolor = images.Next(elabel))) {
-		if ((elabel == BACKGROUND) || (elabel == OBJECT)) {
+		if ((elabel == TLearningImage::BACKGROUND) || (elabel == TLearningImage::OBJECT)) {
 			if (countDistance(color, ecolor) < d) {
-				if (elabel == BACKGROUND) {
+				if (elabel == TLearningImage::BACKGROUND) {
 					++pos;
 				} else {
 					++fp;
 				}
 			} else {
-				if (elabel == OBJECT) {
+				if (elabel == TLearningImage::OBJECT) {
 					++pos;
 				} else {
 					++neg;
@@ -609,7 +614,7 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 
 unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 								const unsigned char* color,
-								unsigned int& ned,
+								unsigned int& neg,
 								unsigned int& fp) {
 	unsigned char avgcolor[3];
 	unsigned char mincolor[3];

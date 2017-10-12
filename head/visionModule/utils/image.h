@@ -706,8 +706,8 @@ class ILearningIterator {
 public:
 	virtual void Reset() = 0;
 	virtual const unsigned char* Next(TLearningImage::Label& label) = 0;
-	double CountDistance(const unsigned char* color, TLearningImage::Label& label);
-	bool GetAverage(TLearningImage::Label& label,
+	double CountDistance(TLearningImage::Label& label, const unsigned char* color);
+	bool GetAverage(TLearningImage::Label label,
 					unsigned char* avgcolor,
 					unsigned char* mincolor,
 					unsigned char* maxcolor);
@@ -715,20 +715,19 @@ public:
 
 class TLearningImageIterator : public ILearningIterator {
 	TMutableRGBImage Dump;
-	TLearningImage*  Data;
+	TLearningImage Data;
 	int X;
 	int Y;
 public:
-	void Init(TLearningImage* image);
+	TLearningImageIterator(const TLearningImage& image) : Data(image) {};
+	TLearningImageIterator(const TLearningImageIterator& it) : Data(it.Data) {};
 	void Reset();
 	const unsigned char* Next(TLearningImage::Label& label);
 };
 
 class TImagesLearningDataSource : public ILearningIterator {
-	std::list<TLearningImage> Images;
-
-	std::list<TLearningImage>::iterator ImgsIt;
-	TLearningImageIterator LIIt;
+	std::list<TLearningImageIterator> Images;
+	std::list<TLearningImageIterator>::iterator ImgsIt;
 
 public:
 	void AddImage(TLearningImage& image);
@@ -740,8 +739,8 @@ public:
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
-bool gradientBoost(TImagesLearningDataSource& images, TLearningImage::Label& label, unsigned char* color);
-bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label& label, unsigned char* color);
+bool gradientBoost(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
+bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
 unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color, unsigned int& ned, unsigned int& fp);
 
 /*

@@ -119,7 +119,6 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 	if (name == "LearningPictures") {
-		printf("ParametersUpdated\n");
 		std::list<std::string> lst;
 		ReadList(LearningPictures, lst);
 		TImagesLearningDataSource images;
@@ -130,7 +129,6 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 			image.Y = std::stoi(*it++);
 			image.RIn = std::stoi(*it++);
 			image.ROut = std::stoi(*it++);
-			printf("ParametersUpdated: path=%s\n", image.Path.c_str());
 			//image.Test("learning_test.jpg");
 			images.AddImage(image);
 		}
