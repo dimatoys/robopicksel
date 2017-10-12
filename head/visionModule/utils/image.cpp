@@ -566,17 +566,111 @@ bool fullIteration(TImagesLearningDataSource& images,
 	}
 }
 
-bool gradientBoost(TImagesLearningDataSource& images,
-				   TLearningImage::Label label,
-				   unsigned char* color) {
+static int TGradientBoost::DirDistance(char[3] dir) {
+	return dir[0] * (int)dir[0] + dir[1] * (int)dir[1] + dir[2] * (int)dir[2];
+}
 
+void TGradientBoost::MakeDistancesArray(int maxDistance) {
+	char dir[3];
+	for (dir[0] = -maxDistance; dir[0] <= maxDistance; ++dir[0]) {
+		for (dir[1] = -maxDistance; dir[1] <= maxDistance; ++dir[1]) {
+			for (dir[2] = -maxDistance; dir[2] <= maxDistance; ++dir[2]) {
+				Distances.push_back(dir);
+			}
+		}
+	}
+	stt::sort(Distances.begin(), Distances.end(), [](char a[3], char b[3]){
+		return DirDistance(b) - DirDistance(a);
+	})
+	std::vector<char[3]>::iterator it = Distances.begin();
+	while (it != Distances.end()) {
+		if (DirDistance(*it) > maxDistance) {
+			break;
+		}
+		++it;
+	}
+	Distances.erase(it, Distances.end());
+}
+
+void TGradientBoost::InitCache(unsigned char* mincolor, unsigned char* maxcolor) {
+	Min0 = mincolor[0];
+	Min1 = mincolor[1];
+	Min2 = mincolor[2];
+	Max0 = maxcolor[0];
+	Max1 = maxcolor[1];
+	Max2 = maxcolor[2];
+	S1 = maxcolor[1] - mincolor[1] + 1;
+	S2 = maxcolor[2] - mincolor[2] + 1;
+	int size = (maxcolor[0] - mincolor[0] + 1) * S1 * S2;
+	if (Cache != NULL) {
+		delete Cache;
+	}
+	Cache = new unsigned char[size];
+	memset(Cache, 0, size);
+}
+
+unsigned char& TGradientBoost::CacheValue(unsigned char* rgb) {
+	return Cache[((r[0] - Min0) * S1 + r[1] - Min1) * S2 + r[2] - Min2];
+}
+
+TGradientBoost::TGradientBoost(int maxDistance) {
+	MakeDistancesArray(maxDistance);
+	Cache = NULL;
+}
+
+bool TGradientBoost::Boost(TImagesLearningDataSource& images, TLearningImage::Label label) {
 	unsigned char mincolor[3];
 	unsigned char maxcolor[3];
-	if (images.GetAverage(label, color, mincolor, maxcolor)) {
-		double d = images.CountDistance(label, color);
+	if (images.GetAverage(label, Color, mincolor, maxcolor)) {
+		InitCache(mincolor, maxcolor);
+		D = images.CountDistance(label, Color);
+		std::vector<char[3]>::const_iterator it = Distances.begin();
+		unsigned char ccolor[3];
+		while(it != Distances.end()) {
+			int c0 = Color[0] + (int)(*it)[0];
+			if (c0 < Min0) {
+				continue;
+			}
+			if (c0 > Max0) {
+				continue;
+			}
+			int c1 = Color[1] + (int)(*it)[1];
+			if (c1 < Min1) {
+				continue;
+			}
+			if (c1 > Max1) {
+				continue;
+			}
+			int c2 = Color[2] + (int)(*it)[2];
+			if (c2 < Min2) {
+				continue;
+			}
+			if (c2 > Max2) {
+				continue;
+			}
+			ccolor[0] = (unsigned char)c0;
+			ccolor[1] = (unsigned char)c1;
+			ccolor[2] = (unsigned char)c2;
+			if (CacheValue(ccolor) == 0) {
+				double d = images.CountDistance(label, ccolor);
+				CacheValue(ccolor) = 1;
+				if (d <= D) {
+					Color = ccolor;
+					D = d;
+					it = Distances.begin();
+					continue;
+				}
+			}
+			++it;
+		}
 		return true;
-	} else {
-		return false;
+	}
+	return false;
+}
+
+~TGradientBoost::TGradientBoost() {
+	if (Cache != NULL) {
+		delete Cache;
 	}
 }
 

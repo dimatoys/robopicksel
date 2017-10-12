@@ -2,6 +2,8 @@
 
 const unsigned char S = 2;
 const unsigned char Points = 1;
+
+const unsigned int GB_D = 10;
     
 const double V[] = {1.32433886e-01,
                     1.85654775e-03,
@@ -18,6 +20,7 @@ class TDeepLearningExtractorFactory : public TExtractorFactory {
 public:
 
     TPolyRegression PR;
+    TGradienBoost GB(GB_D);
 
     int StepL1;
     int StepL2;

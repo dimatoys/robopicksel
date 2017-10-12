@@ -736,10 +736,38 @@ public:
 	const unsigned char* Next(TLearningImage::Label& label);
 };
 
+class TGradientBoost {
+
+	unsigned char* Cache;
+	int Min0;
+	int Min1;
+	int Min2;
+	int Max0;
+	int Max1;
+	int Max2;
+	int S1;
+	int S2;
+
+	std::vector<char[3]> Distances;
+
+	static int DirDistance(char[3] dir);
+	void MakeDistancesArray(int maxDistance);
+	void InitCache(unsigned char* mincolor, unsigned char* maxcolor);
+	unsigned char& CacheValue(unsigned char* rgb);
+
+public:
+	unsigned char Color[3];
+	double D;
+
+	TGradientBoost(int maxDistance);
+	~TGradientBoost();
+
+	bool Boost(TImagesLearningDataSource& images, TLearningImage::Label label);
+};
+
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
-bool gradientBoost(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
 bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
 unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color, unsigned int& ned, unsigned int& fp);
 

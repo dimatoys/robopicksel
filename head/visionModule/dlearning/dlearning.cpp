@@ -105,7 +105,10 @@ void ReadList(std::string str, std::list<std::string>& lst) {
 
 void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 	unsigned char color[3];
-	fullIteration(images, TLearningImage::BACKGROUND, color);
+	//fullIteration(images, TLearningImage::BACKGROUND, color);
+
+	GB.Boost(images, TLearningImage::BACKGROUND);
+
 	R = color[0];
 	G = color[1];
 	B = color[2];
