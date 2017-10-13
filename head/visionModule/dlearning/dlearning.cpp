@@ -109,10 +109,10 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 
 	GB.Boost(images, TLearningImage::BACKGROUND);
 
-	R = color[0];
-	G = color[1];
-	B = color[2];
-	printf("Background color: (%u,%u,%u)\n", R, G, B);
+	R = GB.Color[0];
+	G = GB.Color[1];
+	B = GB.Color[2];
+	printf("Background color: (%u,%u,%u) D=%u\n", R, G, B, GB.D);
 
 	unsigned int neg;
 	unsigned int fp;
