@@ -676,6 +676,26 @@ public:
 	bool NextRecord();
 	void Add(double element);
 };
+template<class T>
+struct TRGB {
+	T RGB[3];
+
+	TRGB() {}
+
+	TRGB(const TRGB& other) {
+		memcpy(RGB, other.RGB, 3);
+	}
+
+	TRGB(int r, int g, int b) {
+		RGB[0] = r;
+		RGB[1] = g;
+		RGB[2] = b;
+	}
+
+	int S2() const {
+		return RGB[0] * (int)RGB[0] + RGB[1] * (int)RGB[1] + RGB[2] * (int)RGB[2];
+	}
+};
 
 struct TLearningImage {
 
@@ -748,9 +768,8 @@ class TGradientBoost {
 	int S1;
 	int S2;
 
-	std::vector<char[3]> Distances;
+	std::vector< TRGB<char> > Distances;
 
-	static int DirDistance(char[3] dir);
 	void MakeDistancesArray(int maxDistance);
 	void InitCache(unsigned char* mincolor, unsigned char* maxcolor);
 	unsigned char& CacheValue(unsigned char* rgb);

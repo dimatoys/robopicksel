@@ -3,7 +3,7 @@
 const unsigned char S = 2;
 const unsigned char Points = 1;
 
-const unsigned int GB_D = 10;
+const int GB_D = 10;
     
 const double V[] = {1.32433886e-01,
                     1.85654775e-03,
@@ -20,7 +20,7 @@ class TDeepLearningExtractorFactory : public TExtractorFactory {
 public:
 
     TPolyRegression PR;
-    TGradienBoost GB(GB_D);
+    TGradientBoost GB;
 
     int StepL1;
     int StepL2;
@@ -33,7 +33,8 @@ public:
     int D;
 
     TDeepLearningExtractorFactory() :
-        PR(S) {
+        PR(S),
+        GB(GB_D) {
         PR.SetR(V, 3 * Points, 1);
         
         AddParameter("StepL1", &StepL1, 20);
