@@ -718,13 +718,40 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 
 unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 								const TRGB<unsigned char>& color,
-								unsigned int& neg,
-								unsigned int& fp) {
+								int maxDistance) {
 	TRGB<unsigned char> avgcolor;
 	TRGB<unsigned char> mincolor;
 	TRGB<unsigned char> maxcolor;
+	unsigned int fp, neg;
 	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
-	double d = countDistance(color, avgcolor) / 2.0;
-	countErrors(images, color, d, neg, fp);
-	return (unsigned int)d;
+	int d = (int)(countDistance(color, avgcolor) / 2.0);
+	int imin = d - maxDistance;
+	int imax = d + maxDistance;
+	unsigned int bd = -1;
+	unsigned int pos = 0;
+	for (unsigned int td = imin; td <= imax; ++td) {
+		unsigned int tpos = countErrors(images, color, td, neg, fp);
+		if (tpos > pos) {
+			bd = td;
+			pos = tpos;
+		}
+	}
+	int cd;
+	int dir;
+	if (bd > d) {
+		cd = imax;
+		dir = 1;
+	} else {
+		cd = imin;
+		dir = -1;
+	}
+	while (cd - bd < maxDistance) {
+		cd += dir;
+		unsigned int tpos = countErrors(images, color, cd, neg, fp);
+		if (tpos >= pos) {
+			bd = cd;
+			pos = tpos;
+		}
+	}
+	return bd;
 }

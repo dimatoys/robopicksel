@@ -785,14 +785,18 @@ public:
 	TGradientBoost(int maxDistance);
 	~TGradientBoost();
 
-	bool Boost(TImagesLearningDataSource& images, TLearningImage::Label label);
+	bool Boost(TImagesLearningDataSource& images,
+			   TLearningImage::Label label);
 };
+
 
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
 //bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
-unsigned int getOptimalDistance(TImagesLearningDataSource& images, const TRGB<unsigned char>& color, unsigned int& ned, unsigned int& fp);
+unsigned int getOptimalDistance(TImagesLearningDataSource& images,
+								 const TRGB<unsigned char>& color,
+								 int maxDistance);
 
 /*
  counts polynom components values:
