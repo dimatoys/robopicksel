@@ -692,6 +692,10 @@ struct TRGB {
 		RGB[2] = b;
 	}
 
+	void operator=(const TRGB& other) {
+		memcpy(RGB, other.RGB, 3);
+	}
+
 	int S2() const {
 		return RGB[0] * (int)RGB[0] + RGB[1] * (int)RGB[1] + RGB[2] * (int)RGB[2];
 	}
@@ -726,11 +730,11 @@ class ILearningIterator {
 public:
 	virtual void Reset() = 0;
 	virtual const unsigned char* Next(TLearningImage::Label& label) = 0;
-	double CountDistance(TLearningImage::Label& label, const unsigned char* color);
+	double CountDistance(TLearningImage::Label& label, const TRGB<unsigned char>& color);
 	bool GetAverage(TLearningImage::Label label,
-					unsigned char* avgcolor,
-					unsigned char* mincolor,
-					unsigned char* maxcolor);
+					TRGB<unsigned char>& avgcolor,
+					TRGB<unsigned char>& mincolor,
+					TRGB<unsigned char>& maxcolor);
 };
 
 class TLearningImageIterator : public ILearningIterator {
@@ -771,11 +775,11 @@ class TGradientBoost {
 	std::vector< TRGB<char> > Distances;
 
 	void MakeDistancesArray(int maxDistance);
-	void InitCache(unsigned char* mincolor, unsigned char* maxcolor);
-	unsigned char& CacheValue(unsigned char* rgb);
+	void InitCache(const TRGB<unsigned char>& mincolor, const TRGB<unsigned char>& maxcolor);
+	unsigned char& CacheValue(const TRGB<unsigned char>& rgb);
 
 public:
-	unsigned char Color[3];
+	TRGB<unsigned char> Color;
 	double D;
 
 	TGradientBoost(int maxDistance);
@@ -787,8 +791,8 @@ public:
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
-bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
-unsigned int getOptimalDistance(TImagesLearningDataSource& images, const unsigned char* color, unsigned int& ned, unsigned int& fp);
+//bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
+unsigned int getOptimalDistance(TImagesLearningDataSource& images, const TRGB<unsigned char>& color, unsigned int& ned, unsigned int& fp);
 
 /*
  counts polynom components values:
