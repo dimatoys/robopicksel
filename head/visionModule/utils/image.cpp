@@ -429,22 +429,29 @@ void TLearningImage::Test(const char* file) {
 	image.SaveJpg(file);
 }
 
-double countDistance(const TRGB<unsigned char>& color1, const unsigned char* color2) {
-	double result = 0.0;
+int countDistance(const TRGB<unsigned char>& color1, const unsigned char* color2) {
+	int result = 0.0;
 	for (int i = 0; i < 3; ++i) {
-		double d = color1.RGB[i] - (double)color2[i];
+		int d = color1.RGB[i] - (int)color2[i];
 		result += d * d;
 	}
 	return result;
 }
 
-double countDistance(const TRGB<unsigned char>& color1, const TRGB<unsigned char>& color2) {
-	double result = 0.0;
+int countDistance(const TRGB<unsigned char>& color1, const TRGB<unsigned char>& color2) {
+	int result = 0.0;
 	for (int i = 0; i < 3; ++i) {
-		double d = color1.RGB[i] - (double)color2.RGB[i];
+		int d = color1.RGB[i] - (int)color2.RGB[i];
 		result += d * d;
 	}
 	return result;
+}
+
+int countDistance(int r, int g, int b, const unsigned char* color2) {
+	int dr = (r - color2[0]);
+	int dg = (g - color2[1]);
+	int db = (b - color2[2]);
+	return dr * dr + dg * dg + db * db;
 }
 
 double ILearningIterator::CountDistance(TLearningImage::Label& label,
@@ -686,7 +693,7 @@ TGradientBoost::~TGradientBoost() {
 
 unsigned int countErrors(TImagesLearningDataSource& images,
 						 const TRGB<unsigned char>& color,
-						 double d,
+						 int d,
 						 unsigned int& neg,
 						 unsigned int& fp) {
 	images.Reset();
@@ -724,12 +731,12 @@ unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 	TRGB<unsigned char> maxcolor;
 	unsigned int fp, neg;
 	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
-	int d = (int)(countDistance(color, avgcolor) / 2.0);
+	int d = countDistance(color, avgcolor) / 2;
 	int imin = d - maxDistance;
 	int imax = d + maxDistance;
 	unsigned int bd = -1;
 	unsigned int pos = 0;
-	for (unsigned int td = imin; td <= imax; ++td) {
+	for (int td = imin; td <= imax; ++td) {
 		unsigned int tpos = countErrors(images, color, td, neg, fp);
 		if (tpos > pos) {
 			bd = td;

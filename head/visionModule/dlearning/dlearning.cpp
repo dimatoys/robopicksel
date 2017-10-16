@@ -116,6 +116,7 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 
 	D = getOptimalDistance(images, GB.Color, GB_D * GB_D);
 	printf("Optimal distance: %u\n", D);
+
 }
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
@@ -138,20 +139,21 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 
 		return;
 	}
-	if (name == "LearningVector") {
-		return;
-	}
 }
 
 bool TDeepLearningSegmentsExtractor::GetL1(int x, int y) {
-    double v[3];
-    double r;
-    unsigned char* pixel = Image->Cell(x, y);
-    v[0] = pixel[0];
-    v[1] = pixel[1];
-    v[2] = pixel[2];
-    Parameters->PR.GetValue(v, &r);
-    return r > 0.5;
+/*
+	double v[3];
+	double r;
+	unsigned char* pixel = Image->Cell(x, y);
+	v[0] = pixel[0];
+	v[1] = pixel[1];
+	v[2] = pixel[2];
+
+	Parameters->PR.GetValue(v, &r);
+	return r > 0.5;
+*/
+	return countDistance(R, G, B, Image->Cell(x, y)) > D;
 }
 
 void TDeepLearningSegmentsExtractor::TranslateL1(int x1, int y1, int* x, int* y) {

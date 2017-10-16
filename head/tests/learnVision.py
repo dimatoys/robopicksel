@@ -1428,18 +1428,24 @@ class Dump:
         self.Height = height
         self.Depth = depth
         self.Data = data
-        
+
     @classmethod
     def FromFileName(cls, filename):
         (width, height, depth, data) = LoadDump(filename)
         return cls(width, height, depth, data)
-    
+
     def SaveAsPicture(self, file, format, scale=1):
         img = Image.frombytes('RGB', (self.Width, self.Height), self.Data)
         if scale != 1:
             img = img.resize((int(self.Width * scale), int(self.Height * scale)), Image.ANTIALIAS)
         img.save(file, format)
-    
+
+    def PutPixel(self, x, y, r, g, b):
+        base = ((y * self.Width) + x) * self.Depth
+        self.Data[base] = chr(r)
+        self.Data[base + 1] = chr(g)
+        self.Data[base + 2] = chr(b)
+
     def GetPixel(self, x, y):
         base = ((y * self.Width) + x) * self.Depth
         return (ord(self.Data[base]), ord(self.Data[base + 1]), ord(self.Data[base + 2]))
@@ -2516,6 +2522,38 @@ def TestAutoLearning():
 
     dump = dump2.GetScaled(learn.CellSize)
     print learn.CheckThreshold(dump, v, thr, True)
+
+    img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
+    for sy in range(0, dump2.Height, 2):
+        for sx in range(0, dump2.Width, 2):
+            r = dump2.GetPixel(sx, sy)
+            if (v[0] - r[0]) * (v[0] - r[0]) + (v[1] - r[1]) * (v[1] - r[1]) + (v[2] - r[2]) * (v[2] - r[2]) >= thr:
+                img.putpixel((sx, sy), (255, 255, 255))
+            
+    img.save("%s-tl.png" % cw, 'PNG')
+
+def ShowBackgroundAppr():
+    r = 0;
+    g = 0;
+    b = 0
+    cw = '1502667166'
+    #cw = '1502667194'
+    dump = Dump.FromFileName("../dumps/%s.dump" % cw)
+
+    for y in range(dump.Height):
+        for x in range(dump.width / 2):
+            dump.PutPixel(x, y, r, g, b)
+    dump.SaveAsPicture("bgtest1.png", 'PNG')
+
+def TestAutoLearning2():
+    #cw = '1502667129'
+    #cw = '1502667148'
+    cw = '1502667166'
+    #cw = '1502667194'
+    dump2 = Dump.FromFileName("../dumps/%s.dump" % cw)
+
+    thr = 1996 
+    v = (54,85,51)
 
     img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
     for sy in range(0, dump2.Height, 2):

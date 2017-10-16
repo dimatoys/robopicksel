@@ -793,7 +793,10 @@ public:
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 
-//bool fullIteration(TImagesLearningDataSource& images, TLearningImage::Label label, unsigned char* color);
+int countDistance(int r, int g, int b, const unsigned char* color2);
+int countDistance(const TRGB<unsigned char>& color1, const unsigned char* color2);
+int countDistance(const TRGB<unsigned char>& color1, const TRGB<unsigned char>& color2);
+
 unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 								 const TRGB<unsigned char>& color,
 								 int maxDistance);
