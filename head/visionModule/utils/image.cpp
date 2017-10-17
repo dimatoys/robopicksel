@@ -714,6 +714,8 @@ unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 			pos = tpos;
 		}
 	}
+	printf("getOptimalDistance: bd=%u pos=%u\n", bd, pos);
+	/*
 	int cd;
 	int dir;
 	if (bd > d) {
@@ -731,5 +733,6 @@ unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 			pos = tpos;
 		}
 	}
+	*/
 	return bd;
 }
