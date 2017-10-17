@@ -2533,27 +2533,29 @@ def TestAutoLearning():
     img.save("%s-tl.png" % cw, 'PNG')
 
 def ShowBackgroundAppr():
-    r = 0;
-    g = 0;
-    b = 0
-    cw = '1502667166'
-    #cw = '1502667194'
-    dump = Dump.FromFileName("../dumps/%s.dump" % cw)
-
-    for y in range(dump.Height):
-        for x in range(dump.width / 2):
-            dump.PutPixel(x, y, r, g, b)
-    dump.SaveAsPicture("bgtest1.png", 'PNG')
-
-def TestAutoLearning2():
-    #cw = '1502667129'
-    #cw = '1502667148'
-    cw = '1502667166'
+    (r,g,b) = (54,75,43)
+    cw = '1502846178'
+    #cw = '1502667166'
     #cw = '1502667194'
     dump2 = Dump.FromFileName("../dumps/%s.dump" % cw)
 
-    thr = 1996 
-    v = (54,85,51)
+    img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
+    for sy in range(dump2.Height):
+        for sx in range(dump2.Width / 2):
+            img.putpixel((sx, sy), (r, g, b))
+            
+    img.save("%s-tl0.png" % cw, 'PNG')
+
+def TestAutoLearning2():
+    cw = '1502846178'
+    #cw = '1502667129'
+    #cw = '1502667148'
+    #cw = '1502667166'
+    #cw = '1502667194'
+    dump2 = Dump.FromFileName("../dumps/%s.dump" % cw)
+
+    thr = 5653 
+    v = (54,75,43)
 
     img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
     for sy in range(0, dump2.Height, 2):
@@ -2613,5 +2615,6 @@ def TestAutoLearning2():
 #OnePictireLearning()
 #AutoLearn()
 #AutoLearn2()
-TestAutoLearning()
-
+#TestAutoLearning()
+#ShowBackgroundAppr()
+TestAutoLearning2()

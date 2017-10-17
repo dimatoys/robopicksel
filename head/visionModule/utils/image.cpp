@@ -554,37 +554,6 @@ const unsigned char* TImagesLearningDataSource::Next(TLearningImage::Label& labe
 	return NULL;
 }
 
-/*
-bool fullIteration(TImagesLearningDataSource& images,
-				   TLearningImage::Label label,
-				   unsigned char* color) {
-
-	unsigned char avgcolor[3];
-	unsigned char mincolor[3];
-	unsigned char maxcolor[3];
-	if (images.GetAverage(label, avgcolor, mincolor, maxcolor)) {
-		printf("fullIteration:(%u,%u,%u)-(%u,%u,%u)\n", (unsigned int)mincolor[0], (unsigned int)mincolor[1], (unsigned int)mincolor[2],
-			(unsigned int)maxcolor[0], (unsigned int)maxcolor[1], (unsigned int)maxcolor[2]);
-		unsigned char rgb[3];
-		double min = std::numeric_limits<double>::max();
-		for (rgb[0] = mincolor[0]; rgb[0] <= maxcolor[0]; rgb[0]++) {
-			printf("R=%u\n", (unsigned int)rgb[0]);
-			for (rgb[1] = mincolor[1]; rgb[1] <= maxcolor[1]; rgb[1]++) {
-				for (rgb[2] = mincolor[2]; rgb[2] <= maxcolor[2]; rgb[2]++) {
-					double d = images.CountDistance(label, rgb);
-					if (d < min) {
-						min = d;
-						memcpy(color, rgb, 3);
-					}
-				}
-			}
-		}
-		return true;
-	} else {
-		return false;
-	}
-}
-*/
 void TGradientBoost::MakeDistancesArray(int maxDistance) {
 	TRGB<char> dir;
 	for (dir.RGB[0] = -maxDistance; dir.RGB[0] <= maxDistance; ++dir.RGB[0]) {
@@ -732,6 +701,8 @@ unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 	unsigned int fp, neg;
 	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
 	int d = countDistance(color, avgcolor) / 2;
+	printf("getOptimalDistance: d=%d b=(%u,%u,%u) avg=(%u,%u,%u) md=%d\n", d, (unsigned int)color.RGB[0], (unsigned int)color.RGB[1], (unsigned int)color.RGB[2], 
+		(unsigned int)avgcolor.RGB[0], (unsigned int)avgcolor.RGB[1], (unsigned int)avgcolor.RGB[2], maxDistance);
 	int imin = d - maxDistance;
 	int imax = d + maxDistance;
 	unsigned int bd = -1;
