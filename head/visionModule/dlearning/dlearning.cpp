@@ -114,7 +114,7 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 	B = GB.Color.RGB[2];
 	printf("Background color: (%u,%u,%u)\n", R, G, B);
 
-	D = getOptimalDistance(images, GB.Color, GB_D);
+	D = getOptimalDistanceFast(images, GB.Color, 10);
 	printf("Optimal distance: %u\n", D);
 
 }

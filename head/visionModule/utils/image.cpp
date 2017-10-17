@@ -692,7 +692,35 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 	return pos;
 }
 
-unsigned int getOptimalDistance(TImagesLearningDataSource& images,
+unsigned int getOptimalDistanceFast(TImagesLearningDataSource& images,
+									const TRGB<unsigned char>& color,
+									unsigned int splitParts) {
+	TRGB<unsigned char> avgcolor;
+	TRGB<unsigned char> mincolor;
+	TRGB<unsigned char> maxcolor;
+	unsigned int fp, neg;
+	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
+	unsigned int bd = (unsigned int)countDistance(color, avgcolor) / 2;
+	unsigned int area = bd;
+	unsigned int pos = 0;
+	while (area > 0) {
+		unsigned int step = 2 * area / splitParts;
+		if (step == 0) {
+			step = 1;
+		}
+		for (unsigned int td = bd - area; td <= bd + area; td += step) {
+			unsigned int tpos = countErrors(images, color, td, neg, fp);
+			if (tpos > pos) {
+				bd = td;
+				pos = tpos;
+			}
+		}
+		area = 2 * area / splitParts;
+	}
+	return max;
+}
+
+unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
 								const TRGB<unsigned char>& color,
 								int maxDistance) {
 	TRGB<unsigned char> avgcolor;
@@ -715,7 +743,6 @@ unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 		}
 	}
 	printf("getOptimalDistance: bd=%u pos=%u\n", bd, pos);
-	/*
 	int cd;
 	int dir;
 	if (bd > d) {
@@ -733,6 +760,5 @@ unsigned int getOptimalDistance(TImagesLearningDataSource& images,
 			pos = tpos;
 		}
 	}
-	*/
 	return bd;
 }
