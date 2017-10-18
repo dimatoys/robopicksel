@@ -2554,7 +2554,8 @@ def TestAutoLearning2():
     #cw = '1502667194'
     dump2 = Dump.FromFileName("../dumps/%s.dump" % cw)
 
-    thr = 5653 
+    #thr = 5653
+    thr = 7080 
     v = (54,75,43)
 
     img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)

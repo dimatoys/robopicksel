@@ -708,16 +708,18 @@ unsigned int getOptimalDistanceFast(TImagesLearningDataSource& images,
 		if (step == 0) {
 			step = 1;
 		}
+		printf("area=%u step=%u\n", area, step);
 		for (unsigned int td = bd - area; td <= bd + area; td += step) {
 			unsigned int tpos = countErrors(images, color, td, neg, fp);
 			if (tpos > pos) {
 				bd = td;
 				pos = tpos;
+				printf("new: d=%u pos=%u\n", bd,pos);
 			}
 		}
 		area = 2 * area / splitParts;
 	}
-	return max;
+	return bd;
 }
 
 unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
