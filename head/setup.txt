@@ -1,0 +1,13 @@
+
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install cmake
+
+sudo apt-get install libjpeg-dev
+
+mkdir .ssh
+chmod 0700 .ssh
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQmLqPb4gfRIRWz+OUMthmM8BCSwRzN43dAVONhPdlUpdj1uR3uzleVMeHuq6boNtVYKyp+mN2gGF4xo768gmtOfx3m+WbbsT9O/v8nh3wMaovpNLmWAyaf8udrMFPfhu6fS5wdFNztRDtDEHSPTYCBwUrZ6urK0USJnDNeRt6pAnpSezp8dfB2/7kc7UzuBix5axeej6dpum0dTifkWqAJKbWesHQcNEZiF/OT1BYp80j99FnM83FdbDugAxldBIvENlrMXreGGtt6SlsRZclGLOGHIVl+JWNRCJIjOV6ToT3HHRUBXGOMvQHCDT+JrZ2JGbAfA7M8GCQkRY6VUO3 dima@dhcp3-48.sql1.corp.conviva.com" >> .ssh/authorized_keys
+mkdir projects
+mkdir projects/dumps
+mkdir projects/metadata
