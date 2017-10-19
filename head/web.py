@@ -90,14 +90,11 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "local":
         from HeadLocal import HeadLocal
         g_Head = HeadLocal()
-        #InitCamera("local", "cpp", app.logger)
-        InitCamera("local", "dump", app.logger, g_Head)
+        InitCamera("dump", app.logger, g_Head)
     else:
         from Head import Head
         g_Head = Head()
-        #InitCamera("pi", "cpp", app.logger)
-        #InitCamera("pi", "dump", app.logger)
-        InitCamera("pi", "picamera", app.logger, g_Head)
+        InitCamera("picamera", app.logger, g_Head)
 
     g_Commands = Commands(g_Head, app.logger)
 

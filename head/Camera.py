@@ -256,13 +256,16 @@ class MetadataManagement:
 		settings = GetSettings()
 		if "Metadata" in settings:
 			fileName = settings["Metadata"]["file"]
-			f = open(MetadataDir + fileName)
-			if f:
+			try:
+				f = open(MetadataDir + fileName)
 				self.Data = json.load(f)
 				f.close()
+				return
+			except:
+				pass
 		else:
 			settings["Metadata"] = {}
-			self.Data = {}
+		self.Data = {}
 
 	def Set(self, data):
 		self.Data = data
@@ -279,7 +282,7 @@ class MetadataManagement:
 		return settings["Metadata"]["file"]
 		
 
-def InitCamera(type, mode, logger, head):
+def InitCamera(mode, logger, head):
 	global g_VisionModule
 	global CameraRemoteDumpTemplate
 	global CameraLocalDumpTemplate
@@ -299,13 +302,8 @@ def InitCamera(type, mode, logger, head):
 
 	g_Mode = mode
 	g_CameraParameters = {}
-	if type == "local":
-		g_VisionModule = cdll.LoadLibrary('../visionModuleLocal/libvisionModule.so')
-	else:
-		g_VisionModule = cdll.LoadLibrary('visionModule/libvisionModule.so')
 
 	if mode == "dump":
-		g_DumpTemplate = {"local": CameraLocalDumpTemplate, "remote": CameraRemoteDumpTemplate}[type]
 		g_CameraParameters["DumpFile"] = CameraDumpFile
 	else:
 		g_CameraParameters["width"] = CameraWidth
@@ -323,8 +321,11 @@ def InitCamera(type, mode, logger, head):
 			g_CameraParameters["exposure_compensation"] = "0"
 			g_CameraParameters["exposure_mode"] = "auto"
 			g_CameraParameters["iso"] = "0"
-	g_CameraParameters["extractor"] = CameraDefAlgorithm
 
+	g_CameraParameters["extractor"] = CameraDefAlgorithm
+	g_DumpTemplate = CameraLocalDumpTemplate
+
+	g_VisionModule = cdll.LoadLibrary('../visionModuleLocal/libvisionModule.so')
 	g_VisionModule.extractorInit.argtypes = [POINTER(TObjectsExtractor), c_char_p]
 	g_VisionModule.extractorSetInt.argtypes = [POINTER(TObjectsExtractor), c_char_p, c_int]
 	g_VisionModule.extractorSetDouble.argtypes = [POINTER(TObjectsExtractor), c_char_p, c_double]

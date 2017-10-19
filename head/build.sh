@@ -18,6 +18,12 @@ function bweb {
     ssh $REMOTE_ACCOUNT "cd $REMOTE_PATH/visionModule ; cmake . ; make ; cd .. ; sudo python ./web.py"
 }
 
+function bweb2 {
+    upload
+    ssh $REMOTE_ACCOUNT "cd $REMOTE_PATH ; ./build.sh cbuild ; sudo python ./web.py"
+}
+
+
 function pi_shutdown {
     ssh $REMOTE_ACCOUNT "sudo shutdown -h now"
 }
@@ -58,7 +64,7 @@ web)
     web
     ;;
 bweb)
-    bweb
+    bweb2
     ;;
 shutdown)
     pi_shutdown

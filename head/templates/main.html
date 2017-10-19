@@ -377,7 +377,7 @@ function LearningJSONImage(canvas,
 
 	This.Draw = function() {
 		if (this.File != this.CurrentFile) {
-			if (this.File in this.Metadata.Data.images) {
+			if ("images" in this.Metadata.Data && this.File in this.Metadata.Data.images) {
 				var imgMetadata = this.Metadata.Data.images[this.File]
 				this.XObj.val(imgMetadata.X)
 				this.YObj.val(imgMetadata.Y)
@@ -497,12 +497,15 @@ function TagsFilter(filter) {
 Dumps = []
 
 function UpdateDumps() {
+
+	console.log("UpdateDumps:" + Dumps)
+
 	var sel = $("#dumps").empty()
 	var allTags = {}
 	var filter = TagsFilter($("#flabels").val())
 	$.each(Dumps, function(idx, value){
 		tagsSet = {}
-		if (value in Metadata.Data.images) {
+		if ("images" in Metadata.Data && value in Metadata.Data.images) {
 			tagsList = Metadata.Data.images[value].Labels.split(",")
 			for (var i in tagsList) {
 				allTags[tagsList[i]] = 1
