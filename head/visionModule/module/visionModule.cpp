@@ -83,6 +83,7 @@ const char* extractorGetString(TObjectsExtractor* data, const char* parameter) {
 void ExtractFeatures(TMutableImage<unsigned char>* image,
                      TExtractorFactory* extractorFactury,
                      char* debugImageFileName,
+                     int mode,
                      int& numObjects,
                      int maxObjects,
                      DetectedObject* objects) {
@@ -179,6 +180,7 @@ void writeImage(char* buffer) {
     ExtractFeatures(&image,
 	            (TExtractorFactory*)g_ModuleVisionData->ObjectsExtractor->Factory,
 	            g_ModuleVisionData->FileName,
+	            g_ModuleVisionData->Mode,
 	            g_ModuleVisionData->NumObjects,
 	            MAX_OBJECTS,
 	            g_ModuleVisionData->Objects);

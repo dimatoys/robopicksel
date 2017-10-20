@@ -36,6 +36,7 @@ extern "C" {
         int Width;
         int Height;
         int Depth;
+        int Mode;
         int Status;
         char* DumpTemplate;
         long DumpId;

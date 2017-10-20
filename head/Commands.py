@@ -4,7 +4,7 @@ import datetime
 import sys
 from math import *
 
-from Camera import VisionInstance, ExtractorSet, ExtractorGet, ExtractorParmeters, CameraGetValues, CameraSetValues, LearnExtractor
+from Camera import VisionInstance, ExtractorSet, ExtractorGet, ExtractorParmeters, CameraGetValues, CameraSetValues, LearnExtractor, DeleteDump
 from Geometry import TLearning
 
 class Commands(threading.Thread):
@@ -149,9 +149,11 @@ class Commands(threading.Thread):
 			self.VarCamera.FileName = None
 		self.VarCamera.Fire()
 		if self.VarCamera.IsReady():
-			self.SetResult({"sootingTime": (self.VarCamera.FireStartWriteTime - self.VarCamera.FireStartTime).total_seconds(),
-			                "totalTime": (self.VarCamera.FireEndTime - self.VarCamera.FireStartTime).total_seconds(),
-                                        "DumpId": self.VarCamera.DumpId})
+			result = {"totalTime": (self.VarCamera.FireEndTime - self.VarCamera.FireStartTime).total_seconds(),
+					  "DumpId": self.VarCamera.DumpId}
+			if self.VarCamera.FireStartWriteTime:
+				result["sootingTime"] = (self.VarCamera.FireStartWriteTime - self.VarCamera.FireStartTime).total_seconds()
+			self.SetResult(result)
 			return self.SUCCESS
 		else:
 			self.CmdPrint("Fire fail")
@@ -815,8 +817,17 @@ class Commands(threading.Thread):
 		LearnExtractor(tags, dumps)
 		return self.SUCCESS
 
-	def CmdTestDump(self, dump, img):
+	def CmdTestDump(self, dump, imgfile):
+		if self.InitCameraNonBlocking() == self.FAIL:
+			self.CmdPrint("Init fail")
+			return self.FAIL
+		if imgfile:
+			self.VarCamera.FileName = "static/%s" % imgfile
+		else:
+			self.VarCamera.FileName = None
+		self.VarCamera.TestDump(dump)
 		return self.SUCCESS
 
 	def CmdDeleteDump(self, dump):
+		DeleteDump(dump)
 		return self.SUCCESS
