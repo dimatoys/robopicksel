@@ -669,10 +669,27 @@ var Metadata  = undefined
 			})
 		})
 
-        $("#update_learning").click(function(){
+		$("#update_learning").click(function(){
 			DumpImage.Draw()
 		})
-		
+
+		$("#test_learning").click(function(){
+            sendCommand("CmdTestDump('" + DumpImage.DumpNameObj.text() + "','test.jpg')",
+                function(status, result){
+                    $('#camera').prop('src', "static/test.jpg?" + Math.random())
+                });
+		})
+
+		$("#delete_learning").click(function(){
+			var dump = DumpImage.DumpNameObj.text()
+			if (confirm("Delete " + dump + " ?")) {
+				sendCommand("CmdDeleteDump('" + dump + "')",
+					function(status, result){
+						$("#loaddumps").click()
+					});
+			}
+		})
+
 		$("#vlearn").click(function(){
 			var tags = $("#flabels").val()
 			var dumps = ""
@@ -914,6 +931,8 @@ var Metadata  = undefined
 									<td>
 										<input type="button" value="UPDATE" id="update_learning">
 										<input type="button" value="SAVE" id="save_learning">
+										<input type="button" value="TEST L1" id="test_learning">
+										<input type="button" value="DELETE" id="delete_learning">
 									</td>
 								</tr>
 							</table>

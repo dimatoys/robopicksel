@@ -2547,16 +2547,14 @@ def ShowBackgroundAppr():
     img.save("%s-tl0.png" % cw, 'PNG')
 
 def TestAutoLearning2():
-    cw = '1502846178'
-    #cw = '1502667129'
-    #cw = '1502667148'
-    #cw = '1502667166'
-    #cw = '1502667194'
+    #cw = '1508455794'
+    #cw = '1508455752'
+    #cw = "1508455775"
+    cw = '1508458032'
     dump2 = Dump.FromFileName("../dumps/%s.dump" % cw)
 
-    #thr = 5653
-    thr = 7080 
-    v = (54,75,43)
+    thr = 5608 
+    v = (51,63,11)
 
     img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
     for sy in range(0, dump2.Height, 2):

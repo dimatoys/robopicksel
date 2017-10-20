@@ -126,7 +126,9 @@ class Commands(threading.Thread):
 	def CmdExtractorGetParameters(self):
 		parameters = ExtractorGet()
 		parameters.update(CameraGetValues())
+		self.CmdPrint(str(parameters))
 		self.SetResult(parameters)
+		
 		return self.SUCCESS
 
 	def CmdExtractorSetParameters(self, values):
@@ -162,13 +164,13 @@ class Commands(threading.Thread):
 			print message
 		return self.SUCCESS
 
-        def CmdCommand(self, cmd):
-            cmd = cmd.strip()
-            startTime = datetime.datetime.now()
-            result = self.Head.ExecuteCommand(cmd)
-            endTime = datetime.datetime.now()
-            self.SetResult({"result": result, "time": str(endTime - startTime)})
-            return self.SUCCESS
+	def CmdCommand(self, cmd):
+		cmd = cmd.strip()
+		startTime = datetime.datetime.now()
+		result = self.Head.ExecuteCommand(cmd)
+		endTime = datetime.datetime.now()
+		self.SetResult({"result": result, "time": str(endTime - startTime)})
+		return self.SUCCESS
 
 	def CmdOpen(self):
 		time = self.Head.Release()
@@ -811,4 +813,10 @@ class Commands(threading.Thread):
 
 	def CmdLearnDLearning(self, tags, dumps):
 		LearnExtractor(tags, dumps)
+		return self.SUCCESS
+
+	def CmdTestDump(self, dump, img):
+		return self.SUCCESS
+
+	def CmdDeleteDump(self, dump):
 		return self.SUCCESS

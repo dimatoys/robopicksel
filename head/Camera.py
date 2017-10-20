@@ -41,8 +41,8 @@ CameraViewAngleY = 0.5410520681182421
 
 CameraRemoteDumpTemplate = "/home/pi/projects/dumps/%ld.dump"
 CameraLocalDumpTemplate = "../dumps/%ld.dump"
-SettingsFile = "settings.json"
 MetadataDir="../metadata/"
+SettingsFile = MetadataDir + "settings.json"
 
 #CameraLocalDump = "../dumps/1438146364.dump"
 #CameraLocalDump = "../dumps/1436252235.dump"
@@ -274,7 +274,7 @@ class MetadataManagement:
 	def Save(self):
 		global MetadataDir
 		settings = GetSettings()
-		settings["Metadata"]["file"] = datetime.datetime.now().strftime("%Y%m%d_%H%m%S")
+		settings["Metadata"]["file"] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 		f = open(MetadataDir + settings["Metadata"]["file"], "w+")
 		f.write(json.dumps(self.Data, sort_keys=True, indent=2, separators=(',', ': ')))
 		f.close()
