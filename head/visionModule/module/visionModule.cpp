@@ -149,6 +149,7 @@ void ExtractFeatures(TMutableImage<unsigned char>* image,
 			memset(debugImage.Cell(x, y), 0xFF,debugImage.Depth);
 		}
 
+		segmenter->Mode = mode;
 		segmenter->DrawDebugInfo(&debugImage);
 
 		printf("ExtractFeatures: Ok DebugImage\n");

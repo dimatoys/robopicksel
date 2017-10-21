@@ -440,6 +440,9 @@ typedef unsigned char* TSamplerCell;
 
 class TSegmentsExtractor {
 public:
+
+	int Mode;
+
 	virtual void ExtractSegments(std::list<TArea>& area) {}
 	virtual void DrawDebugInfo(TMutableRGBImage* image) {}
 

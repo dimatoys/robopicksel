@@ -411,34 +411,48 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
 
 void TDeepLearningSegmentsExtractor::DrawDebugInfo(TMutableRGBImage* image){
     
-    unsigned char obj[] = {255, 0, 0};
-    unsigned char h[] = {0, 0, 255};
-    unsigned char v[] = {0, 255, 0};
-    unsigned char fill[] = {255, 255, 255};
-   
-    for (int y1 = 0; y1 < HeightL1; ++y1) {
-        for (int x1 = 0; x1 < WidthL1; ++x1) {
-            Knot* knot = GetKnot(x1, y1);
-            if (knot->Status == 1) {
-                int x, y;
-                TranslateL1(x1, y1, &x, &y);
-                image->DrawPointer(x, y, 2, obj);
-                printf("(%d,%d)->(%d,%d) left=%d right=%d top=%d bottom=%d\n", x1,y1,x,y,knot->Left, knot->Right, knot->Top, knot->Bottom);
-                if (knot->Top >= 0) {
-                    image->DrawPointer(x, knot->Top, 2, v);
-                }
-                if (knot->Bottom >= 0) {
-                    image->DrawPointer(x, knot->Bottom, 2, v);
-                }
-                if (knot->Left >= 0) {
-                    image->DrawPointer(knot->Left, y, 2, h);
-                }
-                if (knot->Right >= 0) {
-                    image->DrawPointer(knot->Right, y, 2, h);
-                }
-            }
-        }
-    }
+    // Mode = 1 - normal
+    // Mode = 2 draw L1
+    
+    if (Mode == 2) {
+		unsigned char fill[] = {255, 255, 255};
+		for (int y = 0; y < image->Height; y += 2) {
+			for (int x = 0; x < image->Width; x += 2) {
+				if (GetL1(x, y)) {
+					memcpy(image->Cell(x, y), fill, image->Depth);
+				}
+			}
+		}
+	} else {
+		unsigned char obj[] = {255, 0, 0};
+		unsigned char h[] = {0, 0, 255};
+		unsigned char v[] = {0, 255, 0};
+		unsigned char fill[] = {255, 255, 255};
+	   
+		for (int y1 = 0; y1 < HeightL1; ++y1) {
+			for (int x1 = 0; x1 < WidthL1; ++x1) {
+				Knot* knot = GetKnot(x1, y1);
+				if (knot->Status == 1) {
+					int x, y;
+					TranslateL1(x1, y1, &x, &y);
+					image->DrawPointer(x, y, 2, obj);
+					printf("(%d,%d)->(%d,%d) left=%d right=%d top=%d bottom=%d\n", x1,y1,x,y,knot->Left, knot->Right, knot->Top, knot->Bottom);
+					if (knot->Top >= 0) {
+						image->DrawPointer(x, knot->Top, 2, v);
+					}
+					if (knot->Bottom >= 0) {
+						image->DrawPointer(x, knot->Bottom, 2, v);
+					}
+					if (knot->Left >= 0) {
+						image->DrawPointer(knot->Left, y, 2, h);
+					}
+					if (knot->Right >= 0) {
+						image->DrawPointer(knot->Right, y, 2, h);
+					}
+				}
+			}
+		}
+	}
 }
 /*
  1505247485
