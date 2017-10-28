@@ -364,6 +364,7 @@ def LearnExtractor(tags, pictures):
 		if p in mp:
 			lp = "%s%s,%s,%s,%s,%s," % (lp, p, mp[p]["X"], mp[p]["Y"], mp[p]["RIn"], mp[p]["ROut"])
 	
+	Print("LearnExtractor: %s" %lp)
 	ExtractorSet({"LearningPictures": lp})
 	dlv = ExtractorGet()
 	if dlv and "LearningVector" in dlv:

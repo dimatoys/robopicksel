@@ -1,49 +1,6 @@
 #include "utils/image.h"
 #include "dlearning/dlearning.h"
 
-class TData : public ILearningDataSource {
-    int R;
-    unsigned int I;
-    double* Data;
-    
-    public:
-        TData(double* data, unsigned int d, unsigned int n) {
-            R = -1;
-            N = n;
-            D = d;
-            Data = data;
-        }
-
-    double NextElement(){
-        return Data[R * D + I++];
-    }
-    
-    bool NextRecord() {
-        I = 0;
-        return ++R < N;
-    }    
-};
-
-void test1(){
-    double x[] = {0,1};
-    double y[] = {0,1};
-    
-    TData xs(x, 1, 2);
-    TData ys(y, 1, 2);
-    
-    TPolyRegression pr(1);
-    if (pr.Learn(&xs, &ys)) {
-    
-        double rx = 2;
-        double ry = 0;
-    
-        pr.GetValue(&rx, &ry);
-    
-        printf("y=%f\n", ry);
-    } else {
-        printf("Learn error\n");
-    }
-}
 
 void test2() {
     
@@ -69,8 +26,14 @@ void test3() {
     image.SaveJpg("test3.jpg");
 }
 
+void test4() {
+	TDeepLearningExtractorFactory factory;
+	factory.Set("LearningPictures", "1508455794,136,103,25,45,1508455752,137,77,25,45,1508455696,160,120,0,0,1508455775,210,85,23,45,");
+}
+
 int main(int argc, const char **argv) {
     //test1();
     //test2();
-    test3();
+    //test3();
+	test4();
 }

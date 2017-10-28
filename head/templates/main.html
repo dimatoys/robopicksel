@@ -464,13 +464,17 @@ function MetadataManagement(callback) {
 }
 
 function TagsFilter(filter) {
+	if (filter.length > 0 && (filter[0] != '+' || filter[0] != '-')) {
+		filter = '+' + filter
+	}
+
 	return {
-		Filter: filter.match(/[+-/][^-+/]*/g),
+		Filter: filter.match(/[+-|][^-+|]*/g),
 		Check: function(tagsSet) {
 			var inc = true
 			for (var i in this.Filter) {
 				var op = this.Filter[i][0]
-				if (op == '/') {
+				if (op == '|') {
 					if (inc) {
 						return true
 					}

@@ -101,6 +101,11 @@ void ReadList(std::string str, std::list<std::string>& lst) {
 			start = i + 1;
 		}
 	}
+	if (start < str.size()) {
+		std::string value = str.substr(start);
+		printf("ReadList:%s\n", value.c_str());
+		lst.push_back(value);
+	}
 }
 
 void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {

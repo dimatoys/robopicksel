@@ -1,7 +1,7 @@
 CC=g++
 SRC=../head/visionModule
 
-CFLAGS=-I$(SRC) -fPIC
+CFLAGS=-I$(SRC) -fPIC -std=c++11
 
 all: libvisionModule.so dlearningTest
 
