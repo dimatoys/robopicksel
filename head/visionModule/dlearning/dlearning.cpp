@@ -79,6 +79,52 @@ public:
     }
 };
 
+struct TYIterator : public ILearningDataSource {
+
+	TImagesLearningDataSource& Images;
+	TLearningImage::Label Label;
+
+	unsigned int Size;
+	const unsigned char* Element;
+	int Index;
+
+	TYIterator(TImagesLearningDataSource& images,
+	           TLearningImage::Label label) :
+		Images(images) {
+		Label = label;
+		Size = CountSize();
+		Images.Reset();
+	}
+
+	double NextElement() {
+		return (double)Element[Index++];
+	}
+
+	bool NextRecord() {
+		TLearningImage::Label clabel;
+		while((Element = Images.Next(clabel)) != NULL) {
+			if (Label == clabel) {
+				Index = 0;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	unsigned int GetSize() {
+		return Size;
+	}
+
+	unsigned int CountSize() {
+		unsigned int size = 0;
+		Images.Reset();
+		while(NextRecord()) {
+			++size;
+		}
+		return size;
+	}
+};
+
 TDeepLearningSegmentsExtractor* instance = NULL;
 
 TSegmentsExtractor* TDeepLearningExtractorFactory::CreateExtractor(TMutableImage<unsigned char>* image) {
@@ -96,14 +142,14 @@ void ReadList(std::string str, std::list<std::string>& lst) {
 	for(std::string::size_type i = 0; i < str.size(); ++i) {
 		if (str[i] == ',') {
 			std::string value = str.substr(start, i - start);
-			printf("ReadList:%s\n", value.c_str());
+			//printf("ReadList:%s\n", value.c_str());
 			lst.push_back(value);
 			start = i + 1;
 		}
 	}
 	if (start < str.size()) {
 		std::string value = str.substr(start);
-		printf("ReadList:%s\n", value.c_str());
+		//printf("ReadList:%s\n", value.c_str());
 		lst.push_back(value);
 	}
 }
@@ -121,6 +167,9 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 
 	D = getOptimalDistanceFast(images, GB.Color, 10);
 	printf("Optimal distance: %u\n", D);
+
+	TPolyRegression pr(1);
+
 
 }
 

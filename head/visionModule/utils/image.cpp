@@ -482,7 +482,7 @@ bool ILearningIterator::GetAverage(TLearningImage::Label label,
 	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
 	unsigned int n = 0;
-	printf("GetAverage: begin iterate\n");
+	//printf("GetAverage: begin iterate\n");
 	while((ecolor = Next(elabel)) != NULL) {
 		//printf("GetAverage: it n=%u label=%u elabel=%u\n", n, (int)label, (int)elabel);
 		if (elabel == label) {
@@ -498,7 +498,7 @@ bool ILearningIterator::GetAverage(TLearningImage::Label label,
 			++n;
 		}
 	}
-	printf("GetAverage: n=%u\n", n);
+	//printf("GetAverage: n=%u\n", n);
 	if (n > 0) {
 		for (int i = 0; i < 3; ++i) {
 			avgcolor.RGB[i] = sumcolor[i] / n;
@@ -708,13 +708,13 @@ unsigned int getOptimalDistanceFast(TImagesLearningDataSource& images,
 		if (step == 0) {
 			step = 1;
 		}
-		printf("area=%u step=%u\n", area, step);
+		//printf("area=%u step=%u\n", area, step);
 		for (unsigned int td = bd - area; td <= bd + area; td += step) {
 			unsigned int tpos = countErrors(images, color, td, neg, fp);
 			if (tpos > pos) {
 				bd = td;
 				pos = tpos;
-				printf("new: d=%u pos=%u\n", bd,pos);
+				//printf("new: d=%u pos=%u\n", bd,pos);
 			}
 		}
 		area = 2 * area / splitParts;
