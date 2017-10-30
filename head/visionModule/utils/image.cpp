@@ -739,6 +739,7 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 			}
 		}
 	}
+	printf("countErrors: d=%d pos=%u\n", d, pos);
 	return pos;
 }
 
@@ -826,12 +827,16 @@ unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegres
 		step /= 2;
 	}
 
+	if (step == 0) {
+		return d0;
+	}
+
 	while (true) {
 		unsigned int pos2 = countErrors(images, pr, d0 + step * 2, neg, fp);
 		if (pos2 < pos1) {
 			while (true) {
 				step /= 10;
-				if (step > 1) {
+				if (step > 0) {
 					pos1 = countErrors(images, pr, d0 + step, neg, fp);
 					if (pos1 > pos0) {
 						break;
