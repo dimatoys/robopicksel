@@ -816,10 +816,39 @@ unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
 }
 
 unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr) {
-	unsigned int fp, neg, pos;
+	int d0 = 0;
+	int step = 500;
+	unsigned int fp, neg;
+
+	unsigned int pos0 = countErrors(images, pr, d0, neg, fp);
+	unsigned int pos1;
+	while ((pos1 = countErrors(images, pr, d0 + step, neg, fp)) <= pos0 ) {
+		step /= 2;
+	}
+
+	while (true) {
+		unsigned int pos2 = countErrors(images, pr, d0 + step * 2, neg, fp);
+		if (pos2 < pos1) {
+			while (true) {
+				step /= 10;
+				if (step > 1) {
+					pos1 = countErrors(images, pr, d0 + step, neg, fp);
+					if (pos1 > pos0) {
+						break;
+					}
+				} else {
+					return d0;
+				}
+			}
+		} else {
+			pos0 = pos1;
+			d0 += step;
+		}
+	}
+/*
 	for (int d = 0; d < 10000; ++d) {
 		pos = countErrors(images, pr, d, neg, fp);
 		printf("%d,%u,%u,%u\n", d, pos, neg, fp);
 	}
-	return 0;
+*/
 }

@@ -1,9 +1,3 @@
-LoadDump: 320 x 240 : 3
-LoadDump: 320 x 240 : 3
-LoadDump: 320 x 240 : 3
-LoadDump: 320 x 240 : 3
-samples=288152 size=1 D=2 S=0
-Background color: (1078947517,1193252365,1078573555)
 0,6008,288152,0
 1,6008,288152,0
 2,6161,287999,0
