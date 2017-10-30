@@ -818,7 +818,7 @@ unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
 
 unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr) {
 	int d0 = 0;
-	int step = 500;
+	int step = 2000;
 	unsigned int fp, neg;
 
 	unsigned int pos0 = countErrors(images, pr, d0, neg, fp);
@@ -847,6 +847,7 @@ unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegres
 			}
 		} else {
 			pos0 = pos1;
+			pos1 = pos2;
 			d0 += step;
 		}
 	}

@@ -211,8 +211,8 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 	printf("Background color: (%f,%f,%f)\n", PR.R[0], PR.R[1], PR.R[2]);
 
 	//D = getOptimalDistanceFast(images, GB.Color, 10);
-	//printf("Optimal distance: %u\n", D);
-	//countOptimalDistance(images, PR);
+	D = countOptimalDistance(images, PR);
+	printf("Optimal distance: %u\n", D);
 }
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
