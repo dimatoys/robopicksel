@@ -79,6 +79,48 @@ public:
     }
 };
 
+struct TXIterator : public ILearningDataSource {
+
+	TImagesLearningDataSource& Images;
+	TLearningImage::Label Label;
+
+	unsigned int Size;
+	int Index;
+	int Data[2];
+
+	TXIterator(TImagesLearningDataSource& images,
+	            TLearningImage::Label label,
+	            unsigned int size) :
+		Images(images) {
+		Label = label;
+		D = 2;
+		Size = size;
+	}
+
+	void Reset() {
+		Images.Reset();
+	}
+
+	double NextElement() {
+		return Data[Index++];
+	}
+
+	bool NextRecord() {
+		TLearningImage::Label clabel;
+		while(Images.Next(clabel, Data[0] ,Data[1]) != NULL) {
+			if (Label == clabel) {
+				Index = 0;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	unsigned int GetSize() {
+		return Size;
+	}
+};
+
 struct TYIterator : public ILearningDataSource {
 
 	TImagesLearningDataSource& Images;
@@ -89,10 +131,14 @@ struct TYIterator : public ILearningDataSource {
 	int Index;
 
 	TYIterator(TImagesLearningDataSource& images,
-	           TLearningImage::Label label) :
+	            TLearningImage::Label label) :
 		Images(images) {
 		Label = label;
+		D = 3;
 		Size = CountSize();
+	}
+
+	void Reset() {
 		Images.Reset();
 	}
 
@@ -102,7 +148,9 @@ struct TYIterator : public ILearningDataSource {
 
 	bool NextRecord() {
 		TLearningImage::Label clabel;
-		while((Element = Images.Next(clabel)) != NULL) {
+		int x, y;
+
+		while((Element = Images.Next(clabel, x, y)) != NULL) {
 			if (Label == clabel) {
 				Index = 0;
 				return true;
@@ -155,25 +203,20 @@ void ReadList(std::string str, std::list<std::string>& lst) {
 }
 
 void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
-	//unsigned char color[3];
-	//fullIteration(images, TLearningImage::BACKGROUND, color);
 
-	GB.Boost(images, TLearningImage::BACKGROUND);
+	TYIterator yit(images, TLearningImage::BACKGROUND);
+	TXIterator xit(images, TLearningImage::BACKGROUND, yit.GetSize());
 
-	R = GB.Color.RGB[0];
-	G = GB.Color.RGB[1];
-	B = GB.Color.RGB[2];
-	printf("Background color: (%u,%u,%u)\n", R, G, B);
+	PR.Learn(&xit, &yit);
+	printf("Background color: (%f,%f,%f)\n", PR.R[0], PR.R[1], PR.R[2]);
 
-	D = getOptimalDistanceFast(images, GB.Color, 10);
-	printf("Optimal distance: %u\n", D);
-
-	TPolyRegression pr(1);
-
-
+	//D = getOptimalDistanceFast(images, GB.Color, 10);
+	//printf("Optimal distance: %u\n", D);
+	//countOptimalDistance(images, PR);
 }
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
+
 	if (name == "LearningPictures") {
 		std::list<std::string> lst;
 		ReadList(LearningPictures, lst);
@@ -190,24 +233,19 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 		}
 
 		Learn(images);
-
-		return;
 	}
 }
 
 bool TDeepLearningSegmentsExtractor::GetL1(int x, int y) {
-/*
-	double v[3];
-	double r;
-	unsigned char* pixel = Image->Cell(x, y);
-	v[0] = pixel[0];
-	v[1] = pixel[1];
-	v[2] = pixel[2];
 
-	Parameters->PR.GetValue(v, &r);
-	return r > 0.5;
-*/
-	return countDistance(Parameters->R, Parameters->G, Parameters->B, Image->Cell(x, y)) > Parameters->D;
+	double vx[2];
+	vx[0] = x;
+	vx[1] = y;
+
+	double rgb[Parameters->PR.YD];
+	Parameters->PR.GetValue(vx, rgb);
+
+	return countDistance(rgb, Image->Cell(x, y)) > Parameters->D;
 }
 
 void TDeepLearningSegmentsExtractor::TranslateL1(int x1, int y1, int* x, int* y) {

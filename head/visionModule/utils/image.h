@@ -608,7 +608,8 @@ struct ILearningDataSource {
 
     // dimension
     unsigned int D;
-    
+
+    virtual void Reset() = 0;
     virtual double NextElement() = 0;
     virtual bool NextRecord() = 0;
     virtual unsigned int GetSize() = 0;
@@ -624,7 +625,6 @@ public:
     unsigned char S;
     double* R;
     double* MX;
-    double* PX;
     unsigned int XD;
     unsigned int XS;
     unsigned int YD;
@@ -633,7 +633,6 @@ public:
         S = s;
         R = NULL;
         MX = NULL;
-        PX = NULL;
     }
 
     ~TPolyRegression() {
@@ -643,9 +642,6 @@ public:
         if (MX != NULL) {
             delete MX;
         }
-        if (PX != NULL) {
-            delete PX;
-        }
     }
     
     bool GenerateMX(ILearningDataSource* x);
@@ -654,9 +650,7 @@ public:
     
     bool Learn(ILearningDataSource* x, ILearningDataSource* y);
     
-    void PrepareX(const double* x);
-    
-    void Predict(double* y);
+    void Predict(double* px, double* y);
     
     void GetValue(const double* x, double* y);
     
@@ -732,7 +726,7 @@ struct TLearningImage {
 class ILearningIterator {
 public:
 	virtual void Reset() = 0;
-	virtual const unsigned char* Next(TLearningImage::Label& label) = 0;
+	virtual const unsigned char* Next(TLearningImage::Label& label, int& x, int& y) = 0;
 	double CountDistance(TLearningImage::Label& label, const TRGB<unsigned char>& color);
 	bool GetAverage(TLearningImage::Label label,
 					TRGB<unsigned char>& avgcolor,
@@ -743,13 +737,14 @@ public:
 class TLearningImageIterator : public ILearningIterator {
 	TMutableRGBImage Dump;
 	TLearningImage Data;
+public:
 	int X;
 	int Y;
-public:
+
 	TLearningImageIterator(const TLearningImage& image) : Data(image) {};
 	TLearningImageIterator(const TLearningImageIterator& it) : Data(it.Data) {};
 	void Reset();
-	const unsigned char* Next(TLearningImage::Label& label);
+	const unsigned char* Next(TLearningImage::Label& label, int& x, int& y);
 };
 
 class TImagesLearningDataSource : public ILearningIterator {
@@ -760,7 +755,7 @@ public:
 	void AddImage(TLearningImage& image);
 
 	void Reset();
-	const unsigned char* Next(TLearningImage::Label& label);
+	const unsigned char* Next(TLearningImage::Label& label, int& x, int& y);
 };
 
 class TGradientBoost {
@@ -799,6 +794,7 @@ void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 int countDistance(int r, int g, int b, const unsigned char* color2);
 int countDistance(const TRGB<unsigned char>& color1, const unsigned char* color2);
 int countDistance(const TRGB<unsigned char>& color1, const TRGB<unsigned char>& color2);
+int countDistance(const double* color1, const unsigned char* color2);
 
 unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
 									const TRGB<unsigned char>& color,
@@ -807,6 +803,8 @@ unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
 unsigned int getOptimalDistanceFast(TImagesLearningDataSource& images,
 									const TRGB<unsigned char>& color,
 									unsigned int splitParts);
+
+unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr);
 
 /*
  counts polynom components values:

@@ -11,39 +11,39 @@ libvisionModule.so: visionModule.o jpeg.o image.o gradient.o egb.o clustering.o 
 dlearningTest: jpeg.o image.o dlearningTest.o dlearning.o
 	$(CC) -o dlearningTest $^ -ljpeg
 
-visionModule.o: $(SRC)/module/visionModule.cpp
+visionModule.o: $(SRC)/module/visionModule.cpp  $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-jpeg.o: $(SRC)/utils/jpeg.cpp
+jpeg.o: $(SRC)/utils/jpeg.cpp $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-image.o: $(SRC)/utils/image.cpp
+image.o: $(SRC)/utils/image.cpp $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-gradient.o: $(SRC)/gradient/gradient.cpp
+gradient.o: $(SRC)/gradient/gradient.cpp  $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-egb.o: $(SRC)/egb/egb.cpp
+egb.o: $(SRC)/egb/egb.cpp  $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-clustering.o: $(SRC)/clustering/clustering.cpp
+clustering.o: $(SRC)/clustering/clustering.cpp  $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-jpegimage.o: $(SRC)/jpeg/jpegimage.cpp
+jpegimage.o: $(SRC)/jpeg/jpegimage.cpp  $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-statimg.o: $(SRC)/statimg/statimg.cpp
+statimg.o: $(SRC)/statimg/statimg.cpp $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-validator.o: $(SRC)/objects/validator.cpp
+validator.o: $(SRC)/objects/validator.cpp $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
 kp.o: $(SRC)/kp/kp.cpp
 	$(CC) -c $(CFLAGS) $<
 
-dlearning.o: $(SRC)/dlearning/dlearning.cpp
+dlearning.o: $(SRC)/dlearning/dlearning.cpp $(SRC)/dlearning/dlearning.h  $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
 
-dlearningTest.o: $(SRC)/tests/dlearningTest.cpp
+dlearningTest.o: $(SRC)/tests/dlearningTest.cpp $(SRC)/utils/image.h
 	$(CC) -c $(CFLAGS) $<
  

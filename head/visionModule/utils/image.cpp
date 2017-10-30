@@ -213,6 +213,8 @@ bool ILearningDataSource::NextRecord(double* values) {
 }
 
 void ILearningDataSource::ReadAll(double* values) {
+
+    Reset();
     while(NextRecord()) {
         for(unsigned char i = 0; i < D; ++i) {
             *values++ = NextElement();
@@ -241,31 +243,32 @@ unsigned int POLY_SIZE[][10] = {{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
                                 {1, 20, 210, 1540, 8855, 42504, 177100, 657800, 2220075, 6906900}};
 
 bool TPolyRegression::GenerateMX(ILearningDataSource* data) {
-    
+
     if (MX != NULL) {
         delete MX;
         MX = NULL;
     }
-    
     unsigned int size = POLY_SIZE[data->D - 1][S];
+
     unsigned int samples = data->GetSize();
 
-    //printf("samples=%u size=%u\n", samples, size);
+    printf("samples=%u size=%u D=%u S=%u\n", samples, size, data->D, (unsigned int)S);
     
     if (samples < size) {
         return false;
     }
-    
+
     XD = data->D;
     XS = size;
-        
+
     double t[XS * samples];
     double* pt = t;
     double record[XD];
+    data->Reset();
     while(data->NextRecord(record)) {
         pt = fv(S, XD, record, pt);
     }
-    
+
     //printf("%f %f\n%f %f\n", t[0], t[1], t[2], t[3]);
     
     double t2[XS * XS];
@@ -319,9 +322,10 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
     double* pr = R;
     
     double y[YD * samples];
+
     datay->ReadAll(y);
     //printf("y: %f %f\n", y[0], y[1]);
-    
+
     for (unsigned int x = 0; x < XS; ++x) {
         for (unsigned int iy = 0; iy < YD; ++iy) {
             double v = 0;
@@ -332,6 +336,7 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
             //printf("v=%f\n", v);
         }
     }
+
 }
 
 bool TPolyRegression::Learn(ILearningDataSource* x, ILearningDataSource* y) {
@@ -342,28 +347,21 @@ bool TPolyRegression::Learn(ILearningDataSource* x, ILearningDataSource* y) {
     return false;
 }
 
-void TPolyRegression::PrepareX(const double* x) {
-    if (PX != NULL) {
-        delete PX;
-    }
-    PX = new double[XS];
-    
-    fv(S, XD, x, PX);
-}
-
-void TPolyRegression::Predict(double* y) {
+void TPolyRegression::Predict(double* px, double* y) {
     for (unsigned int i = 0; i < YD; ++i) {
         double v = 0;
         for (unsigned int j = 0; j < XS; ++j) {
-            v+= PX[j] * R[j* YD + i];
+            v+= px[j] * R[j* YD + i];
         }
         *y++ = v;
     }
 }
 
 void TPolyRegression::GetValue(const double* x, double* y) {
-    PrepareX(x);
-    Predict(y);
+    //PrepareX(x);
+    double px[XS];
+    fv(S, XD, x, px);
+    Predict(px, y);
 }
 
 void TPolyRegression::SetR(const double* r, unsigned int xd, unsigned int yd) {
@@ -454,13 +452,23 @@ int countDistance(int r, int g, int b, const unsigned char* color2) {
 	return dr * dr + dg * dg + db * db;
 }
 
+int countDistance(const double* color1, const unsigned char* color2) {
+	int d = 0;
+	for (int i = 0; i < 3; ++i) {
+		int sd = (int)color1[i] - (int)color2[i];
+		d += sd * sd;
+	}
+	return d;
+}
+
 double ILearningIterator::CountDistance(TLearningImage::Label& label,
 										 const TRGB<unsigned char>& color) {
 	Reset();
 	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
 	double result = 0;
-	while((ecolor = Next(elabel))) {
+	int x,y;
+	while((ecolor = Next(elabel, x, y))) {
 		if (elabel = label) {
 			result += countDistance(color, ecolor);
 		}
@@ -482,8 +490,9 @@ bool ILearningIterator::GetAverage(TLearningImage::Label label,
 	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
 	unsigned int n = 0;
+	int x, y;
 	//printf("GetAverage: begin iterate\n");
-	while((ecolor = Next(elabel)) != NULL) {
+	while((ecolor = Next(elabel, x, y)) != NULL) {
 		//printf("GetAverage: it n=%u label=%u elabel=%u\n", n, (int)label, (int)elabel);
 		if (elabel == label) {
 			for (int i = 0; i < 3; ++i) {
@@ -517,7 +526,7 @@ void TLearningImageIterator::Reset() {
 	}
 }
 
-const unsigned char* TLearningImageIterator::Next(TLearningImage::Label& label) {
+const unsigned char* TLearningImageIterator::Next(TLearningImage::Label& label, int& x, int& y) {
 	if (++X >= Dump.Width) {
 		if (++Y >= Dump.Height) {
 			return NULL;
@@ -525,6 +534,8 @@ const unsigned char* TLearningImageIterator::Next(TLearningImage::Label& label) 
 		X = 0;
 	}
 	label = Data.GetLabel(X, Y);
+	x = X;
+	y = Y;
 	return Dump.Cell(X, Y);
 }
 
@@ -540,9 +551,9 @@ void TImagesLearningDataSource::Reset() {
 	}
 }
 
-const unsigned char* TImagesLearningDataSource::Next(TLearningImage::Label& label) {
+const unsigned char* TImagesLearningDataSource::Next(TLearningImage::Label& label, int& x, int& y) {
 	while(true) {
-		const unsigned char* result = ImgsIt->Next(label);
+		const unsigned char* result = ImgsIt->Next(label, x, y);
 		if (result != NULL) {
 			return result;
 		}
@@ -671,10 +682,49 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 	fp = 0;
 	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
+	int x, y;
 	unsigned int errors = 0;
-	while((ecolor = images.Next(elabel))) {
+	while((ecolor = images.Next(elabel, x, y))) {
 		if ((elabel == TLearningImage::BACKGROUND) || (elabel == TLearningImage::OBJECT)) {
 			if (countDistance(color, ecolor) < d) {
+				if (elabel == TLearningImage::BACKGROUND) {
+					++pos;
+				} else {
+					++fp;
+				}
+			} else {
+				if (elabel == TLearningImage::OBJECT) {
+					++pos;
+				} else {
+					++neg;
+				}
+			}
+		}
+	}
+	return pos;
+}
+
+unsigned int countErrors(TImagesLearningDataSource& images,
+						  TPolyRegression& pr,
+						  int d,
+						  unsigned int& neg,
+						  unsigned int& fp) {
+	images.Reset();
+	unsigned int pos = 0;
+	neg = 0;
+	fp = 0;
+	const unsigned char* ecolor;
+	TLearningImage::Label elabel;
+	int x, y;
+	unsigned int errors = 0;
+	double vx[2];
+	double rgb[pr.YD];
+	while((ecolor = images.Next(elabel, x, y))) {
+		if ((elabel == TLearningImage::BACKGROUND) || (elabel == TLearningImage::OBJECT)) {
+			vx[0] = x;
+			vx[1] = y;
+			pr.GetValue(vx, rgb);
+			if (countDistance(rgb, ecolor) < d) {
 				if (elabel == TLearningImage::BACKGROUND) {
 					++pos;
 				} else {
@@ -763,4 +813,13 @@ unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
 		}
 	}
 	return bd;
+}
+
+unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr) {
+	unsigned int fp, neg, pos;
+	for (int d = 0; d < 10000; ++d) {
+		pos = countErrors(images, pr, d, neg, fp);
+		printf("%d,%u,%u,%u\n", d, pos, neg, fp);
+	}
+	return 0;
 }
