@@ -202,22 +202,37 @@ void ReadList(std::string str, std::list<std::string>& lst) {
 	}
 }
 
+void TDeepLearningExtractorFactory::DumpPRData() {
+	PRData = "";
+	PRData += std::to_string(PR.S);
+	PRData += ",";
+	PRData += std::to_string(PR.XD);
+	PRData += ",";
+	PRData += std::to_string(PR.YD);
+	unsigned int rsize = PR.XS * PR.YD;
+	for (int i = 0; i < rsize; ++i) {
+		PRData += ",";
+		PRData += std::to_string(PR.R[i]);
+	}
+}
+
 void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 
 	TYIterator yit(images, TLearningImage::BACKGROUND);
 	TXIterator xit(images, TLearningImage::BACKGROUND, yit.GetSize());
 
 	PR.Learn(&xit, &yit);
-	printf("Background color: (%f,%f,%f)\n", PR.R[0], PR.R[1], PR.R[2]);
 
-	//D = getOptimalDistanceFast(images, GB.Color, 10);
 	D = countOptimalDistance(images, PR);
-	printf("Optimal distance: %u\n", D);
+	DumpPRData();
+	//printf("Optimal distance: %u\n", D);
+	//printf("Background color: (%f,%f,%f)\n", PR.R[0], PR.R[1], PR.R[2]);
+	printf("PR:%s\n", PRData.c_str());
 }
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 
-	if (name == "LearningPictures") {
+	if (name == "LearningPictures" && LearningPictures.length() > 0) {
 		std::list<std::string> lst;
 		ReadList(LearningPictures, lst);
 		TImagesLearningDataSource images;

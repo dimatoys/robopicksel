@@ -654,7 +654,7 @@ public:
     
     void GetValue(const double* x, double* y);
     
-    void SetR(const double* r, unsigned int xd, unsigned int yd);
+    void SetR(const double* r, unsigned char s, unsigned int xd, unsigned int yd);
 };
 
 class DoublesLearningDatasource : public ILearningDataSource {

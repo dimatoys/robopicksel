@@ -364,11 +364,12 @@ void TPolyRegression::GetValue(const double* x, double* y) {
     Predict(px, y);
 }
 
-void TPolyRegression::SetR(const double* r, unsigned int xd, unsigned int yd) {
+void TPolyRegression::SetR(const double* r, unsigned char s, unsigned int xd, unsigned int yd) {
+    S = s;
     XD = xd;
     XS = POLY_SIZE[XD - 1][S];
     YD = yd;
-    
+
     if (R != NULL) {
         delete R;
     }
@@ -739,7 +740,7 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 			}
 		}
 	}
-	printf("countErrors: d=%d pos=%u\n", d, pos);
+	//printf("countErrors: d=%d pos=%u\n", d, pos);
 	return pos;
 }
 
@@ -851,10 +852,4 @@ unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegres
 			d0 += step;
 		}
 	}
-/*
-	for (int d = 0; d < 10000; ++d) {
-		pos = countErrors(images, pr, d, neg, fp);
-		printf("%d,%u,%u,%u\n", d, pos, neg, fp);
-	}
-*/
 }
