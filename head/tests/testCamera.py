@@ -148,6 +148,14 @@ def test_histogram():
 
     g_Commands.Shutdown()
 
+def test_init():
+	from HeadLocal import HeadLocal
+	from Commands import Commands
+	g_Head = HeadLocal()
+	logger = StdoutLogger()
+	InitCamera(logger, g_Head)
+	g_Commands = Commands(g_Head, logger)
+	g_Commands.CmdExtractorGetParameters()
 
 #test_local()
 #test_remote()
@@ -155,7 +163,7 @@ def test_histogram():
 #test_dump()
 #test_local_camera2()
 #testGaussians()
-test_histogram()
+#test_histogram()
 
 """
 0-400: 57447

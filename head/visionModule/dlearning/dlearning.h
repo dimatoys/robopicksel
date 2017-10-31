@@ -16,7 +16,7 @@ public:
 
     TDeepLearningExtractorFactory() :
         PR(0) {
-        PR.SetR(V, 0, 3);
+        PR.SetR(V, 2, 3);
         
         AddParameter("StepL1", &StepL1, 20);
         AddParameter("StepL2", &StepL2, 3);

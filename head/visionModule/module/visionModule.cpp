@@ -38,6 +38,7 @@ void extractorInit(TObjectsExtractor* data, const char* algorithm) {
 		data->Parameters[data->NumParameters].Name = it->first.c_str();
 		data->Parameters[data->NumParameters++].Type = TYPE_STRING;
 	}
+
 }
 
 void extractorSetInt(TObjectsExtractor* data, const char* parameter, int value) {
