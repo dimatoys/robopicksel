@@ -619,7 +619,7 @@ struct ILearningDataSource {
 };
 
 class TPolyRegression {
-    
+
 public:
 
     unsigned char S;
@@ -628,7 +628,7 @@ public:
     unsigned int XD;
     unsigned int XS;
     unsigned int YD;
-    
+
     TPolyRegression(unsigned char s) {
         S = s;
         R = NULL;
@@ -643,17 +643,17 @@ public:
             delete MX;
         }
     }
-    
+
     bool GenerateMX(ILearningDataSource* x);
-    
+
     void NewY(ILearningDataSource* y);
-    
+
     bool Learn(ILearningDataSource* x, ILearningDataSource* y);
-    
+
     void Predict(double* px, double* y);
-    
+
     void GetValue(const double* x, double* y);
-    
+
     void SetR(const double* r, unsigned char s, unsigned int xd, unsigned int yd);
 };
 
@@ -790,19 +790,12 @@ public:
 
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
+void RGBtoYUV(const unsigned char* rgb, double* yuv, double yratio);
 
 int countDistance(int r, int g, int b, const unsigned char* color2);
 int countDistance(const TRGB<unsigned char>& color1, const unsigned char* color2);
 int countDistance(const TRGB<unsigned char>& color1, const TRGB<unsigned char>& color2);
 int countDistance(const double* color1, const unsigned char* color2);
-
-unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
-									const TRGB<unsigned char>& color,
-									int maxDistance);
-
-unsigned int getOptimalDistanceFast(TImagesLearningDataSource& images,
-									const TRGB<unsigned char>& color,
-									unsigned int splitParts);
 
 unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr);
 

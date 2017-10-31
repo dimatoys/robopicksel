@@ -82,17 +82,14 @@ public:
 struct TXIterator : public ILearningDataSource {
 
 	TImagesLearningDataSource& Images;
-	TLearningImage::Label Label;
 
 	unsigned int Size;
 	int Index;
 	int Data[2];
 
 	TXIterator(TImagesLearningDataSource& images,
-	            TLearningImage::Label label,
-	            unsigned int size) :
+	           unsigned int size) :
 		Images(images) {
-		Label = label;
 		D = 2;
 		Size = size;
 	}
@@ -108,7 +105,7 @@ struct TXIterator : public ILearningDataSource {
 	bool NextRecord() {
 		TLearningImage::Label clabel;
 		while(Images.Next(clabel, Data[0] ,Data[1]) != NULL) {
-			if (Label == clabel) {
+			if (clabel == TLearningImage::BACKGROUND) {
 				Index = 0;
 				return true;
 			}
@@ -124,16 +121,13 @@ struct TXIterator : public ILearningDataSource {
 struct TYIterator : public ILearningDataSource {
 
 	TImagesLearningDataSource& Images;
-	TLearningImage::Label Label;
 
 	unsigned int Size;
 	const unsigned char* Element;
 	int Index;
 
-	TYIterator(TImagesLearningDataSource& images,
-	            TLearningImage::Label label) :
+	TYIterator(TImagesLearningDataSource& images) :
 		Images(images) {
-		Label = label;
 		D = 3;
 		Size = CountSize();
 	}
@@ -151,7 +145,7 @@ struct TYIterator : public ILearningDataSource {
 		int x, y;
 
 		while((Element = Images.Next(clabel, x, y)) != NULL) {
-			if (Label == clabel) {
+			if (clabel == TLearningImage::BACKGROUND) {
 				Index = 0;
 				return true;
 			}
@@ -173,15 +167,35 @@ struct TYIterator : public ILearningDataSource {
 	}
 };
 
+struct TYIteratorYUV : public TYIterator {
+
+	double ElementYUV[3];
+
+	TYIteratorYUV(TImagesLearningDataSource& images) :
+		TYIterator(images) {}
+
+	double NextElement() {
+		return ElementYUV[Index++];
+	}
+
+	bool NextRecord() {
+		if (TYIterator::NextRecord()) {
+			RGBtoYUV(Element, ElementYUV, 1.0);
+			return true;
+		}
+		return false;
+	}
+}
+
 TDeepLearningSegmentsExtractor* instance = NULL;
 
 TSegmentsExtractor* TDeepLearningExtractorFactory::CreateExtractor(TMutableImage<unsigned char>* image) {
     if (instance == NULL) {
         instance = new TDeepLearningSegmentsExtractor(this);
     }
-    
+
     instance->NewImage(image);
-    
+
 	return instance;
 }
 
@@ -216,10 +230,28 @@ void TDeepLearningExtractorFactory::DumpPRData() {
 	}
 }
 
+void TDeepLearningExtractorFactory::ReadPRData() {
+	std::list<std::string> lst;
+	ReadList(PRData, lst);
+	int rsize = lst.size() - 3;
+	if (rsize < 0) {
+		printf("ReadPRData: data size is too small: %d\n", rsize + 3);
+	}
+	auto it = lst.begin();
+	auto s = std::stoi(*it++);
+	auto xd = std::stoi(*it++);
+	auto yd = std::stoi(*it++);
+	double r[size];
+	for (int i = 0; i < size; ++i){
+		r[i] = std::stod(*it++);
+	}
+	PR.SetR(r, s, xd, yd);
+}
+
 void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 
-	TYIterator yit(images, TLearningImage::BACKGROUND);
-	TXIterator xit(images, TLearningImage::BACKGROUND, yit.GetSize());
+	TYIterator yit(images);
+	TXIterator xit(images, yit.GetSize());
 
 	PR.Learn(&xit, &yit);
 
@@ -232,7 +264,10 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 
 void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 
-	if (name == "LearningPictures" && LearningPictures.length() > 0) {
+	if (name == "LearningPictures") {
+		if (LearningPictures.length() == 0) {
+			return;
+		}
 		std::list<std::string> lst;
 		ReadList(LearningPictures, lst);
 		TImagesLearningDataSource images;
@@ -248,19 +283,28 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 		}
 
 		Learn(images);
+
+	} else if (name == "PR"){
+		if (PRData.length() == 0) {
+			return;
+		}
+		ReadPRData();
 	}
 }
 
 bool TDeepLearningSegmentsExtractor::GetL1(int x, int y) {
-
+/*
 	double vx[2];
 	vx[0] = x;
 	vx[1] = y;
 
-	double rgb[Parameters->PR.YD];
-	Parameters->PR.GetValue(vx, rgb);
+	double vy[Parameters->PR.YD];
+	Parameters->PR.GetValue(vx, vy);
 
-	return countDistance(rgb, Image->Cell(x, y)) > Parameters->D;
+	return countDistance(vy, Image->Cell(x, y)) > Parameters->D;
+*/
+	// for S = 0
+	return countDistance(Parameters->PR.R, Image->Cell(x, y)) > Parameters->D;
 }
 
 void TDeepLearningSegmentsExtractor::TranslateL1(int x1, int y1, int* x, int* y) {

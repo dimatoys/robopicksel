@@ -1,7 +1,5 @@
 #include "utils/image.h"
 
-const double V[] = {51, 62, 11};
-
 class TDeepLearningExtractorFactory : public TExtractorFactory {
 public:
 
@@ -17,15 +15,11 @@ public:
 
     TDeepLearningExtractorFactory() :
         PR(0) {
-        PR.SetR(V, 0, 2, 3);
-        
         AddParameter("StepL1", &StepL1, 20);
         AddParameter("StepL2", &StepL2, 3);
         AddParameter("LearningPictures", &LearningPictures, "");
-        AddParameter("PR", &PRData);
+        AddParameter("PR", &PRData, "0,2,3,51,62,11");
         AddParameter("D", &D, 5653);
-
-        DumpPRData();
     }
 
     TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image);
@@ -35,6 +29,7 @@ public:
     void Learn(TImagesLearningDataSource& images);
 
     void DumpPRData();
+    void ReadPRData();
 };
 
 

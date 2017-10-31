@@ -54,6 +54,24 @@ void TMutableRGBImage::ConvertToYUV() {
 	//ColorSpace = JCS_YCbCr;
 }
 
+void RGBtoYUV(const unsigned char* rgb, double* yuv, double yratio) {
+/*
+	Y = 0.299R + 0.587G + 0.114B
+	U = 0.492 (B-Y)
+	V = 0.877 (R-Y)
+
+	R = Y + 1.140V
+	G = Y - 0.395U - 0.581V
+	B = Y + 2.032U
+*/
+
+	double y = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
+	*yuv++ = y * yratio;
+	*yuv++ = 0.492 * (rgb[2] - y);
+	*yuv = 0.877 * (rgb[0] - y);
+}
+
+
 void ReverseMatrix(int n, double* matrix, double* inv){
 
 	for (int i = 0; i < n; i++) {
@@ -130,25 +148,25 @@ double f(int x, int y, int i) {
  s - max power
  d - dimension
  x - vector of X
- r - result
+ r - result (size: POLY_SIZE[d - 1][s])
  */
 
 double* fv(unsigned char s, unsigned char d, const double* x, double* r) {
     *r++ = 1.0;
-    
+
     if(s > 0) {
         const double* cx = x;
         for (unsigned char i = 0; i < d; ++i) {
             *r++ = *cx++;
         }
-        
+
         if (s > 1) {
             for (unsigned char i = 0; i < d; ++i) {
                 for (unsigned char j = i; j< d; ++j) {
                     *r++ = x[i] * x[j];
                 }
             }
-            
+
             if (s > 2) {
                 for (unsigned char i = 0; i < d; ++i) {
                     for (unsigned char j = i; j< d; ++j) {
@@ -160,10 +178,8 @@ double* fv(unsigned char s, unsigned char d, const double* x, double* r) {
             }
         }
     }
-    
     return r;
 }
-
 
 double b(int k, int i, int width, int height) {
 	double b = 0;
@@ -270,10 +286,10 @@ bool TPolyRegression::GenerateMX(ILearningDataSource* data) {
     }
 
     //printf("%f %f\n%f %f\n", t[0], t[1], t[2], t[3]);
-    
+
     double t2[XS * XS];
     double* pt2 = t2;
-    
+
     for (unsigned int y = 0; y < XS; ++y) {
         for (unsigned int x = 0; x < XS; ++x){
             double v = 0;
@@ -284,22 +300,21 @@ bool TPolyRegression::GenerateMX(ILearningDataSource* data) {
             //printf("[%u,%u] %f\n", x,y,v);
         }
     }
-    
+
     double t1[XS * XS];
-    
+
     ReverseMatrix(XS, t2, t1);
 
     //printf("Rev: %f %f\n%f %f\n", t1[0], t1[1], t1[2], t1[3]);
 
-    
-    MX = new double[size * samples];
+    MX = new double[XS * samples];
     double* pmx = MX;
-    
-    for (unsigned int y = 0; y < size; ++y) {
+
+    for (unsigned int y = 0; y < XS; ++y) {
         for (unsigned int x = 0; x < samples; ++x){
             double v = 0;
-            for (unsigned int i = 0; i < size; ++i) {
-                v += t1[i + size * y] * t[i + size * x];
+            for (unsigned int i = 0; i < XS; ++i) {
+                v += t1[i + XS * y] * t[i + XS * x];
             }
             *pmx++ = v;
             //printf("[%d,%d] %f\n", x,y,v);
@@ -340,7 +355,7 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
 }
 
 bool TPolyRegression::Learn(ILearningDataSource* x, ILearningDataSource* y) {
-    if (GenerateMX(x)) {
+	if (GenerateMX(x)) {
         NewY(y);
         return true;
     }
@@ -673,39 +688,6 @@ TGradientBoost::~TGradientBoost() {
 }
 
 unsigned int countErrors(TImagesLearningDataSource& images,
-						 const TRGB<unsigned char>& color,
-						 int d,
-						 unsigned int& neg,
-						 unsigned int& fp) {
-	images.Reset();
-	unsigned int pos = 0;
-	neg = 0;
-	fp = 0;
-	const unsigned char* ecolor;
-	TLearningImage::Label elabel;
-	int x, y;
-	unsigned int errors = 0;
-	while((ecolor = images.Next(elabel, x, y))) {
-		if ((elabel == TLearningImage::BACKGROUND) || (elabel == TLearningImage::OBJECT)) {
-			if (countDistance(color, ecolor) < d) {
-				if (elabel == TLearningImage::BACKGROUND) {
-					++pos;
-				} else {
-					++fp;
-				}
-			} else {
-				if (elabel == TLearningImage::OBJECT) {
-					++pos;
-				} else {
-					++neg;
-				}
-			}
-		}
-	}
-	return pos;
-}
-
-unsigned int countErrors(TImagesLearningDataSource& images,
 						  TPolyRegression& pr,
 						  int d,
 						  unsigned int& neg,
@@ -742,79 +724,6 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 	}
 	//printf("countErrors: d=%d pos=%u\n", d, pos);
 	return pos;
-}
-
-unsigned int getOptimalDistanceFast(TImagesLearningDataSource& images,
-									const TRGB<unsigned char>& color,
-									unsigned int splitParts) {
-	TRGB<unsigned char> avgcolor;
-	TRGB<unsigned char> mincolor;
-	TRGB<unsigned char> maxcolor;
-	unsigned int fp, neg;
-	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
-	unsigned int bd = (unsigned int)countDistance(color, avgcolor) / 2;
-	unsigned int area = bd;
-	unsigned int pos = 0;
-	while (area > 0) {
-		unsigned int step = 2 * area / splitParts;
-		if (step == 0) {
-			step = 1;
-		}
-		//printf("area=%u step=%u\n", area, step);
-		for (unsigned int td = bd - area; td <= bd + area; td += step) {
-			unsigned int tpos = countErrors(images, color, td, neg, fp);
-			if (tpos > pos) {
-				bd = td;
-				pos = tpos;
-				//printf("new: d=%u pos=%u\n", bd,pos);
-			}
-		}
-		area = 2 * area / splitParts;
-	}
-	return bd;
-}
-
-unsigned int getOptimalDistanceSlow(TImagesLearningDataSource& images,
-								const TRGB<unsigned char>& color,
-								int maxDistance) {
-	TRGB<unsigned char> avgcolor;
-	TRGB<unsigned char> mincolor;
-	TRGB<unsigned char> maxcolor;
-	unsigned int fp, neg;
-	images.GetAverage(TLearningImage::OBJECT, avgcolor, mincolor, maxcolor);
-	int d = countDistance(color, avgcolor) / 2;
-	printf("getOptimalDistance: d=%d b=(%u,%u,%u) avg=(%u,%u,%u) md=%d\n", d, (unsigned int)color.RGB[0], (unsigned int)color.RGB[1], (unsigned int)color.RGB[2], 
-		(unsigned int)avgcolor.RGB[0], (unsigned int)avgcolor.RGB[1], (unsigned int)avgcolor.RGB[2], maxDistance);
-	int imin = d - maxDistance;
-	int imax = d + maxDistance;
-	unsigned int bd = -1;
-	unsigned int pos = 0;
-	for (int td = imin; td <= imax; ++td) {
-		unsigned int tpos = countErrors(images, color, td, neg, fp);
-		if (tpos > pos) {
-			bd = td;
-			pos = tpos;
-		}
-	}
-	printf("getOptimalDistance: bd=%u pos=%u\n", bd, pos);
-	int cd;
-	int dir;
-	if (bd > d) {
-		cd = imax;
-		dir = 1;
-	} else {
-		cd = imin;
-		dir = -1;
-	}
-	while (cd - bd < maxDistance) {
-		cd += dir;
-		unsigned int tpos = countErrors(images, color, cd, neg, fp);
-		if (tpos >= pos) {
-			bd = cd;
-			pos = tpos;
-		}
-	}
-	return bd;
 }
 
 unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr) {
