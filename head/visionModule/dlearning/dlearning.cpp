@@ -123,7 +123,7 @@ struct TYIterator : public ILearningDataSource {
 	TImagesLearningDataSource& Images;
 
 	unsigned int Size;
-	const unsigned char* Element;
+	double Element[3];
 	int Index;
 
 	TYIterator(TImagesLearningDataSource& images) :
@@ -137,14 +137,14 @@ struct TYIterator : public ILearningDataSource {
 	}
 
 	double NextElement() {
-		return (double)Element[Index++];
+		return Element[Index++];
 	}
 
 	bool NextRecord() {
 		TLearningImage::Label clabel;
 		int x, y;
 
-		while((Element = Images.Next(clabel, x, y)) != NULL) {
+		while(Images.Next(clabel, x, y, Element)) {
 			if (clabel == TLearningImage::BACKGROUND) {
 				Index = 0;
 				return true;
@@ -164,26 +164,6 @@ struct TYIterator : public ILearningDataSource {
 			++size;
 		}
 		return size;
-	}
-};
-
-struct TYIteratorYUV : public TYIterator {
-
-	double ElementYUV[3];
-
-	TYIteratorYUV(TImagesLearningDataSource& images) :
-		TYIterator(images) {}
-
-	double NextElement() {
-		return ElementYUV[Index++];
-	}
-
-	bool NextRecord() {
-		if (TYIterator::NextRecord()) {
-			RGBtoYUV(Element, ElementYUV, 1.0);
-			return true;
-		}
-		return false;
 	}
 };
 
@@ -280,7 +260,8 @@ void TDeepLearningExtractorFactory::ParameterUpdated(std::string name) {
 			image.RIn = std::stoi(*it++);
 			image.ROut = std::stoi(*it++);
 			//image.Test("learning_test.jpg");
-			images.AddImage(image);
+			TLearningImageIterator iit(image);
+			images.AddImage(iit);
 		}
 
 		Learn(images);

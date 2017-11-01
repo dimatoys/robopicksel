@@ -676,30 +676,6 @@ public:
 	bool NextRecord();
 	void Add(double element);
 };
-template<class T>
-struct TRGB {
-	T RGB[3];
-
-	TRGB() {}
-
-	TRGB(const TRGB& other) {
-		memcpy(RGB, other.RGB, 3);
-	}
-
-	TRGB(int r, int g, int b) {
-		RGB[0] = r;
-		RGB[1] = g;
-		RGB[2] = b;
-	}
-
-	void operator=(const TRGB& other) {
-		memcpy(RGB, other.RGB, 3);
-	}
-
-	int S2() const {
-		return RGB[0] * (int)RGB[0] + RGB[1] * (int)RGB[1] + RGB[2] * (int)RGB[2];
-	}
-};
 
 struct TLearningImage {
 
@@ -727,14 +703,12 @@ struct TLearningImage {
 };
 
 class ILearningIterator {
+protected:
+	virtual bool Next(TLearningImage::Label& label, int& x, int& y, unsigned char* color) = 0;
 public:
 	virtual void Reset() = 0;
-	virtual const unsigned char* Next(TLearningImage::Label& label, int& x, int& y) = 0;
-	double CountDistance(TLearningImage::Label& label, const TRGB<unsigned char>& color);
-	bool GetAverage(TLearningImage::Label label,
-					TRGB<unsigned char>& avgcolor,
-					TRGB<unsigned char>& mincolor,
-					TRGB<unsigned char>& maxcolor);
+	virtual bool Next(TLearningImage::Label& label, int& x, int& y, double* color);
+	virtual void ConvertColor(const unsigned char* colorSrc, double* colorDst);
 };
 
 class TLearningImageIterator : public ILearningIterator {
@@ -747,7 +721,7 @@ public:
 	TLearningImageIterator(const TLearningImage& image) : Data(image) {};
 	TLearningImageIterator(const TLearningImageIterator& it) : Data(it.Data) {};
 	void Reset();
-	const unsigned char* Next(TLearningImage::Label& label, int& x, int& y);
+	bool Next(TLearningImage::Label& label, int& x, int& y, unsigned char* color);
 };
 
 class TImagesLearningDataSource : public ILearningIterator {
@@ -755,50 +729,19 @@ class TImagesLearningDataSource : public ILearningIterator {
 	std::list<TLearningImageIterator>::iterator ImgsIt;
 
 public:
-	void AddImage(TLearningImage& image);
+	void AddImage(TLearningImageIterator& image);
 
 	void Reset();
-	const unsigned char* Next(TLearningImage::Label& label, int& x, int& y);
+	bool Next(TLearningImage::Label& label, int& x, int& y, unsigned char* color);
 };
-
-class TGradientBoost {
-
-	unsigned char* Cache;
-	int Min0;
-	int Min1;
-	int Min2;
-	int Max0;
-	int Max1;
-	int Max2;
-	int S1;
-	int S2;
-
-	std::vector< TRGB<char> > Distances;
-
-	void MakeDistancesArray(int maxDistance);
-	void InitCache(const TRGB<unsigned char>& mincolor, const TRGB<unsigned char>& maxcolor);
-	unsigned char& CacheValue(const TRGB<unsigned char>& rgb);
-
-public:
-	TRGB<unsigned char> Color;
-	double D;
-
-	TGradientBoost(int maxDistance);
-	~TGradientBoost();
-
-	bool Boost(TImagesLearningDataSource& images,
-			   TLearningImage::Label label);
-};
-
 
 void ReverseMatrix(int n, double* matrix, double* inv);
 void MakeRegressionMatrix(TMutableImage<double>* regressionMatrix);
 void RGBtoYUV(const unsigned char* rgb, double* yuv, double yratio);
 
 int countDistance(int r, int g, int b, const unsigned char* color2);
-int countDistance(const TRGB<unsigned char>& color1, const unsigned char* color2);
-int countDistance(const TRGB<unsigned char>& color1, const TRGB<unsigned char>& color2);
 int countDistance(const double* color1, const unsigned char* color2);
+double countDistance(const double* color1, const double * color2);
 
 unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr);
 
