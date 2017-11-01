@@ -185,7 +185,7 @@ struct TYIteratorYUV : public TYIterator {
 		}
 		return false;
 	}
-}
+};
 
 TDeepLearningSegmentsExtractor* instance = NULL;
 
@@ -241,8 +241,8 @@ void TDeepLearningExtractorFactory::ReadPRData() {
 	auto s = std::stoi(*it++);
 	auto xd = std::stoi(*it++);
 	auto yd = std::stoi(*it++);
-	double r[size];
-	for (int i = 0; i < size; ++i){
+	double r[rsize];
+	for (int i = 0; i < rsize; ++i){
 		r[i] = std::stod(*it++);
 	}
 	PR.SetR(r, s, xd, yd);

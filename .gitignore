@@ -1,0 +1,9 @@
+*.pyc
+*.png
+*.jpg
+dumps
+head/project
+metadata
+test
+visionModuleLocal
+
