@@ -79,6 +79,22 @@ public:
     }
 };
 
+class TImageIteratorYUV : public TLearningImageIterator {
+	double YWeight;
+public:
+	TLearningImageIterator(const TImageIteratorYUV& it) : Data(it.Data) {
+		YWeight = it.YWeight;
+	};
+
+	TLearningImageIterator(const TLearningImage& image, double yweight) : Data(image) {
+		YWeight = yweight;
+	};
+
+	void ConvertColor(const unsigned char* colorSrc, double* colorDst) {
+		RGBtoYUV(colorSrc, colorDst, YWeight);
+	}
+};
+
 struct TXIterator : public ILearningDataSource {
 
 	TImagesLearningDataSource& Images;

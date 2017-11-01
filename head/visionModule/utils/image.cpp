@@ -528,7 +528,7 @@ bool TImagesLearningDataSource::Next(TLearningImage::Label& label, int& x, int& 
 	return NULL;
 }
 
-unsigned int countErrors(TImagesLearningDataSource& images,
+unsigned int countErrors(ILearningIterator& images,
 						 TPolyRegression& pr,
 						 int d,
 						 unsigned int& neg,
@@ -567,7 +567,7 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 	return pos;
 }
 
-unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr) {
+unsigned int countOptimalDistance(ILearningIterator& images, TPolyRegression& pr) {
 	int d0 = 0;
 	int step = 2000;
 	unsigned int fp, neg;

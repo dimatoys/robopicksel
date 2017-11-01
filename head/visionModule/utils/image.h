@@ -733,7 +733,7 @@ public:
 	void AddImage(TLearningImageIterator& image);
 
 	void Reset();
-	
+
 	bool Next(TLearningImage::Label& label, int& x, int& y, double* color) {
 		return ILearningIterator::Next(label, x, y, color);
 	}
@@ -747,7 +747,7 @@ int countDistance(int r, int g, int b, const unsigned char* color2);
 int countDistance(const double* color1, const unsigned char* color2);
 double countDistance(const double* color1, const double * color2);
 
-unsigned int countOptimalDistance(TImagesLearningDataSource& images, TPolyRegression& pr);
+unsigned int countOptimalDistance(ILearningIterator& images, TPolyRegression& pr);
 
 /*
  counts polynom components values:
