@@ -520,16 +520,19 @@ public:
 	void AddParameter(const char* name, int* ptr, int value) {
 		AddParameter(name, ptr);
 		*ptr = value;
+		ParameterUpdated(name);
 	}
 
 	void AddParameter(const char* name, double* ptr, double value) {
 		AddParameter(name, ptr);
 		*ptr = value;
+		ParameterUpdated(name);
 	}
 
 	void AddParameter(const char* name, std::string* ptr, std::string value) {
 		AddParameter(name, ptr);
 		*ptr = value;
+		ParameterUpdated(name);
 	}
 
 	bool Set(const char* name, int value) {

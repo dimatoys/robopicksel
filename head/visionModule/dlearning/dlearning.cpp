@@ -236,6 +236,7 @@ void TDeepLearningExtractorFactory::ReadPRData() {
 	int rsize = lst.size() - 3;
 	if (rsize < 0) {
 		printf("ReadPRData: data size is too small: %d\n", rsize + 3);
+		return;
 	}
 	auto it = lst.begin();
 	auto s = std::stoi(*it++);
