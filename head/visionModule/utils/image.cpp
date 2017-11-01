@@ -537,14 +537,13 @@ unsigned int countErrors(TImagesLearningDataSource& images,
 	unsigned int pos = 0;
 	neg = 0;
 	fp = 0;
-	const unsigned char* ecolor;
 	TLearningImage::Label elabel;
 	int x, y;
 	unsigned int errors = 0;
 	double vx[2];
 	double rgb[pr.YD];
 	double ecolor[pr.YD];
-	while(images.Next(elabel, x, y, ecolor)) {
+	while(images.Next(elabel, x, y, (double*)ecolor)) {
 		if ((elabel == TLearningImage::BACKGROUND) || (elabel == TLearningImage::OBJECT)) {
 			vx[0] = x;
 			vx[1] = y;

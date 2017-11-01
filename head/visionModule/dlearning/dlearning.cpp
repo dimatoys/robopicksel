@@ -104,7 +104,8 @@ struct TXIterator : public ILearningDataSource {
 
 	bool NextRecord() {
 		TLearningImage::Label clabel;
-		while(Images.Next(clabel, Data[0] ,Data[1]) != NULL) {
+		double color[3];
+		while(Images.Next(clabel, Data[0] ,Data[1], color)) {
 			if (clabel == TLearningImage::BACKGROUND) {
 				Index = 0;
 				return true;

@@ -727,12 +727,16 @@ public:
 class TImagesLearningDataSource : public ILearningIterator {
 	std::list<TLearningImageIterator> Images;
 	std::list<TLearningImageIterator>::iterator ImgsIt;
-
+protected:
+	bool Next(TLearningImage::Label& label, int& x, int& y, unsigned char* color);
 public:
 	void AddImage(TLearningImageIterator& image);
 
 	void Reset();
-	bool Next(TLearningImage::Label& label, int& x, int& y, unsigned char* color);
+	
+	bool Next(TLearningImage::Label& label, int& x, int& y, double* color) {
+		return ILearningIterator::Next(label, x, y, color);
+	}
 };
 
 void ReverseMatrix(int n, double* matrix, double* inv);
