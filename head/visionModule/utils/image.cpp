@@ -277,7 +277,7 @@ bool TPolyRegression::GenerateMX(ILearningDataSource* data) {
     XD = data->D;
     XS = size;
 
-    double t[XS * samples];
+    double* t = new double[XS * samples];
     double* pt = t;
     double record[XD];
     data->Reset();
@@ -320,12 +320,12 @@ bool TPolyRegression::GenerateMX(ILearningDataSource* data) {
             //printf("[%d,%d] %f\n", x,y,v);
         }
     }
+	delete t;
 
     return true;
 }
 
 void TPolyRegression::NewY(ILearningDataSource* datay) {
-
 
     if (R != NULL) {
         delete R;
@@ -334,26 +334,7 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
     YD = datay->D;
 
     R = new double[XS * YD];
-/*
-    double* pr = R;
 
-    double* y = new double[YD * samples];
-
-    datay->ReadAll(y);
-    //printf("y: %f %f\n", y[0], y[1]);
-
-    for (unsigned int x = 0; x < XS; ++x) {
-        for (unsigned int iy = 0; iy < YD; ++iy) {
-            double v = 0;
-            for (unsigned int i = 0; i < samples; ++i) {
-                v += MX[i + x * samples] * y[i * YD + iy];
-            }
-            *pr++ = v;
-            //printf("v=%f\n", v);
-        }
-    }
-	delete y;
-*/
     double* rx = R;
     double* mx = MX;
     for (unsigned int x = 0; x < XS; ++x) {
