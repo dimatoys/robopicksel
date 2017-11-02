@@ -334,6 +334,7 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
     YD = datay->D;
 
     R = new double[XS * YD];
+/*
     double* pr = R;
 
     double* y = new double[YD * samples];
@@ -352,6 +353,22 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
         }
     }
 	delete y;
+*/
+    double* rx = R;
+    double* mx = MX;
+    for (unsigned int x = 0; x < XS; ++x) {
+    	for (unsigned int iy = 0; iy < YD; ++iy) {
+        	rx[iy] = 0;
+        }
+    	datay->Reset();
+        while(datay->NextRecord()) {
+        	for (unsigned int iy = 0; iy < YD; ++iy) {
+            	rx[iy] += *mx * datay->NextElement();
+            }
+        	++mx;
+        }
+        rx += YD;
+    }
 }
 
 bool TPolyRegression::Learn(ILearningDataSource* x, ILearningDataSource* y) {
