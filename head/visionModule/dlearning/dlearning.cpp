@@ -82,11 +82,11 @@ public:
 class TImageIteratorYUV : public TLearningImageIterator {
 	double YWeight;
 public:
-	TLearningImageIterator(const TImageIteratorYUV& it) : Data(it.Data) {
+	TImageIteratorYUV(const TImageIteratorYUV& it) : TLearningImageIterator(it) {
 		YWeight = it.YWeight;
 	};
 
-	TLearningImageIterator(const TLearningImage& image, double yweight) : Data(image) {
+	TImageIteratorYUV(const TLearningImage& image, double yweight) : TLearningImageIterator(image) {
 		YWeight = yweight;
 	};
 
