@@ -251,12 +251,13 @@ void TDeepLearningExtractorFactory::Learn(TImagesLearningDataSource& images) {
 	TYIterator yit(images);
 	TXIterator xit(images, yit.GetSize());
 
+	//printf("TDeepLearningExtractorFactory::Learn: learn\n");
 	PR.Learn(&xit, &yit);
+	printf("Background color: (%f,%f,%f)\n", PR.R[0], PR.R[1], PR.R[2]);
 
 	D = countOptimalDistance(images, PR);
+	printf("Optimal distance: %u\n", D);
 	DumpPRData();
-	//printf("Optimal distance: %u\n", D);
-	//printf("Background color: (%f,%f,%f)\n", PR.R[0], PR.R[1], PR.R[2]);
 	printf("PR:%s\n", PRData.c_str());
 }
 

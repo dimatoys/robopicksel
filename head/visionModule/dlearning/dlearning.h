@@ -18,8 +18,8 @@ public:
         AddParameter("StepL1", &StepL1, 20);
         AddParameter("StepL2", &StepL2, 3);
         AddParameter("LearningPictures", &LearningPictures, "");
-        AddParameter("PR", &PRData, "0,2,3,51,62,11");
-        AddParameter("D", &D, 5653);
+        AddParameter("PR", &PRData, "0,2,3,114.533685,119.348970,63.209661");
+        AddParameter("D", &D, 12452);
     }
 
     TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image);

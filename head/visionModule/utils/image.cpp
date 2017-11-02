@@ -335,8 +335,8 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
 
     R = new double[XS * YD];
     double* pr = R;
-    
-    double y[YD * samples];
+
+    double* y = new double[YD * samples];
 
     datay->ReadAll(y);
     //printf("y: %f %f\n", y[0], y[1]);
@@ -351,7 +351,7 @@ void TPolyRegression::NewY(ILearningDataSource* datay) {
             //printf("v=%f\n", v);
         }
     }
-
+	delete y;
 }
 
 bool TPolyRegression::Learn(ILearningDataSource* x, ILearningDataSource* y) {
@@ -563,7 +563,7 @@ unsigned int countErrors(ILearningIterator& images,
 			}
 		}
 	}
-	//printf("countErrors: d=%d pos=%u\n", d, pos);
+	printf("countErrors: d=%d pos=%u\n", d, pos);
 	return pos;
 }
 

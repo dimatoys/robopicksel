@@ -56,6 +56,11 @@ function test_vision {
     python tests/testCamera.py
 }
 
+function dumps {
+	rsync $REMOTE_ACCOUNT:$REMOTE_PATH/../dumps/* ../dumps
+	rsync $REMOTE_ACCOUNT:$REMOTE_PATH/../metadata/* ../metadata
+}
+
 case $1 in
 upload)
     upload
