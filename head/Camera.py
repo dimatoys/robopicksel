@@ -194,9 +194,9 @@ class Vision(Structure):
 		self.FireEndTime = datetime.datetime.now()
 		Print("Fire: Ok: %s" % str(self.FireEndTime - self.FireStartTime))
 
-	def TestDump(self, dump):
+	def TestDump(self, dump, mode):
 		(width, height, depth, image) = LoadDump(dump)
-		self.Mode = 2
+		self.Mode = mode
 		self.write(image)
 
 	def write(self, image):

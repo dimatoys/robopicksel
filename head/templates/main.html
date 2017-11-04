@@ -677,8 +677,15 @@ var Metadata  = undefined
 			DumpImage.Draw()
 		})
 
-		$("#test_learning").click(function(){
-            sendCommand("CmdTestDump('" + DumpImage.DumpNameObj.text() + "','test.jpg')",
+		$("#test_learning1").click(function(){
+            sendCommand("CmdTestDump('" + DumpImage.DumpNameObj.text() + "','test.jpg', 2)",
+                function(status, result){
+                    $('#camera').prop('src', "static/test.jpg?" + Math.random())
+                });
+		})
+
+		$("#test_learning2").click(function(){
+            sendCommand("CmdTestDump('" + DumpImage.DumpNameObj.text() + "','test.jpg', 1)",
                 function(status, result){
                     $('#camera').prop('src', "static/test.jpg?" + Math.random())
                 });
@@ -935,7 +942,8 @@ var Metadata  = undefined
 									<td>
 										<input type="button" value="UPDATE" id="update_learning">
 										<input type="button" value="SAVE" id="save_learning">
-										<input type="button" value="TEST L1" id="test_learning">
+										<input type="button" value="TEST L1" id="test_learning1">
+										<input type="button" value="TEST L2" id="test_learning2">
 										<input type="button" value="DELETE" id="delete_learning">
 									</td>
 								</tr>

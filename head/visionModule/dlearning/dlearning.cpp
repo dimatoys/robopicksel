@@ -16,7 +16,7 @@ struct Knot {
     int X1;
     int Y1;
     
-    Knot() {
+    void Cleanup() {
         Status = 0;
         Left = -1;
         Right = -1;
@@ -59,6 +59,9 @@ public:
             SizeL1 = WidthL1 * HeightL1;
             L1 = new Knot[SizeL1];
         }
+        for (int i = 0; i < SizeL1; ++i) {
+			L1[i].Cleanup();
+		}
     }
     
     bool GetL1(int x, int y);
@@ -409,7 +412,6 @@ void TDeepLearningSegmentsExtractor::PushKnot(Knot* knot, int x, int y, int x1, 
     knot->Next = Frontier;
     Frontier = knot;
 }
-
 
 void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
     for (int y1 = 0; y1 < HeightL1; ++y1) {
