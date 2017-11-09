@@ -101,4 +101,7 @@ vision)
     build_local
     test_vision
     ;;
+dumps)
+    dumps
+    ;;
 esac
