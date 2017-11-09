@@ -16,7 +16,7 @@ struct Knot {
     int X1;
     int Y1;
     
-    Knot() {
+    void Cleanup() {
         Status = 0;
         Left = -1;
         Right = -1;
@@ -59,6 +59,9 @@ public:
             SizeL1 = WidthL1 * HeightL1;
             L1 = new Knot[SizeL1];
         }
+        for (int i = 0; i < SizeL1; ++i) {
+			L1[i].Cleanup();
+		}
     }
     
     bool GetL1(int x, int y);
@@ -410,31 +413,48 @@ void TDeepLearningSegmentsExtractor::PushKnot(Knot* knot, int x, int y, int x1, 
     Frontier = knot;
 }
 
-
 void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
+
+    // Go over all knots
     for (int y1 = 0; y1 < HeightL1; ++y1) {
         for (int x1 = 0; x1 < WidthL1; ++x1) {
+            // Get the knot record
             Knot* knot = GetKnot(x1, y1);
             if (knot->Status == 0) {
+                // knot had not been examined
                 int x, y;
+                // get knot image coordinates 
                 TranslateL1(x1, y1, &x, &y);
                 if(GetL1(x, y)) {
+					// knot is probably in an object
                     TArea area(x, y);
                     int xleft = x - Parameters->StepL1;
+                    // find border on the left
                     int xleftborder = FindBorder(x, y, -Parameters->StepL2, 0, xleft, &area);
                     if (xleftborder < x) {
+						// object is really in the object (with some area on the left)
+						// push the knot to frontier
                         PushKnot(knot, x, y, x1, y1);
                         if ((xleft < xleftborder) || (x1 == 0)) {
+							// no knot on the left, this knot is at the left edge
+							// set the left border x coordinate
                             knot->Left = xleftborder;
                         } else {
+							// there is one more knot on the left, probably that knot was incorrectly not detected as in the object
+                            // set that there is a knot on left
                             knot->Left = -2;
+                            // update the knot on left
                             Knot* leftknot = GetKnot(x1 - 1, y1);
+                            // the left knot has a knot inside ogject on the right
                             leftknot->Right = -2;
+                            // puth the left knot to frontier
                             PushKnot(leftknot, xleft, y, x1 - 1, y1);
                         }
-                        
+
+                        // process the frontier
                         while((knot = PopKnot()) != NULL) {
                             if (knot->Left == -1) {
+								// there is a unexamined knot on the left
                                 if (knot->X1 == 0) {
                                     knot->Left = FindBorder(knot->X, knot->Y, -Parameters->StepL2, 0, 0, &area);
                                 } else {
@@ -550,9 +570,11 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
                         }
                         areas.push_back(area);
                     } else {
+						// knot is really not in an object (false positive)
                         knot->Status = 2;
                     }
                 } else {
+					// knot is not in an object
                     knot->Status = 2;
                 }
             }

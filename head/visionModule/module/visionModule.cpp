@@ -1,7 +1,7 @@
 #include "visionModule.h"
 //#include "clustering/clustering.h"
-#include "jpeg/jpegimage.h"
-#include "statimg/statimg.h"
+//#include "jpeg/jpegimage.h"
+//#include "statimg/statimg.h"
 //#include "kp/kp.h"
 #include "dlearning/dlearning.h"
 
@@ -12,16 +12,17 @@ void extractorInit(TObjectsExtractor* data, const char* algorithm) {
 	//if (strcmp(algorithm, "clustering") == 0) {
 	//	factory = new TClusteringExtractorFactory();
 	//} else {
-		if (strcmp(algorithm, "statimg") == 0) {
-			factory = new TStatImgExtractorFactory();
-		} else {
-                    if (strcmp(algorithm, "dlearning") == 0) {
-                        factory = new TDeepLearningExtractorFactory();
-                    } else {
-			factory = new TJpegExtractorFactory();
-                    }
-		}
+	//	if (strcmp(algorithm, "statimg") == 0) {
+	//		factory = new TStatImgExtractorFactory();
+	//	} else {
+    //                if (strcmp(algorithm, "dlearning") == 0) {
+    //                    factory = new TDeepLearningExtractorFactory();
+    //                } else {
+	//		factory = new TJpegExtractorFactory();
+    //                }
+	//	}
 	//}
+	factory = new TDeepLearningExtractorFactory();
 	data->Factory = factory;
 	data->NumParameters = 0;
 	for(std::map<std::string,int*>::const_iterator it = factory->IntParameters.begin(); it != factory->IntParameters.end(); ++it) {

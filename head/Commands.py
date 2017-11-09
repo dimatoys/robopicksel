@@ -817,7 +817,7 @@ class Commands(threading.Thread):
 		LearnExtractor(tags, dumps)
 		return self.SUCCESS
 
-	def CmdTestDump(self, dump, imgfile):
+	def CmdTestDump(self, dump, imgfile, mode):
 		if self.InitCameraNonBlocking() == self.FAIL:
 			self.CmdPrint("Init fail")
 			return self.FAIL
@@ -825,7 +825,7 @@ class Commands(threading.Thread):
 			self.VarCamera.FileName = "static/%s" % imgfile
 		else:
 			self.VarCamera.FileName = None
-		self.VarCamera.TestDump(dump)
+		self.VarCamera.TestDump(dump, mode)
 		return self.SUCCESS
 
 	def CmdDeleteDump(self, dump):
