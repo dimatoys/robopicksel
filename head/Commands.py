@@ -751,6 +751,30 @@ class Commands(threading.Thread):
 		self.Sleep(timeSec)
 		self.Head.MoveStop()
 
+	def CmdCameraSelectObject(self, file):
+		if self.CmdCameraFire(file) == self.FAIL:
+			return self.FAIL
+		camera = self.LastResult
+
+		"""
+		for i in range(self.VarCamera.NumObjects):
+			obj = self.VarCamera.Objects[i]
+			if obj.BorderBits == 0:
+				
+
+			result.append({"MinX": obj.MinX,
+			               "MinY": obj.MinY,
+			               "MaxX": obj.MaxX,
+			               "MaxY": obj.MaxY,
+			               "bb": obj.BorderBits,
+                                       "type": obj.ObjectType})
+		result.sort(lambda a,b: self.CmpObjectsSize(a, b))
+
+		self.SetResult({"objects":result, "camera": camera})
+		"""
+		return self.SUCCESS
+
+
 	def CmdStartNavigate(self, file):
 		self.Head.SetServo(self.Head.DOF_A, self.Head.GetServo(self.Head.DOF_A))
 		self.Head.SetServo(self.Head.DOF_B, self.Head.GetServo(self.Head.DOF_B))
@@ -759,14 +783,17 @@ class Commands(threading.Thread):
 		self.Sleep(1)
 		self.CmdCameraFire(file)
 		return self.SUCCESS
-        
+
 	def CmdMoveToView(self, x, y):
 		(a, b, rx, ry) = self.Learning.GetAB(self.Head.GetServo(self.Head.DOF_A), self.Head.GetServo(self.Head.DOF_B), x, y)
-		self.Sleep(max( self.Head.SetServo(self.Head.DOF_A, a),
-                        self.Head.SetServo(self.Head.DOF_B, b)))
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
+		               self.Head.SetServo(self.Head.DOF_B, b)))
 		self.SetResult({"x": x, "y": y, "rx": rx, "ry": ry, "a": a, "b": b})
 		return self.SUCCESS
-        
+
+	def CmdDLLook(self):
+		self.InitCameraNonBlocking()
+
 	def CmdMoveToViewAndPreview(self, x, y, file):
 		self.CmdMoveToView(x, y)
 		move = self.LastResult

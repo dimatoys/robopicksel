@@ -100,7 +100,18 @@ void ExtractFeatures(TMutableImage<unsigned char>* image,
 
 	printf("ExtractFeature: extracted: areas=%lu\n", areas.size());
 
-	//std::sort(areas.begin(), areas.end(), greater);
+	areas.sort([](const TArea& a, const TArea& b) {
+		if (a.AtBorder == 0) {
+			if (b.AtBorder != 0) {
+				return true;
+			}
+		} else {
+			if (b.AtBorder == 0) {
+				return false;
+			}
+		}
+		return a.Size > b.Size;
+	});
 
 	numObjects = 0;
 

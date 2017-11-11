@@ -67,7 +67,7 @@ public:
     bool GetL1(int x, int y);
     void TranslateL1(int x1, int y1, int* x, int* y);
     Knot* GetKnot(int x1, int y1);
-    int FindBorder(int x, int y, int sx, int sy, int limit, TArea* area);
+    int FindBorder(int x, int y, int sx, int sy, int limit);
     
     Knot* PopKnot();
     void PushKnot(Knot* knot, int x, int y, int x1, int y1);
@@ -321,9 +321,10 @@ Knot* TDeepLearningSegmentsExtractor::GetKnot(int x1, int y1) {
 
 inline int sign(int a) { return a > 0 ? 1 : (a < 0 ? -1 : 0); }
 
-int TDeepLearningSegmentsExtractor::FindBorder(int x, int y, int sx, int sy, int limit, TArea* area) {
+int TDeepLearningSegmentsExtractor::FindBorder(int x, int y, int sx, int sy, int limit) {
     int gap = 0;
     while(true) {
+        // move 1 step
         if (sx < 0) {
             x += sx;
             if (x < limit) {
@@ -360,15 +361,6 @@ int TDeepLearningSegmentsExtractor::FindBorder(int x, int y, int sx, int sy, int
                     while (GetL1(x + ssx, y)) {
                         x+= ssx;
                     }
-                    if (sx > 0) {
-                        if (x > area->MaxX) {
-                            area->MaxX = x;
-                        }
-                    } else {
-                        if (x < area->MinX) {
-                            area->MinX = x;
-                        } 
-                    }
                     return x;
                 } else {
                     //sy != 0
@@ -376,15 +368,6 @@ int TDeepLearningSegmentsExtractor::FindBorder(int x, int y, int sx, int sy, int
                     int ssy = sign(sy);
                     while(GetL1(x, y + ssy)) {
                         y += ssy;
-                    }
-                    if (sy > 0) {
-                        if (y > area->MaxY) {
-                            area->MaxY = y;
-                        }
-                    } else {
-                        if (y < area->MinY) {
-                            area->MinY = y;
-                        }
                     }
                     return y;
                 }
@@ -430,7 +413,7 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
                     TArea area(x, y);
                     int xleft = x - Parameters->StepL1;
                     // find border on the left
-                    int xleftborder = FindBorder(x, y, -Parameters->StepL2, 0, xleft, &area);
+                    int xleftborder = FindBorder(x, y, -Parameters->StepL2, 0, xleft);
                     if (xleftborder < x) {
 						// object is really in the object (with some area on the left)
 						// push the knot to frontier
@@ -439,6 +422,9 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
 							// no knot on the left, this knot is at the left edge
 							// set the left border x coordinate
                             knot->Left = xleftborder;
+							if (xleftborder < area.MinX) {
+								area.MinX = xleftborder;
+							}
                         } else {
 							// there is one more knot on the left, probably that knot was incorrectly not detected as in the object
                             // set that there is a knot on left
@@ -449,54 +435,85 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
                             leftknot->Right = -2;
                             // puth the left knot to frontier
                             PushKnot(leftknot, xleft, y, x1 - 1, y1);
+                            area.Size++;
                         }
 
                         // process the frontier
                         while((knot = PopKnot()) != NULL) {
                             if (knot->Left == -1) {
-								// there is a unexamined knot on the left
+								// there is a unexamined area on the left
                                 if (knot->X1 == 0) {
-                                    knot->Left = FindBorder(knot->X, knot->Y, -Parameters->StepL2, 0, 0, &area);
+									// knot on the left edge, just find the left border
+                                    knot->Left = FindBorder(knot->X, knot->Y, -Parameters->StepL2, 0, 0);
+                                    if (knot->Left < area.MinX) {
+										area.MinX = knot->Left;
+									}
                                 } else {
+									// get left knot
                                     Knot* leftknot = GetKnot(knot->X1 - 1, knot->Y1);
                                     switch (leftknot->Status) {
                                         case 0:
+											// not examined yet
                                             xleft = knot->X - Parameters->StepL1;
-                                            xleftborder = FindBorder(knot->X, knot->Y, -Parameters->StepL2, 0, xleft, &area);
+                                            xleftborder = FindBorder(knot->X, knot->Y, -Parameters->StepL2, 0, xleft);
                                             if (xleft < xleftborder) {
+												// border closer than the left knot
                                                 knot->Left = xleftborder;
+                                                if (xleftborder < area.MinX) {
+													area.MinX = xleftborder;
+												}
                                             } else {
+												// border behind the left knot
                                                 knot->Left = -2;
                                                 leftknot->Right = -2;
+                                                // so the knot on left is in the object, push it
                                                 PushKnot(leftknot, xleft, knot->Y, knot->X1 - 1, knot->Y1);
+                                                area.Size++;
                                             }
                                             break;
                                         case 1:
+											// knot in frontier (in object)
+                                            // examination is not needed in between
                                             knot->Left = -2;
                                             leftknot->Right = -2;
                                             break;
                                         case 2:
-                                            knot->Left = FindBorder(knot->X, knot->Y, -Parameters->StepL2, 0, knot->X - Parameters->StepL1, &area);
+											// left knot is not on the object
+											// just find left border
+                                            knot->Left = FindBorder(knot->X, knot->Y, -Parameters->StepL2, 0, /*knot->X - Parameters->StepL1*/0);
+                                            if (knot->Left < area.MinX) {
+												area.MinX = knot->Left;
+											}
                                             break;
                                     }
                                 }    
                             }
                             if (knot->Right == -1) {
+								// there is unexamined knot on left
                                 if(knot->X1 + 1 >= WidthL1) {
-                                    knot->Right = FindBorder(knot->X, knot->Y, Parameters->StepL2, 0, Image->Width - 1, &area);
+									// at right border
+									// just find the right border
+                                    knot->Right = FindBorder(knot->X, knot->Y, Parameters->StepL2, 0, Image->Width - 1);
+                                    if (knot->Right > area.MaxX) {
+										area.MaxX = knot->Right;
+									}
                                 } else {
                                     Knot* rightknot = GetKnot(knot->X1 + 1, knot->Y1);
                                     switch(rightknot->Status) {
                                         case 0:
                                         {
                                             int xright = knot->X + Parameters->StepL1;
-                                            int xrightborder = FindBorder(knot->X, knot->Y, Parameters->StepL2, 0, xright, &area);
+                                            int xrightborder = FindBorder(knot->X, knot->Y, Parameters->StepL2, 0, xright);
                                             if (xright > xrightborder) {
                                                 knot->Right = xrightborder;
+                                                if (xrightborder > area.MaxX) {
+													area.MaxX = xrightborder;
+												}
                                             } else {
                                                 knot->Right = -2;
                                                 rightknot->Left = -2;
                                                 PushKnot(rightknot, xright, knot->Y, knot->X1 + 1, knot->Y1);
+                                                area.Size++;
                                             }
                                             break;
                                         }
@@ -505,26 +522,36 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
                                             rightknot->Left = -2;
                                             break;
                                         case 2:
-                                            knot->Right = FindBorder(knot->X, knot->Y, Parameters->StepL2, 0, knot->X + Parameters->StepL1, &area);
+                                            knot->Right = FindBorder(knot->X, knot->Y, Parameters->StepL2, 0, knot->X + Parameters->StepL1);
+                                            if (knot->Right > area.MaxX) {
+												area.MaxX = knot->Right;
+											}
                                             break;
                                     }
                                 }
                             }
                             if (knot->Top == -1) {
                                 if (knot->Y1 == 0) {
-                                    knot->Top = FindBorder(knot->X, knot->Y, 0, -Parameters->StepL2, 0, &area);
+                                    knot->Top = FindBorder(knot->X, knot->Y, 0, -Parameters->StepL2, 0);
+                                    if (knot->Top < area.MinY) {
+										area.MinY = knot->Top;
+									}
                                 } else {
                                     Knot* topknot = GetKnot(knot->X1, knot->Y1 - 1);
                                     switch (topknot->Status) {
                                         case 0: {
                                             int top = knot->Y - Parameters->StepL1;
-                                            int topborder = FindBorder(knot->X, knot->Y, 0, -Parameters->StepL2, top, &area);
+                                            int topborder = FindBorder(knot->X, knot->Y, 0, -Parameters->StepL2, top);
                                             if (top < topborder) {
                                                 knot->Top = topborder;
+                                                if (topborder < area.MinY) {
+													area.MinY = topborder;
+												}
                                             } else {
                                                 knot->Top = -2;
                                                 topknot->Bottom = -2;
                                                 PushKnot(topknot, knot->X, top, knot->X1, knot->Y1 - 1);
+                                                area.Size++;
                                             }    
                                             break;
                                         }
@@ -533,27 +560,37 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
                                             topknot->Bottom = -2;
                                             break;
                                         case 2:
-                                            knot->Top = FindBorder(knot->X, knot->Y, 0, -Parameters->StepL2, knot->Y - Parameters->StepL1, &area);
+                                            knot->Top = FindBorder(knot->X, knot->Y, 0, -Parameters->StepL2, knot->Y - Parameters->StepL1);
+                                            if (knot->Top < area.MinY) {
+												area.MinY = knot->Top;
+											}
                                             break;
                                     }
                                 }    
                             }
                             if (knot->Bottom == -1) {
                                 if(knot->Y1 + 1 >= HeightL1) {
-                                    knot->Bottom = FindBorder(knot->X, knot->Y, 0, Parameters->StepL2, Image->Height - 1, &area);
+                                    knot->Bottom = FindBorder(knot->X, knot->Y, 0, Parameters->StepL2, Image->Height - 1);
+                                    if (knot->Bottom > area.MaxY) {
+										area.MaxY = knot->Bottom;
+									}
                                 } else {
                                     Knot* bottomknot = GetKnot(knot->X1, knot->Y1 + 1);
                                     switch(bottomknot->Status) {
                                         case 0:
                                         {
                                             int bottom = knot->Y + Parameters->StepL1;
-                                            int bottomborder = FindBorder(knot->X, knot->Y, 0, Parameters->StepL2, bottom, &area);
+                                            int bottomborder = FindBorder(knot->X, knot->Y, 0, Parameters->StepL2, bottom);
                                             if (bottom > bottomborder) {
                                                 knot->Bottom = bottomborder;
+                                                if (bottomborder > area.MaxY) {
+													area.MaxY = bottomborder;
+												}
                                             } else {
                                                 knot->Bottom = -2;
                                                 bottomknot->Top = -2;
                                                 PushKnot(bottomknot, knot->X, bottom, knot->X1, knot->Y1 + 1);
+                                                area.Size++;
                                             }
                                             break;
                                         }
@@ -562,12 +599,32 @@ void TDeepLearningSegmentsExtractor::ExtractSegments(std::list<TArea>& areas){
                                             bottomknot->Top = -2;
                                             break;
                                         case 2:
-                                            knot->Bottom = FindBorder(knot->X, knot->Y, 0, Parameters->StepL2, knot->Y + Parameters->StepL1, &area);
+                                            knot->Bottom = FindBorder(knot->X, knot->Y, 0, Parameters->StepL2, knot->Y + Parameters->StepL1);
+                                            if (knot->Bottom > area.MaxY) {
+												area.MaxY = knot->Bottom;
+											}
                                             break;
                                     }
                                 }
                             }
                         }
+                        if (area.Size < Parameters->MinKnots) {
+							continue;
+						}
+                        
+						if (area.MinX <= Parameters->StepL2) {
+							area.AtBorder |= BORDER_LEFT;
+						}
+                        if (area.MaxX >= Image->Width - Parameters->StepL2 - 1) {
+							area.AtBorder |= BORDER_RIGHT;
+						}
+						if (area.MinY <= Parameters->StepL2) {
+							area.AtBorder |= BORDER_TOP;
+						}
+                        if (area.MaxY >= Image->Height - Parameters->StepL2 - 1) {
+							area.AtBorder |= BORDER_BOTTOM;
+						}
+
                         areas.push_back(area);
                     } else {
 						// knot is really not in an object (false positive)

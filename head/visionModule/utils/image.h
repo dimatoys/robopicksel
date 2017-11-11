@@ -48,7 +48,7 @@ struct TArea {
 		MaxX = x;
 		MinY = y;
 		MaxY = y;
-		AtBorder = 0;
+		AtBorder = NO_BORDER;
 		ObjectType = 0;
 	}
 
