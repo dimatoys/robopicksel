@@ -756,12 +756,12 @@ class Commands(threading.Thread):
 			return self.FAIL
 		camera = self.LastResult
 
-		"""
 		for i in range(self.VarCamera.NumObjects):
 			obj = self.VarCamera.Objects[i]
 			if obj.BorderBits == 0:
-				
+				pass
 
+		"""
 			result.append({"MinX": obj.MinX,
 			               "MinY": obj.MinY,
 			               "MaxX": obj.MaxX,

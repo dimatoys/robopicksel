@@ -275,7 +275,8 @@ class TLearning:
             [  2.73731259e-02],
             [ -1.64016838e-05]]
         """
-        
+
+        # (image_x, image_y, DOF_A) -> (x_distance, y_distance)
         self.D = TPolyRegression(3) 
         self.D.R = [[  4.43813268e+02,   1.06782991e+03],
             [ -2.16923364e-01,  -5.88883706e-01],
@@ -298,6 +299,7 @@ class TLearning:
             [ -2.46595579e-07,   2.92825242e-07],
             [ -2.22027845e-06,   1.53332454e-07]]
 
+        (y_distance) -> DOF_A
         self.A = TPolyRegression(3)
         self.A.R = [[  6.82446348e+03],
                     [ -1.94281251e+01],
