@@ -751,29 +751,65 @@ class Commands(threading.Thread):
 		self.Sleep(timeSec)
 		self.Head.MoveStop()
 
+	"""
+	Priorities:
+		1. Consider reaching area:
+		    1.1 Biggest full
+		    1.2 Biggest partial
+		2. Not reaching area - closest to farthest (maybe avoid tooo big)
+	
+	Properties:
+		1. full/partial, there to move, best position by being taken
+		2. distance by middle, size, center
+		3. ? distance by min reachable, size, center
+	"""
+	def CmpObjPriority(self, a, b):
+		if a["d"] >= self.Learning.DMIN and a["d"] <= self.Learning.DMAX:
+			if b["d"] >= self.Learning.DMIN and b["d"] <= self.Learning.DMAX:
+				if a["full"]:
+					if b["full"]:
+						return b["width"] - a["width"]
+					else:
+						-1
+				else:
+					if b["full"]:
+						return 1
+					else:
+						return b["d"] - a["d"]
+			else:
+				return -1
+		else:
+			if b["d"] >= self.Learning.DMIN and b["d"] <= self.Learning.DMAX:
+				return 1
+			else:
+				return b["d"] - a["d"]
+
 	def CmdCameraSelectObject(self, file):
 		if self.CmdCameraFire(file) == self.FAIL:
 			return self.FAIL
 		camera = self.LastResult
 
+		a = self.Head.GetServo(self.Head.DOF_A)
+
+		result = []
 		for i in range(self.VarCamera.NumObjects):
 			obj = self.VarCamera.Objects[i]
-			if obj.BorderBits == 0:
-				pass
+			(rf_x, rf_y) = self.Learning.D.GetValue((obj.MinX, objMinY, a))
+			(lf_x, lf_y) = self.Learning.D.GetValue((obj.MaxX, objMinY, a))
+			(rc_x, rc_y) = self.Learning.D.GetValue((obj.MinX, objMaxY, a))
+			(lc_x, lc_y) = self.Learning.D.GetValue((obj.ManX, objMaxY, a))
 
-		"""
-			result.append({"MinX": obj.MinX,
-			               "MinY": obj.MinY,
-			               "MaxX": obj.MaxX,
-			               "MaxY": obj.MaxY,
-			               "bb": obj.BorderBits,
-                                       "type": obj.ObjectType})
-		result.sort(lambda a,b: self.CmpObjectsSize(a, b))
+			center_x = (lc_x + rc_x + lf_x + rf_x) / 4
+			center_y = (lc_y + rc_y + lf_y + rf_y) / 4
+			result.append({"d": sqrt(center_x * center_x + center_y * center_y),
+			               "width": (lc_x + lf_x - rc_x - rf_x) / 2,
+			               "full": obj.BorderBits == 0,
+			               "cx": center_x})
+
+		result.sort(lambda a,b: self.CmpObjPriority(a, b))
 
 		self.SetResult({"objects":result, "camera": camera})
-		"""
 		return self.SUCCESS
-
 
 	def CmdStartNavigate(self, file):
 		self.Head.SetServo(self.Head.DOF_A, self.Head.GetServo(self.Head.DOF_A))
