@@ -768,21 +768,21 @@ class Commands(threading.Thread):
 			if b["d"] >= self.Learning.DMIN and b["d"] <= self.Learning.DMAX:
 				if a["full"]:
 					if b["full"]:
-						return b["width"] - a["width"]
+						return int(b["width"] - a["width"])
 					else:
 						-1
 				else:
 					if b["full"]:
 						return 1
 					else:
-						return b["d"] - a["d"]
+						return int(a["d"] - b["d"])
 			else:
 				return -1
 		else:
 			if b["d"] >= self.Learning.DMIN and b["d"] <= self.Learning.DMAX:
 				return 1
 			else:
-				return b["d"] - a["d"]
+				return int(a["d"] - b["d"])
 
 	def CmdCameraSelectObject(self, file):
 		if self.CmdCameraFire(file) == self.FAIL:
@@ -794,17 +794,31 @@ class Commands(threading.Thread):
 		result = []
 		for i in range(self.VarCamera.NumObjects):
 			obj = self.VarCamera.Objects[i]
-			(rf_x, rf_y) = self.Learning.D.GetValue((obj.MinX, objMinY, a))
-			(lf_x, lf_y) = self.Learning.D.GetValue((obj.MaxX, objMinY, a))
-			(rc_x, rc_y) = self.Learning.D.GetValue((obj.MinX, objMaxY, a))
-			(lc_x, lc_y) = self.Learning.D.GetValue((obj.ManX, objMaxY, a))
+			(lc_x, lc_y) = self.Learning.D.GetValue((obj.MinX, obj.MinY, a))
+			(rc_x, rc_y) = self.Learning.D.GetValue((obj.MaxX, obj.MinY, a))
+			(lf_x, lf_y) = self.Learning.D.GetValue((obj.MinX, obj.MaxY, a))
+			(rf_x, rf_y) = self.Learning.D.GetValue((obj.MaxX, obj.MaxY, a))
 
 			center_x = (lc_x + rc_x + lf_x + rf_x) / 4
 			center_y = (lc_y + rc_y + lf_y + rf_y) / 4
 			result.append({"d": sqrt(center_x * center_x + center_y * center_y),
 			               "width": (lc_x + lf_x - rc_x - rf_x) / 2,
 			               "full": obj.BorderBits == 0,
-			               "cx": center_x})
+			               "cx": center_x,
+			               "minx": obj.MinX,
+			               "maxx": obj.MaxX,
+			               "miny": obj.MinY,
+			               "maxy": obj.MaxY,
+			               "bb": obj.BorderBits,
+			               "rc_x": rc_x,
+			               "rc_y": rc_y,
+			               "lc_x": lc_x,
+			               "lc_y": lc_y,
+			               "rf_x": rf_x,
+			               "rf_y": rf_y,
+			               "lf_x": lf_x,
+			               "lf_y": lf_y
+			               })
 
 		result.sort(lambda a,b: self.CmpObjPriority(a, b))
 
@@ -812,10 +826,10 @@ class Commands(threading.Thread):
 		return self.SUCCESS
 
 	def CmdStartNavigate(self, file):
-		self.Head.SetServo(self.Head.DOF_A, self.Head.GetServo(self.Head.DOF_A))
-		self.Head.SetServo(self.Head.DOF_B, self.Head.GetServo(self.Head.DOF_B))
+		self.Head.SetServo(self.Head.DOF_A, 4000)
+		self.Head.SetServo(self.Head.DOF_B, (self.Head.MinS + self.Head.MaxS) / 2)
 		self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS)
-		self.Sleep(self.Head.SetServo(self.Head.DOF_G, 5000))
+		self.Sleep(self.Head.SetServo(self.Head.DOF_G, self.Head.MaxS))
 		self.Sleep(1)
 		self.CmdCameraFire(file)
 		return self.SUCCESS
@@ -894,3 +908,26 @@ class Commands(threading.Thread):
 	def CmdDeleteDump(self, dump):
 		DeleteDump(dump)
 		return self.SUCCESS
+
+"""
+Result: {"status": "ok", "result": {"camera": {"totalTime": 0.346207, "sootingTime": 0.144454, "DumpId": 1510623946}, "objects": [
+{
+"rf_y": 176.8115932495158, 
+"maxx": 220, 
+"full": false, 
+"d": 149.69844621471523, 
+"bb": 4, 
+"miny": 0, 
+"lc_x": 18.94704496703994, 
+"lc_y": 122.45832823923183, 
+"rc_y": 121.90399725331201, 
+"minx": 120, 
+"width": 42.1052647294396, 
+"cx": -4.019525995118874, 
+"lf_y": 177.40397206079388, 
+"lf_x": 15.119167772161905, 
+"rf_x": -22.14168247511726, 
+"rc_x": -28.00263424456008, 
+"maxy": 93},
+
+ {"rf_y": 226.3298065995161, "maxx": 319, "full": false, "d": 216.6893895806603, "bb": 10, "miny": 149, "lc_x": -11.923319745715263, "lc_y": 202.91958431981823, "rc_y": 204.12791591031544, "minx": 200, "width": 43.81753805863053, "cx": -32.126683563822795, "lf_y": 223.8010201014892, "lf_x": -8.512509323299785, "rf_x": -48.25953635598118, "rc_x": -59.81136883029494, "maxy": 239}, {"rf_y": 224.49204177358345, "maxx": 40, "full": false, "d": 221.05068199823762, "bb": 9, "miny": 160, "lc_x": 56.579108594687966, "lc_y": 208.76857704895957, "rc_y": 208.29875581875152, "minx": 0, "width": 15.132008801711766, "cx": 43.930180786453036, "lf_y": 225.00665956919102, "lf_x": 46.41326177992988, "rf_x": 32.65489672908235, "rc_x": 40.073456042111964, "maxy": 239}]}}"""

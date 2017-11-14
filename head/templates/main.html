@@ -586,7 +586,7 @@ var Metadata  = undefined
     	  makeCmd("GRAB AT", [{type:"textfield", value:"150", id:"d"}], "CmdIGrabAt($d)")
     	  makeCmd("PICK AT", [{type:"textfield", value:"150", id:"d"},{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabAtAndPlace($d,$basket)")
           makeCmd("GRAB FROM VIEW", [{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabFromAndPlace($basket)")
-          makeCmdPicture("PREVIEW", [], "CmdIPreview('test.jpg')")
+          makeCmdPicture("PREVIEW", [], "CmdCameraSelectObject('test.jpg')")
           makeCmdPicture("LOOK", [], "CmdILook('test.jpg')")
           makeCmdPicture("FIND", [], "CmdIFind('test.jpg')")
           makeCmd("FIND AND PICK", [], "CmdIFindAndGrab()")

@@ -299,7 +299,7 @@ class TLearning:
             [ -2.46595579e-07,   2.92825242e-07],
             [ -2.22027845e-06,   1.53332454e-07]]
 
-        (y_distance) -> DOF_A
+        # (y_distance) -> DOF_A
         self.A = TPolyRegression(3)
         self.A.R = [[  6.82446348e+03],
                     [ -1.94281251e+01],
