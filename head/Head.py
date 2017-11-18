@@ -113,7 +113,6 @@ class HMC5883(IIC):
         self.ShiftY = shiftY
         self.ShiftZ = shiftZ
         try:
-            #http://www.farnell.com/datasheets/1683374.pdf
             self.write_byte(0, 0b01110000) # Set to 8 samples @ 15Hz
             self.write_byte(1, 0b00100000) # 1.3 gain LSb / Gauss 1090 (default)
             self.write_byte(2, 0b00000000) # Continuous sampling
@@ -331,6 +330,18 @@ class A116:
                 print "%X %d" % (ord(c), ord(c))
         self.Close()
     """
+
+import VL53L0X
+class RangeVL53LOX:
+	def __init__(self):
+		self.tof = VL53L0X.VL53L0X()
+		self.tof.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+
+	def Shutdown(self):
+		self.tof.stop_ranging()
+
+	def GetDistance(self):
+		return self.tof.get_distance()
 
 class Head(HeadLocal):
 
