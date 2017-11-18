@@ -382,7 +382,8 @@ class Head(HeadLocal):
         """
         self.intervals = [[0, 150, 330], [1, 230, 545], [2, 173, 627], [1, 0, 1024]]
         self.pwm = PWM(0x40, debug=True)
-        self.pwm.setPWMFreq(60)
+        if self.pwm.Device:
+            self.pwm.setPWMFreq(60)
         self.Pins[1] = 'I2C1-VCC'
         self.Pins[3] = 'I2C1-SDA'
         self.Pins[5] = 'I2C1-SCL'
@@ -440,7 +441,8 @@ class Head(HeadLocal):
         self.Write(id, GPIO.LOW)
 
     def Shutdown(self):
-        self.pwm.setAllPWM(0, 0)
+        if self.pwm.Device:
+            self.pwm.setAllPWM(0, 0)
         self.ServoB.Close()
         GPIO.cleanup()
 
@@ -468,7 +470,10 @@ class Head(HeadLocal):
             #self.HeadMotor.SetPosition(value)
             self.ServoB.ISetPosition(pin, value)
         else:
-            self.pwm.setPWM(pin, 0, value)
+            if self.pwm.Device:
+                self.pwm.setPWM(pin, 0, value)
+            else:
+                print "setPWM(%d,0,%d)" % (pin,value)
         #self.ExecuteCommand("P%d,%d" % (pin, value))
         return abs(s - old_value) * self.SERVO_CYCLE[id] / (self.MaxS - self.MinS) + self.SERVO_COMMAND_PAUSE
     
@@ -558,7 +563,10 @@ class Head(HeadLocal):
             d = command[1:].split(":")
             channel = int(d[0])
             value = int(d[1])
-            self.pwm.setPWM(self.intervals[channel][0], 0, value)
+            if self.pwm.Device:
+                self.pwm.setPWM(self.intervals[channel][0], 0, value)
+            else:
+                print "no pwm"
             return (channel, value)
         if cmd == 'J':
             value = int(command[1:])

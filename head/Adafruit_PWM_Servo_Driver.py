@@ -46,7 +46,11 @@ class PWM :
     self.debug = debug
     if (self.debug):
       print "Reseting PCA9685 MODE1 (without SLEEP) and MODE2"
-    self.setAllPWM(0, 0)
+    self.Device = True
+    if self.setAllPWM(0, 0) == -1:
+      self.Device = False
+      print "No PWM"
+      return
     self.i2c.write8(self.__MODE2, self.__OUTDRV)
     self.i2c.write8(self.__MODE1, self.__ALLCALL)
     time.sleep(0.005)                                       # wait for oscillator
@@ -57,6 +61,8 @@ class PWM :
     time.sleep(0.005)                             # wait for oscillator
 
   def setPWMFreq(self, freq):
+    if not self.Device:
+        return
     "Sets the PWM frequency"
     prescaleval = 25000000.0    # 25MHz
     prescaleval /= 4096.0       # 12-bit
@@ -78,6 +84,8 @@ class PWM :
     self.i2c.write8(self.__MODE1, oldmode | 0x80)
 
   def setPWM(self, channel, on, off):
+    if not self.Device:
+      return
     "Sets a single PWM channel"
     self.i2c.write8(self.__LED0_ON_L+4*channel, on & 0xFF)
     self.i2c.write8(self.__LED0_ON_H+4*channel, on >> 8)
@@ -86,7 +94,10 @@ class PWM :
 
   def setAllPWM(self, on, off):
     "Sets a all PWM channels"
-    self.i2c.write8(self.__ALL_LED_ON_L, on & 0xFF)
+    if not self.Device:
+        return -1
+    if self.i2c.write8(self.__ALL_LED_ON_L, on & 0xFF) == -1:
+        return -1
     self.i2c.write8(self.__ALL_LED_ON_H, on >> 8)
     self.i2c.write8(self.__ALL_LED_OFF_L, off & 0xFF)
     self.i2c.write8(self.__ALL_LED_OFF_H, off >> 8)
