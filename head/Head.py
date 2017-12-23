@@ -113,7 +113,6 @@ class HMC5883(IIC):
         self.ShiftY = shiftY
         self.ShiftZ = shiftZ
         try:
-            #http://www.farnell.com/datasheets/1683374.pdf
             self.write_byte(0, 0b01110000) # Set to 8 samples @ 15Hz
             self.write_byte(1, 0b00100000) # 1.3 gain LSb / Gauss 1090 (default)
             self.write_byte(2, 0b00000000) # Continuous sampling
@@ -332,6 +331,18 @@ class A116:
         self.Close()
     """
 
+import VL53L0X
+class RangeVL53LOX:
+	def __init__(self):
+		self.tof = VL53L0X.VL53L0X()
+		self.tof.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+
+	def Shutdown(self):
+		self.tof.stop_ranging()
+
+	def GetDistance(self):
+		return self.tof.get_distance()
+
 class Head(HeadLocal):
 
     GPPins =[None, None, 3,  5,  7, 29, 31, 26, 24, 21, 19,
@@ -382,7 +393,8 @@ class Head(HeadLocal):
         """
         self.intervals = [[0, 150, 330], [1, 230, 545], [2, 173, 627], [1, 0, 1024]]
         self.pwm = PWM(0x40, debug=True)
-        self.pwm.setPWMFreq(60)
+        if self.pwm.Device:
+            self.pwm.setPWMFreq(60)
         self.Pins[1] = 'I2C1-VCC'
         self.Pins[3] = 'I2C1-SDA'
         self.Pins[5] = 'I2C1-SCL'
@@ -440,7 +452,8 @@ class Head(HeadLocal):
         self.Write(id, GPIO.LOW)
 
     def Shutdown(self):
-        self.pwm.setAllPWM(0, 0)
+        if self.pwm.Device:
+            self.pwm.setAllPWM(0, 0)
         self.ServoB.Close()
         GPIO.cleanup()
 
@@ -468,7 +481,10 @@ class Head(HeadLocal):
             #self.HeadMotor.SetPosition(value)
             self.ServoB.ISetPosition(pin, value)
         else:
-            self.pwm.setPWM(pin, 0, value)
+            if self.pwm.Device:
+                self.pwm.setPWM(pin, 0, value)
+            else:
+                print "setPWM(%d,0,%d)" % (pin,value)
         #self.ExecuteCommand("P%d,%d" % (pin, value))
         return abs(s - old_value) * self.SERVO_CYCLE[id] / (self.MaxS - self.MinS) + self.SERVO_COMMAND_PAUSE
     
@@ -558,7 +574,10 @@ class Head(HeadLocal):
             d = command[1:].split(":")
             channel = int(d[0])
             value = int(d[1])
-            self.pwm.setPWM(self.intervals[channel][0], 0, value)
+            if self.pwm.Device:
+                self.pwm.setPWM(self.intervals[channel][0], 0, value)
+            else:
+                print "no pwm"
             return (channel, value)
         if cmd == 'J':
             value = int(command[1:])
