@@ -2,6 +2,9 @@ from math import sin, cos, atan, pi, acos, asin, sqrt
 from PIL import Image, ImageDraw
 import json
 
+from os import listdir
+from os.path import isfile, join
+
 import numpy as np
 import datetime
 
@@ -2565,6 +2568,132 @@ def TestAutoLearning2():
             
     img.save("%s-tl.png" % cw, 'PNG')
 
+def CountDistance(a, b):
+    d = 0
+    for i in range(len(a)):
+        dd = a[i] - b[i]
+        d = d + dd * dd
+    return d
+
+def rgbtoyuv(rgb):
+    """
+    Y = 0.299R + 0.587G + 0.114B  (0..255)
+    U = 0.492 (B-Y)               (-111.15756 .. 111.15756)
+    V = 0.877 (R-Y)               (-156.768135 .. 156.768135)
+
+    R = Y + 1.140V
+    G = Y - 0.395U - 0.581V
+    B = Y + 2.032U
+    """
+
+    R = rgb[0]
+    G = rgb[1]
+    B = rgb[2]
+
+    Y = 0.299 * R + 0.587 * G + 0.114 * B
+    U = 0.492 * (B-Y)
+    V = 0.877 * (R-Y)
+
+    return (Y, U, V)
+
+def CountDistance2(a, b):
+    (aY, aU, aV) = rgbtoyuv(a)
+    (bY, bU, bV) = rgbtoyuv(b)
+    return (aV - bV) * (aV - bV) + (aU - bU) * (aU - bU)
+
+def TestFillSel():
+    cw = '1502667194'
+    dump = Dump.FromFileName("../dumps/%s.dump" % cw)
+    img = Image.frombytes('RGB', (dump.Width, dump.Height), dump.Data)
+    draw = ImageDraw.Draw(img)
+
+    colors = ["white", "red", "green", "blue", "yellow", "pink", "cyan"]
+
+    clusters = []
+    for y in range(20, dump.Height, 20):
+      for x in range(20, dump.Width, 20):
+        pixel = dump.GetPixel(x, y)
+        closestClusterIdx = -1
+        minDistance = 10000000000
+        cn = 0
+        for cluster in clusters:
+            d = CountDistance(pixel, cluster["core"])
+            if d < minDistance:
+                closestClusterIdx = cn
+                minDistance = d
+            cn = cn + 1
+        if minDistance < 10000:
+            closestCluster = clusters[closestClusterIdx]
+            n = closestCluster["n"] + 1
+            for i in range(len(closestCluster["core"])):
+                closestCluster["sum"][i] = closestCluster["sum"][i] + pixel[i]
+                closestCluster["core"][i] = closestCluster["sum"][i] / n
+            closestCluster["n"] = n
+            print "%d: (%d,%d,%d): %d" % (closestClusterIdx, closestCluster["core"][0], closestCluster["core"][1], closestCluster["core"][2], minDistance)
+        else:
+            newCluster = {"core": list(pixel),
+                          "sum": list(pixel),
+                          "n": 1}
+            closestClusterIdx = len(clusters)
+            clusters.append(newCluster)
+            print "new: (%d,%d,%d): %d" % (newCluster["core"][0], newCluster["core"][1], newCluster["core"][2], minDistance)
+        if closestClusterIdx < len(colors):
+            color = colors[closestClusterIdx]
+        else:
+            color = "black"
+        draw.rectangle(((x - 1, y - 1), (x + 1, y + 1)), fill=color)
+    
+    img.save("%s-fs.png" % cw, 'PNG')
+
+def ShowSpace():
+    #cw = '1502667166'
+    #cw = '1502667194'
+    #dump = Dump.FromFileName("../dumps/%s.dump" % cw)
+
+    center = 200
+
+    img = Image.new('RGB', (center * 2, center * 2))
+
+    cy_min = 1000000
+    cy_max = -1000000
+    cu_min = 1000000
+    cu_max = -1000000
+    cv_min = 1000000
+    cv_max = -1000000
+
+    for file in [f for f in listdir("../dumps") if isfile(join("../dumps", f))]:
+      dump = Dump.FromFileName(join("../dumps", file))
+      for y in range(dump.Height):
+        for x in range(dump.Width):
+            rgb = dump.GetPixel(x, y)
+            (cy, cu, cv) = rgbtoyuv(rgb)
+            img.putpixel((int(cu + center), int(cv + center)), rgb)
+            if cy < cy_min:
+                cy_min = cy
+            if cy > cy_max:
+                cy_max = cy
+            if cu < cu_min:
+                cu_min = cu
+            if cu > cu_max:
+                cu_max = cu
+            if cv < cv_min:
+                cv_min = cv
+            if cv > cv_max:
+                cv_max = cv
+
+      print "%s (%f..%f , %f .. %f, %f .. %f)" % (file, cy_min, cy_max, cu_min, cu_max, cv_min, cv_max)
+      img.save("ss.png", 'PNG')
+    #print "rgb=(%d..%d , %d .. %d, %d .. %d)" % (cr_min, cr_max, cg_min, cg_max, cb_min, cb_max)
+
+def DumpsToPic():
+    for file in [f for f in listdir("../dumps") if isfile(join("../dumps", f))]:
+        dump = Dump.FromFileName(join("../dumps", file))
+        img = Image.new('RGB', (dump.Width, dump.Height))
+        for y in range(dump.Height):
+            for x in range(dump.Width):
+                rgb = dump.GetPixel(x, y)
+                img.putpixel((x, y), rgb)
+        img.save(join("../pics", file) + '.png', 'PNG')
 
 #Test2()
 #Im1()
@@ -2616,4 +2745,8 @@ def TestAutoLearning2():
 #AutoLearn2()
 #TestAutoLearning()
 #ShowBackgroundAppr()
-TestAutoLearning2()
+#TestAutoLearning2()
+#TestFillSel()
+#ShowSpace()
+DumpsToPic()
+
