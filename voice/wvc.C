@@ -78,6 +78,29 @@
 
 #include "pocketsphinx.h"
 
+
+#include <sys/ioctl.h>
+#include <termios.h>
+
+bool kbhit()
+{
+    termios term;
+    tcgetattr(0, &term);
+
+    termios term2 = term;
+    term2.c_lflag &= ~ICANON;
+    tcsetattr(0, TCSANOW, &term2);
+
+    int byteswaiting;
+    ioctl(0, FIONREAD, &byteswaiting);
+
+    tcsetattr(0, TCSANOW, &term);
+
+    return byteswaiting > 0;
+}
+
+
+
 class TEnergyCounter {
 
 	int16_t*	ABuffer;
@@ -410,7 +433,7 @@ recognize_from_microphone()
             E_INFO("Listening...\n");
         }
         if (!in_speech && utt_started) {
-            /* speech -> silence transition, time to start new utterance  */
+            // speech -> silence transition, time to start new utterance
             ps_end_utt(ps);
             hyp = ps_get_hyp(ps, NULL );
             if (hyp != NULL) {
@@ -439,10 +462,12 @@ recognize_from_microphone()
 }
 
 static void
-recognize_from_microphone2()
+recognize_from_microphone2(const char* fileName)
 {
     ad_rec_t *ad;
-    int16 adbuf[2048];
+    const int bufSize = 16000 * 60;
+    int16 adbuf[bufSize];
+    int16* bufPtr;
     uint8 utt_started, in_speech;
     int32 k;
     char const *hyp;
@@ -460,34 +485,44 @@ recognize_from_microphone2()
     E_INFO("Ready....\n");
 */
 
+	FILE* fout = fopen(fileName, "w");
+
 	TEnergyCounter ec(50, 50);
-	uint32_t threshold = ec1.EBufferSize * ec1.EBufferSize * 25000;
+	uint32_t threshold = ec.EBufferSize * ec.EBufferSize * 25000;
 	long SpeachEnd = -1;
-	long interval = (long)(16000 * 0.3);
+	long interval = (long)(16000 * 0.6);
+	long time = 0;
+	bufPtr = adbuf;
+	int16* speechStart = NULL;
 
-    for (;;) {
-        if ((k = ad_read(ad, adbuf, 2048)) < 0)
+    while (!kbhit()) {
+        if ((k = ad_read(ad, bufPtr, 2048)) < 0)
             E_FATAL("Failed to read audio\n");
-        
-		for (int i = 0; i < k; ++i, ++time) {
-    		ec.Add(adbuf[i]);
 
-    		int32_t avg1 = ec1.ESum / (ec1.EBufferSize * ec1.EBufferSize);
+		if (k > 0) {
+			fwrite(bufPtr, 2, k, fout);
 
-        	if (time == SpeachEnd) {
-        		printf("End: %d\n", time / 16L);
-        	}
+			for (int i = 0; i < k; ++i, ++time) {
+				ec.Add(bufPtr[i]);
+				if (time < SpeachEnd) {
+					continue;
+				}
 
-        	if (time > SpeachEnd && ec1.ESum > threshold) {
-        		printf("Start: %d\n", (time - interval) / 16L);
-        		SpeachEnd = time + interval;
-        	}
-    	}
-
-            
-            
-            
-            
+				if (ec.ESum > threshold) {
+					if (time > SpeachEnd) {
+						printf("Start\n");
+					}
+					SpeachEnd = time + interval;
+				} else {
+					if (time == SpeachEnd) {
+						printf("End\n");
+					}
+				}
+			}
+		} else {
+			//printf("wait\n");
+			sleep_msec(100);
+		}
 /*
         ps_process_raw(ps, adbuf, k, FALSE, FALSE);
         in_speech = ps_get_in_speech(ps);
@@ -519,9 +554,9 @@ recognize_from_microphone2()
             E_INFO("Ready....\n");
         }
 */
-        sleep_msec(100);
     }
     ad_close(ad);
+    fclose(fout);
 }
 
 
@@ -577,7 +612,7 @@ main(int argc, char *argv[])
     if (cmd_ln_str_r(config, "-infile") != NULL) {
         recognize_from_file();
     } else if (cmd_ln_boolean_r(config, "-inmic")) {
-        recognize_from_microphone();
+        recognize_from_microphone2("out.bin");
     }
 
     ps_free(ps);
