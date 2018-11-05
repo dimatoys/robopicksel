@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <cstdint>
 #include <string.h>
+#include <stdlib.h> 
 
 class TMinMaxCounter {
 
@@ -213,11 +214,11 @@ void test1(const char* fname) {
 			//							avg1, avg2);
 
         	if (time == SpeachEnd) {
-        		printf("End: %d\n", time / 16L);
+        		printf("End: %ld\n", time / 16L);
         	}
 
         	if (time > SpeachEnd && ec1.ESum > threshold) {
-        		printf("Start: %d\n", (time - interval) / 16L);
+        		printf("Start: %ld\n", (time - interval) / 16L);
         		SpeachEnd = time + interval;
         	}
     	}
@@ -225,9 +226,170 @@ void test1(const char* fname) {
     fclose(rawfd);
 }
 
+int32_t countEnergy(const int16_t* buffer, int size) {
+	int32_t sum = 0;
+	for (int i = 0; i < size; ++i) {
+		sum += buffer[i];
+	}
+
+	int32_t avg = sum / size;
+
+	int32_t sum2 = 0;
+	for (int i = 0; i < size; ++i) {
+		int32_t diff = buffer[i] - avg;
+		sum2 += diff * diff;
+	}
+	return sum2;
+}
+
+void countFreq(const int16_t* buffer, int size) {
+}
+
+// WAVE File Header
+struct Wav {
+	// RIFF chunk descriptor
+	char	ChunkID[4];			// "RIFF"              
+	int		ChunkSize;			// 4 + (8 + SubChunk1Size) + (8 + SubChunk2Size)
+	char	Format[4];			// "WAVE"
+	// fmt sub-chunk
+	char	Subchunk1ID[4];		// "fmt "
+	int		Subchunk1Size;		// bytes remaining in subchunk, 16 if uncompressed
+	short	AudioFormat;		// 1 = uncompressed
+	short	NumChannels;		// mono or stereo
+	int		SampleRate;
+	int		ByteRate;			// == SampleRate * NumChannels * BitsPerSample/8
+	short	BlockAlign;			// == NumChannels * BitsPerSample/8
+	short	BitsPerSample;
+	// data sub-chunk
+	char	Subchunk2ID[4];		// "data"
+	int		Subchunk2Size;		// == NumSamples * NumChannels * BitsPerSample/8
+};
+
+void analyzeEnergy(const char* inFileName, int winSize) {
+
+	double freq = 16000.0;
+
+	FILE* inFile = fopen(inFileName, "r");
+
+	if (inFile == NULL) {
+		printf("Failed to open file '%s' for reading\n", inFileName);
+		exit(-1);
+	}
+
+	struct Wav HeaderInfo;
+	fread(&HeaderInfo, sizeof(Wav), 1, inFile);
+
+	double time = 0;
+	int16_t buf[winSize];
+	while (fread(buf, sizeof(int16_t), winSize, inFile) == winSize) {
+		int32_t energy = countEnergy(buf, winSize);
+		printf("%u,%d\n", (unsigned)(time * 1000), energy);
+		time += winSize / freq;
+	}
+
+	fclose(inFile);
+}
+
+class TVoiceDetector {
+public:
+	int Freq;
+	int16_t LastValue;
+	int LastZ;
+	unsigned Energy;
+	int StartVoice;
+	int VoiceTo;
+	int VoiceFrom;
+	int I;
+
+	TVoiceDetector(int freq) {
+		Freq = freq;
+		LastValue = 0;
+		LastZ = 0;
+		Energy = 0;
+		StartVoice = -1;
+		VoiceTo = -1;
+		VoiceFrom = -1;
+		I = 0;
+	}
+
+	bool Process(int16_t currValue) {
+		bool endOfPhrase = false;
+		Energy += abs(currValue);
+		if (LastValue < 0 && currValue > 0) {
+			// analyze a single sinusoida
+
+			// count the sinusoida 
+			auto currPeriod = I - LastZ;
+			if (Energy / 100 >= currPeriod && Freq / 85 > currPeriod) {
+				if (StartVoice == -1) {
+					StartVoice = LastZ;
+				}
+				if (I >= StartVoice + 50 * Freq / 1000) {
+					if (VoiceTo < 0) {
+						VoiceFrom = StartVoice;
+					}
+					VoiceTo = I + 300 * Freq / 1000;
+				}
+			} else {
+				StartVoice = -1;
+			}
+			//printf("%f,%u,%u,%d,%d\n", i / (double)freq, currPeriod, energy / currPeriod,
+			//		startVoice >= 0 ? (i - startVoice) * 1000 / freq : 0,
+			//		voiceTo >= i ? voiceTo - i : 0);
+			if (VoiceTo >= 0 && VoiceTo < I) {
+				VoiceTo = -1;
+				endOfPhrase = true;
+			}
+			LastZ = I;
+			Energy = 0;
+		}
+		LastValue = currValue;
+		I++;
+		return endOfPhrase;
+	}
+};
+
+void analyzeFreq(const char* inFileName) {
+
+	FILE* inFile = fopen(inFileName, "rb");
+
+	if (inFile == NULL) {
+		printf("Failed to open file '%s' for reading\n", inFileName);
+		exit(-1);
+	}
+
+	struct Wav HeaderInfo;
+	fread(&HeaderInfo, sizeof(Wav), 1, inFile);
+	int freq = HeaderInfo.SampleRate;
+
+	int winSize = 1 * freq;
+	int buffers = 10;
+	int16_t buf[winSize * buffers];
+
+	TVoiceDetector vd(freq);
+
+	while (true) {
+		long size = fread(buf, sizeof(int16_t), winSize, inFile);
+		if (size > 0) {
+			for (int i = 0; i < size; ++i) {
+				if (vd.Process(buf[i]) ) {
+					printf("C:%f - %f\n", vd.VoiceFrom / (double)vd.Freq, vd.I / (double)vd.Freq);
+				}
+			}
+		} else {
+			break;
+		}
+	}
+
+	fclose(inFile);
+}
+
 int main(int argc, char *argv[]) {
 	//test1("test16m_lmax_close1.wav");
 	//test1("test16m_lmax_far1.wav");
-	test1("eye_far2.wav");
+	//test1("eye_far2.wav");
+	//analyzeEnergy("long.wav", 40);
+	analyzeFreq("long.wav");
+
 	return 0;
 }

@@ -61,7 +61,7 @@
 
 #include <string>
 
-
+#include <sys/time.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -148,6 +148,22 @@ public:
 		EBegin %= EBufferSize;
 	}
 };
+
+int32_t countEnergy(const int16_t* buffer, int size) {
+	int32_t sum = 0;
+	for (int i = 0; i < size; ++i) {
+		sum += buffer[i];
+	}
+
+	int32_t avg = sum / size;
+
+	int32_t sum2 = 0;
+	for (int i = 0; i < size; ++i) {
+		int32_t diff = buffer[i] - avg;
+		sum2 += diff * diff;
+	}
+	return sum2;
+}
 
 static const arg_t cont_args_def[] = {
     POCKETSPHINX_OPTIONS,
@@ -512,7 +528,7 @@ recognize_from_microphone2(const char* fileName)
 					if (time > SpeachEnd) {
 						printf("Start\n");
 					}
-					SpeachEnd = time + interval;
+					SpeachEnd = time + interval;  
 				} else {
 					if (time == SpeachEnd) {
 						printf("End\n");
@@ -559,7 +575,222 @@ recognize_from_microphone2(const char* fileName)
     fclose(fout);
 }
 
+static void
+recognize_from_microphone3(const char* fileName) {
 
+	const int BUFFER_MS = 60000;
+	const int MIN_PHRASE_MS = 500;
+	const int MAX_PHRASE_MS = 10000;
+
+	const int ENERGY_SAMPLE_MS = 10;
+	
+	const int INIT_BUFFER_SEC = 2;
+
+	int sampleRate = (int) cmd_ln_float32_r(config, "-samprate");
+	printf("Sample rate: %d\n", sampleRate);
+
+	const int bufSize = sampleRate * INIT_BUFFER_SEC / 1000;
+	const int minPhraseSamples = sampleRate * MIN_PHRASE_MS / 1000;
+	const int maxPhraseSamples = sampleRate * MAX_PHRASE_MS / 1000;
+	const int energySamples = sampleRate * ENERGY_SAMPLE_MS / 1000;
+
+    ad_rec_t *ad;
+    int16_t* adbuf = new int16_t[bufSize];
+    int bufHead;
+    uint8 utt_started, in_speech;
+    char const *hyp;
+
+    if ((ad = ad_open_dev(cmd_ln_str_r(config, "-adcdev"), sampleRate)) == NULL)
+        E_FATAL("Failed to open audio device\n");
+
+    if (ad_start_rec(ad) < 0)
+        E_FATAL("Failed to start recording\n");
+
+	FILE* fout = fopen(fileName, "w");
+
+	int time = 0;
+	bufHead = 0;
+
+	while (!kbhit()) {
+
+		while (TRUE) {
+			int32 chunkSize = ad_read(ad, adbuf + bufHead, bufSize - bufHead);
+			if (chunkSize < 0)
+				E_FATAL("Failed to read audio\n");
+
+			bufHead += chunkSize;
+			if (bufHead < bufSize) {
+				break;
+			}
+			// bufHead == bufSize here
+
+			memcpy(adbuf, adbuf + bufSize - maxPhraseSamples, maxPhraseSamples * sizeof(int16_t));
+			bufHead = maxPhraseSamples;
+		}
+
+		if (bufHead >= minPhraseSamples) {
+			int samplesHead = bufHead;
+			while ((samplesHead -= energySamples) > 0) {
+				int32_t sampleEnergy = countEnergy(adbuf + samplesHead, energySamples);
+			}
+		} else {
+			sleep_msec(100);
+		}
+/*
+			fwrite(bufPtr, 2, k, fout);
+
+			for (int i = 0; i < k; ++i, ++time) {
+				ec.Add(bufPtr[i]);
+				if (time < SpeachEnd) {
+					continue;
+				}
+
+				if (ec.ESum > threshold) {
+					if (time > SpeachEnd) {
+						printf("Start\n");
+					}
+					SpeachEnd = time + interval;
+				} else {
+					if (time == SpeachEnd) {
+						printf("End\n");
+					}
+				}
+			}
+*/
+	}
+
+	ad_close(ad);
+	fclose(fout);
+	delete adbuf;
+}
+
+void detectVoice(const int16* bufferStart,
+                 int startIdx,
+                 int endIdx,
+                 int freq,
+                 int& voiceStart,
+                 int& voiceEnd) {
+	voiceStart = endIdx;
+	voiceEnd = -1;
+
+	int16 lastValue = 0;
+	unsigned energy = 0;
+	auto lastZ = endIdx;
+	int firstVoicePeriod = -1;
+	while (--endIdx >= startIdx && endIdx >= voiceStart - 300 * freq / 1000) {
+		currValue = bufferStart[endIdx];
+		energy += abs(currValue);
+		if (lastValue < 0 && currValue > 0) {
+			auto currPeriod = lastZ - endIdx;
+			if (energy / 100 >= currPeriod && freq / 85 > currPeriod) {
+				if (firstVoicePeriod >= 0) {
+					if (endIdx <= firstVoicePeriod - 50 * freq / 1000) {
+						if (voiceEnd < 0) {
+							voiceEnd = firstVoicePeriod;
+						}
+						voiceStart = endIdx;
+					}
+				} else {
+					firstVoicePeriod = lastZ;
+				}
+			} else {
+				firstVoicePeriod = -1;
+			}
+			lastZ = endIdx;
+		}
+		lastValue = currValue;
+	}
+}
+
+static void
+recognize_from_microphone4()
+{
+	struct timeval t;
+
+	int freq = 16000;
+	int MAX_DELAY_BUFFER = 60 * freq;
+	int MAX_PHRASE_BUFFER = 3 * freq;
+	int MIN_BUFFER = freq / 10; // at least 100ms
+
+	gettimeofday(&t, 0);
+	printf("open:%ld.%06ld\n", t.tv_sec, t.tv_usec);
+	ad_rec_t* ad = ad_open_dev(cmd_ln_str_r(config, "-adcdev"), freq);
+    if (ad == NULL)
+        E_FATAL("Failed to open audio device\n");
+
+	gettimeofday(&t, 0);
+	printf("start:%ld.%06ld\n", t.tv_sec, t.tv_usec);
+
+	if (ad_start_rec(ad) < 0)
+		E_FATAL("Failed to start recording\n");
+
+	int16* adbuf = new int16[MAX_DELAY_BUFFER + MAX_PHRASE_BUFFER];
+	int buffIdx = 0;
+	int detectStart = 0;
+
+	int startBoundary = -1;
+	int endBoundary = -1;
+
+	while (!kbhit()) {
+
+		gettimeofday(&t, 0);
+		printf("read:%ld.%06ld\n", t.tv_sec, t.tv_usec);
+
+
+		int32_t k = ad_read(ad, adbuf + bufIdx, MAX_DELAY_SEC + MAX_PHRASE_SEC - buffIdx);
+		if (k < 0)
+			E_FATAL("Failed to read audio\n");
+
+		buffIdx += k;
+
+		if (buffIdx - detectStart > MIN_BUFFER) {
+			gettimeofday(&t, 0);
+			printf("OK:%ld.%06ld %d bytes\n", t.tv_sec, t.tv_usec, k);
+			
+			int voiceStart;
+			int voiceEnd;
+			detectVoice(adbuf, detectStart, buffIdx, freq, voiceStart, voiceEnd);
+			if (voiceEnd >= 0) {
+				auto startBoundary2 = voiceStart - 300 * freq / 1000;
+				if (startBoundary < 0 || startBoundary2 > detectStart) {
+					startBoundary = startBoundary2 > 0 ? startBoundary2 : 0;
+				}
+				endBoundary = voiceEnd + 300 * freq / 1000;
+				if (endBoundary > buffIdx) {
+					// in speach
+					detectStart = buffIdx;
+					//TODO; check the buffer
+					continue;
+				}
+				// speach is ended, recognize
+			} else {
+				// no more voice detected
+				if (startBoundary < 0) {
+					// no voice at all
+					buffIdx = 0;
+					continue;
+				}
+
+				if (endBoundary > buffIdx) {
+					endBoundary = buffIdx;
+				}
+				// recognize 
+			}
+
+			// run recognition
+			startBoundary = -1;
+			endBoundary = -1;
+			buffIdx = 0;
+
+		} else {
+			gettimeofday(&t, 0);
+			printf("sleep:%ld.%06ld\n", t.tv_sec, t.tv_usec);
+			sleep_msec(100);
+		}
+    }
+    ad_close(ad);
+    delete adbuf;
+}
 
 /*
 export LD_LIBRARY_PATH=/usr/local/lib
@@ -579,6 +810,123 @@ g++ -o wvc wvc.C -std=c++11 -DMODELDIR=\"`pkg-config --variable=modeldir pockets
 
 */
 
+	struct Wav                          // WAVE File Header
+	{
+        // RIFF chunk descriptor
+        char ChunkID[4];                // "RIFF"              
+        int ChunkSize;                  // 4 + (8 + SubChunk1Size) + (8 + SubChunk2Size)
+        char Format[4];                 // "WAVE"
+        // fmt sub-chunk
+        char Subchunk1ID[4];            // "fmt "
+        int Subchunk1Size;              // bytes remaining in subchunk, 16 if uncompressed
+        short AudioFormat;              // 1 = uncompressed
+        short NumChannels;              // mono or stereo
+        int SampleRate;                
+        int ByteRate;                   // == SampleRate * NumChannels * BitsPerSample/8
+        short BlockAlign;               // == NumChannels * BitsPerSample/8
+        short BitsPerSample;
+        // data sub-chunk
+        char Subchunk2ID[4];            // "data"
+        int Subchunk2Size;              // == NumSamples * NumChannels * BitsPerSample/8
+    };
+
+void analyzeEnergy(const char* inFileName, int winSize) {
+
+	double freq = 16000.0;
+
+	FILE* inFile = fopen(inFileName, "r");
+
+	if (inFile == NULL) {
+		E_FATAL_SYSTEM("Failed to open file '%s' for reading", inFileName);
+	}
+
+	struct Wav HeaderInfo;
+	fread(&HeaderInfo, sizeof(Wav), 1, inFile);
+
+	double time = 0;
+	int16_t buf[winSize];
+	while (fread(buf, sizeof(int16_t), winSize, inFile) == winSize) {
+		int32_t energy = countEnergy(buf, winSize);
+		printf("%u,%d\n", (unsigned)(time * 1000), energy);
+		time += winSize / freq;
+	}
+
+	fclose(inFile);
+}
+
+using namespace std;
+#include <iostream>
+
+void wavTest(const char* fileName) {
+	
+	struct Wav HeaderInfo;
+	
+	FILE* fptr;                         // File pointer
+	fptr = fopen(fileName,"r");    // Open wav file for reading           
+	fread(&HeaderInfo, sizeof(Wav), 1, fptr);
+	fclose(fptr);
+
+    //***** OUTPUT WAV HEADER *****//
+    cout << "Chunk ID: " << HeaderInfo.ChunkID[0] << HeaderInfo.ChunkID[1] << HeaderInfo.ChunkID[2] << HeaderInfo.ChunkID[3] << endl;
+    cout << "Chunk Size: " << HeaderInfo.ChunkSize << endl;
+    cout << "Format: " << HeaderInfo.Format[0] << HeaderInfo.Format[1] << HeaderInfo.Format[2] << HeaderInfo.Format[3] <<endl;
+    cout << "Sub-chunk1 ID: " << HeaderInfo.Subchunk1ID[0] << HeaderInfo.Subchunk1ID[1] << HeaderInfo.Subchunk1ID[2] << HeaderInfo.Subchunk1ID[3] <<endl;
+    cout << "Sub-chunk1 Size: " << HeaderInfo.Subchunk1Size << endl;
+    cout << "Audio Format: " << HeaderInfo.AudioFormat << endl;
+    cout << "Number of Channels: " << HeaderInfo.NumChannels << endl;
+    cout << "Sample Rate: " << HeaderInfo.SampleRate << endl;
+    cout << "Byte Rate: " << HeaderInfo.ByteRate << endl;
+    cout << "Block Align: " << HeaderInfo.BlockAlign << endl;
+    cout << "Bits Per Sample: " << HeaderInfo.BitsPerSample << endl;
+    cout << "Sub-chunk2 ID: " << HeaderInfo.Subchunk2ID[0] << HeaderInfo.Subchunk2ID[1] << HeaderInfo.Subchunk2ID[2] << HeaderInfo.Subchunk2ID[3] << endl;
+    cout << "Sub-chunk2 Size: " << HeaderInfo.Subchunk2Size << endl << endl;
+
+    float NumSamples = HeaderInfo.Subchunk2Size/(HeaderInfo.BitsPerSample/8);
+    cout << "Sampling Frequency: " <<  HeaderInfo.SampleRate << endl;
+    cout << "Number of Samples: " << fixed << NumSamples << endl;
+    cout << "Length of File: " << NumSamples/HeaderInfo.SampleRate << " secs" <<  endl << endl;
+}
+
+void writeWav(const char* fileName, void* buffer, int NumSamples) {
+	struct Wav HeaderInfo;
+	memcpy(HeaderInfo.ChunkID, "RIFF", 4);
+	memcpy(HeaderInfo.Format, "WAVE", 4);
+	memcpy(HeaderInfo.Subchunk1ID, "fmt ", 4);
+	HeaderInfo.Subchunk1Size = 16;
+	HeaderInfo.AudioFormat = 1;
+	HeaderInfo.NumChannels = 1;
+	HeaderInfo.SampleRate = 16000;                
+	HeaderInfo.BitsPerSample = 16;
+	HeaderInfo.BlockAlign = HeaderInfo.NumChannels * HeaderInfo.BitsPerSample/8;
+	HeaderInfo.ByteRate = HeaderInfo.SampleRate * HeaderInfo.BlockAlign;
+	memcpy(HeaderInfo.Subchunk2ID, "data", 4);
+	HeaderInfo.Subchunk2Size = NumSamples * HeaderInfo.BlockAlign;
+	HeaderInfo.ChunkSize = 4 + (8 + HeaderInfo.Subchunk1Size) + (8 + HeaderInfo.Subchunk2Size);
+
+	FILE* outFile = fopen(fileName, "w");
+	fwrite(&HeaderInfo, sizeof(HeaderInfo), 1, outFile);
+	fwrite(buffer, sizeof(int16_t), NumSamples, outFile);
+	fclose(outFile);
+}
+
+void wavTest2() {
+	char* buffer = new char[10000000];
+	FILE* inFile = fopen("out1.bin", "r");
+	size_t size = fread(buffer, 1, 10000000, inFile);
+	fclose(inFile);
+	writeWav("long.wav", buffer, size / 2);
+	delete buffer;
+}
+/*
+int
+main(int argc, char *argv[])
+{
+	//wavTest("test33.wav");
+	//wavTest2();
+	analyzeEnergy("long.wav", 320);
+	return 0;
+}
+*/
 
 
 int
@@ -589,7 +937,6 @@ main(int argc, char *argv[])
 
     config = cmd_ln_parse_r(NULL, cont_args_def, argc, argv, TRUE);
 
-    /* Handle argument file as -argfile. */
     if (config && (cfg = cmd_ln_str_r(config, "-argfile")) != NULL) {
         config = cmd_ln_parse_file_r(config, cont_args_def, cfg, FALSE);
     }
@@ -612,7 +959,7 @@ main(int argc, char *argv[])
     if (cmd_ln_str_r(config, "-infile") != NULL) {
         recognize_from_file();
     } else if (cmd_ln_boolean_r(config, "-inmic")) {
-        recognize_from_microphone2("out.bin");
+        recognize_from_microphone4();
     }
 
     ps_free(ps);
@@ -620,3 +967,4 @@ main(int argc, char *argv[])
 
     return 0;
 }
+
