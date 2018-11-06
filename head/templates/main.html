@@ -576,11 +576,13 @@ var Metadata  = undefined
                   $("#response").html(data);
               });
     	  })
+          makeCmdPicture("CmdCameraIObjects", [], "CmdCameraIObjects('test.jpg')")
+      	  makeCmdSensors("OPEN", [], "CmdOpen()")
+      	  makeCmd("LED", [{type:"select", id: "v", "options": [{name:"ON", value:"True"}, {name:"OFF", value:"False"}]}], "CmdLED($v)")
           makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
           makeCmd("HEAD RIGHT", [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BR$s:$a')")
           makeCmd("HEAD LEFT",  [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BL$s:$a')")
-    	  makeCmdSensors("OPEN", [], "CmdOpen()")
-    	  makeCmdPicture("CONTROL AND D", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', 'test.jpg')")
+     	  makeCmdPicture("CONTROL AND D", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', 'test.jpg')")
     	  makeCmd("CONTROL ONLY", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', None)")
     	  makeCmd("GET CONTROLS", [], "CmdGetControlPoints()")
     	  makeCmd("GRAB AT", [{type:"textfield", value:"150", id:"d"}], "CmdIGrabAt($d)")

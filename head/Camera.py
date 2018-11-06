@@ -167,6 +167,7 @@ class Vision(Structure):
 				g_PiCamera.exposure_mode = g_CameraParameters["exposure_mode"]
 				g_PiCamera.iso = int(g_CameraParameters["iso"])
 				self.DumpTemplate = CameraDumpsDir + "/%ld.dump"
+				g_Head.SetLED(True)
 			except:
 				pass
 
@@ -189,9 +190,9 @@ class Vision(Structure):
 		self.FireStartTime = datetime.datetime.now()
 		if g_PiCamera:
 			self.Mode = mode
-			g_Head.SetLED(True)
+			#g_Head.SetLED(True)
 			g_PiCamera.capture(self, format='rgb')
-			g_Head.SetLED(False)
+			#g_Head.SetLED(False)
 		self.FireEndTime = datetime.datetime.now()
 		Print("Fire: Ok: %s" % str(self.FireEndTime - self.FireStartTime))
 
@@ -203,7 +204,7 @@ class Vision(Structure):
 	def write(self, image):
 		global g_VisionModule
 		global g_Head
-		g_Head.SetLED(False)
+		#g_Head.SetLED(False)
 		g_VisionModule.streamStart(byref(self))
 		self.FireStartWriteTime = datetime.datetime.now()
 		g_VisionModule.writeImage(image)
@@ -219,6 +220,7 @@ class Vision(Structure):
 		global g_PiCamera
 		if g_PiCamera is not None:
 			g_PiCamera.close()
+			g_Head.SetLED(False)
 
 class SettingsManagement:
 	def __init__(self):
@@ -320,6 +322,8 @@ def InitCamera(logger, head):
 
 	g_Logger = logger
 	g_Head = head
+
+	g_Head.SetLED(False)
 
 def VisionInstance():
 	return Vision()

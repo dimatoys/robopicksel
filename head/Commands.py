@@ -178,6 +178,10 @@ class Commands(threading.Thread):
 		time = self.Head.Release()
 		self.Sleep(time)
 		return self.SUCCESS
+
+	def CmdLED(self, value):
+		self.Head.SetLED(value)
+		return self.SUCCESS
             
 	def GetGrabPosition(self, type, d):
             return (self.Head.CountPredictionValue(self.ControlPrediction[type]["g"], d),
