@@ -33,15 +33,15 @@ function pi_shutdown {
 function clean_local {
     rm -rf ../visionModuleLocal
     mkdir ../visionModuleLocal
-    cd ../visionModuleLocal
-    cp ../head/visionModule/CMakeLists.win CMakeLists.txt
-    cmake .
-    cd ../head
+    #cd ../visionModuleLocal
+    #cp ../head/visionModule/CMakeLists.win CMakeLists.txt
+    #cmake .
+    #cd ../head
 }
 
 function build_local {
     cd ../visionModuleLocal
-    make
+    make -f ../head/visionModule/Makefile.win
     cd ../head
 }
 

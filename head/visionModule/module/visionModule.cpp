@@ -1,28 +1,28 @@
 #include "visionModule.h"
-//#include "clustering/clustering.h"
-//#include "jpeg/jpegimage.h"
-//#include "statimg/statimg.h"
-//#include "kp/kp.h"
+#include "clustering/clustering.h"
+#include "jpeg/jpegimage.h"
+#include "statimg/statimg.h"
+#include "kp/kp.h"
 #include "dlearning/dlearning.h"
 
 #include <ctime>
 
 void extractorInit(TObjectsExtractor* data, const char* algorithm) {
 	TExtractorFactory* factory;
-	//if (strcmp(algorithm, "clustering") == 0) {
-	//	factory = new TClusteringExtractorFactory();
-	//} else {
-	//	if (strcmp(algorithm, "statimg") == 0) {
-	//		factory = new TStatImgExtractorFactory();
-	//	} else {
-    //                if (strcmp(algorithm, "dlearning") == 0) {
-    //                    factory = new TDeepLearningExtractorFactory();
-    //                } else {
-	//		factory = new TJpegExtractorFactory();
-    //                }
-	//	}
-	//}
-	factory = new TDeepLearningExtractorFactory();
+	if (strcmp(algorithm, "clustering") == 0) {
+		factory = new TClusteringExtractorFactory();
+	} else {
+		if (strcmp(algorithm, "statimg") == 0) {
+			factory = new TStatImgExtractorFactory();
+		} else {
+                    if (strcmp(algorithm, "dlearning") == 0) {
+                        factory = new TDeepLearningExtractorFactory();
+                    } else {
+			factory = new TJpegExtractorFactory();
+                    }
+		}
+	}
+	//factory = new TDeepLearningExtractorFactory();
 	data->Factory = factory;
 	data->NumParameters = 0;
 	for(std::map<std::string,int*>::const_iterator it = factory->IntParameters.begin(); it != factory->IntParameters.end(); ++it) {
@@ -151,11 +151,7 @@ void ExtractFeatures(TMutableImage<unsigned char>* image,
 			}
 		}
 
-		printf("ExtractFeatures:draw horizontal: w=%d h=%d d=%d\n", debugImage.Width, debugImage.Height, debugImage.Depth);
-
 		memset(debugImage.Cell(0, debugImage.Height / 2), 0xFF, debugImage.Width * debugImage.Depth);
-
-		printf("ExtractFeatures:draw vertical\n");
 
 		int x = debugImage.Width / 2;
 		for (int y = 0; y < debugImage.Height; y++) {
@@ -164,8 +160,6 @@ void ExtractFeatures(TMutableImage<unsigned char>* image,
 
 		segmenter->Mode = mode;
 		segmenter->DrawDebugInfo(&debugImage);
-
-		printf("ExtractFeatures: Ok DebugImage\n");
 
 		debugImage.SaveJpg(debugImageFileName);
 	}

@@ -838,12 +838,28 @@ class Commands(threading.Thread):
 		self.CmdCameraFire(file)
 		return self.SUCCESS
 
+	"""
 	def CmdMoveToView(self, x, y):
 		(a, b, rx, ry) = self.Learning.GetAB(self.Head.GetServo(self.Head.DOF_A), self.Head.GetServo(self.Head.DOF_B), x, y)
 		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
 		               self.Head.SetServo(self.Head.DOF_B, b)))
 		self.SetResult({"x": x, "y": y, "rx": rx, "ry": ry, "a": a, "b": b})
 		return self.SUCCESS
+	"""
+
+	def CmdMoveToView(self, x, y):
+		a = self.Head.GetServo(self.Head.DOF_A)
+		b = self.Head.GetServo(self.Head.DOF_B)
+		result = {"x": x, "y": y, "a": a, "b": b}
+		R = {2500:192.0, 3000:54.0}
+		if a in R:
+			b = b - 2500 * atan((x - 160) / (y + R[a])) / pi
+			time = self.Head.SetServo(self.Head.DOF_B, b)
+			result["new_b"] = b
+			result["time"] = time
+		self.SetResult(result)
+		return self.SUCCESS
+
 
 	def CmdDLLook(self):
 		self.InitCameraNonBlocking()

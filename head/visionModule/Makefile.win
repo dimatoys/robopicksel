@@ -6,7 +6,7 @@ CFLAGS=-I$(SRC) -fPIC -std=c++11
 all: libvisionModule.so dlearningTest
 
 libvisionModule.so: visionModule.o jpeg.o image.o gradient.o egb.o clustering.o jpegimage.o statimg.o validator.o kp.o dlearning.o
-	$(CC) -shared -o libvisionModule.so $^
+	$(CC) -shared -o libvisionModule.so $^ -ljpeg
 
 dlearningTest: jpeg.o image.o dlearningTest.o dlearning.o
 	$(CC) -o dlearningTest $^ -ljpeg
