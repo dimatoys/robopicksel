@@ -368,8 +368,8 @@ class Head(HeadLocal):
     LED = 7
     STEPPER_PINS = [27, 22, 4, 17]
 
-    def __init__(self):
-        super(Head, self).__init__()
+    def __init__(self, config):
+        super(Head, self).__init__(config)
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)

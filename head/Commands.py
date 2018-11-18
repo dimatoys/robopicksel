@@ -22,8 +22,9 @@ class Commands(threading.Thread):
 	MOVE_D_TARGET = 150
 	D_TO_MOVE = 200.0
 
-	def __init__(self, head, logger):
+	def __init__(self, head, logger, config):
 		threading.Thread.__init__(self)
+		self.config = config
 		self.daemon = True
 		self.Head = head
 		self.ExitFlag = False
@@ -34,7 +35,8 @@ class Commands(threading.Thread):
 		self.Lock = threading.Condition()
 		self.VarCamera = None
 
-		self.Learning = TLearning()
+		self.Learning = TLearning(config)
+		self.Learning.LearnGrabPositions()
 
 		self.ControlPoints = { "OPEN": {"FARTHEST": {"g": 1261, "a": 3415, "d": 219.85},
                                                 "CLOSEST":  {"g": 3831, "a": 2491, "d": 106},
@@ -138,7 +140,7 @@ class Commands(threading.Thread):
 		CameraSetValues(values)
 		return self.SUCCESS
 
-	def CmdCameraFire(self, file):
+	def CmdCameraFire(self, file=None):
 		self.CmdPrint("Fire")
 		if self.InitCameraNonBlocking() == self.FAIL:
 			self.CmdPrint("Init fail")
@@ -182,7 +184,50 @@ class Commands(threading.Thread):
 	def CmdLED(self, value):
 		self.Head.SetLED(value)
 		return self.SUCCESS
-            
+
+	def CmdLook2(self, file):
+		self.Sleep(self.Head.SetServo(self.Head.DOF_A, int(self.config.get("POSITIONS", "camera.find.0.A", "3000"))))
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
+		               self.Head.SetServo(self.Head.DOF_B, int(self.config.get("POSITIONS", "camera.find.0.B", "2500"))),
+		               self.Head.SetServo(self.Head.DOF_G, int(self.config.get("POSITIONS", "camera.G", "4300")))))
+
+		if self.CmdCameraFire() == self.FAIL:
+			return self.FAIL
+		result = {"camera":self.LastResult}
+
+		if self.VarCamera.NumObjects > 0:
+			obj = self.VarCamera.Objects[0]
+			x = (obj.MinX + obj.MaxX) / 2.0
+			y = (obj.MinY + obj.MaxY) / 2.0
+			self.CmdMoveToView(x, y)
+			result["move"] = self.LastResult
+			result["object"] = {"MinX": obj.MinX,
+			                    "MinY": obj.MinY,
+			                    "MaxX": obj.MaxX,
+			                    "MaxY": obj.MaxY,
+			                    "bb": obj.BorderBits,
+                                "type": obj.ObjectType}
+			result["x"] = x
+			result["y"] = y
+
+			self.CmdCameraFire(file)
+			result["camera2"] = self.LastResult
+
+		self.SetResult(result)
+		return self.SUCCESS
+
+	def CmdSetGrabPosition(self, d, gripper):
+		(a,g) = self.Learning.GetGrabPosition(d, gripper)
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_GRIPPER, gripper),
+		               self.Head.SetServo(self.Head.DOF_A, a),
+		               self.Head.SetServo(self.Head.DOF_G, g)))
+		result = {}
+		result["d"] = d
+		result["gripper"] = gripper
+		result["a"] = a
+		result["g"] = g
+		self.SetResult(result)
+
 	def GetGrabPosition(self, type, d):
             return (self.Head.CountPredictionValue(self.ControlPrediction[type]["g"], d),
                     self.Head.CountPredictionValue(self.ControlPrediction[type]["a"], d))
@@ -586,15 +631,15 @@ class Commands(threading.Thread):
 		self.SetResult(result)
 		return self.SUCCESS
 
-        def CmdMoveTo(self, d, b):
-            angleB = b - 2500
-            if angleB < 0:
-                self.CmdMoveRight(-angleB / 1000.0)
-            else:
-		self.CmdMoveLeft(angleB / 700.0)
-			
-            distanceMm = d - self.MOVE_D_TARGET
-            self.CmdMoveDistance(distanceMm)
+	def CmdMoveTo(self, d, b):
+		angleB = b - 2500
+		if angleB < 0:
+			self.CmdMoveRight(-angleB / 1000.0)
+		else:
+			self.CmdMoveLeft(angleB / 700.0)
+
+		distanceMm = d - self.MOVE_D_TARGET
+		self.CmdMoveDistance(distanceMm)
 
 	def CmdIFindAndGrab(self):
 		self.InitCameraNonBlocking()
@@ -853,10 +898,9 @@ class Commands(threading.Thread):
 		result = {"x": x, "y": y, "a": a, "b": b}
 		R = {2500:192.0, 3000:54.0}
 		if a in R:
-			b = b - 2500 * atan((x - 160) / (y + R[a])) / pi
-			time = self.Head.SetServo(self.Head.DOF_B, b)
+			b = b - 2500 * atan((x - 160) / ((240 - y) + R[a])) / pi
+			self.Sleep(self.Head.SetServo(self.Head.DOF_B, b))
 			result["new_b"] = b
-			result["time"] = time
 		self.SetResult(result)
 		return self.SUCCESS
 

@@ -6,6 +6,7 @@ from flask import render_template
 from flask import request
 
 import json
+import ConfigParser
 
 from Commands import Commands
 from Camera import InitCamera, LoadDump, GetDumps, MetadataGet, MetadataSet
@@ -87,16 +88,21 @@ def shutdown():
     return Response("{'status': 'ok'}", content_type='text/plain; charset=utf-8')
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 2 and sys.argv[1] == "local":
-        from HeadLocal import HeadLocal
-        g_Head = HeadLocal()
-    else:
-        from Head import Head
-        g_Head = Head()
-    InitCamera(app.logger, g_Head)
 
-    g_Commands = Commands(g_Head, app.logger)
+	config = ConfigParser.ConfigParser()
+	config.read('head.cfg')
 
-    g_Commands.start()
+	if len(sys.argv) >= 2 and sys.argv[1] == "local":
+		from HeadLocal import HeadLocal
+		g_Head = HeadLocal(config)
+	else:
+		from Head import Head
+		g_Head = Head(config)
 
-    app.run(host='0.0.0.0', port=7778, debug=True)
+	InitCamera(app.logger, g_Head, config)
+
+	g_Commands = Commands(g_Head, app.logger, config)
+
+	g_Commands.start()
+
+	app.run(host='0.0.0.0', port=7778, debug=True)

@@ -43,6 +43,7 @@ SettingsFile = MetadataDir + "settings.json"
 
 Settings = None
 Metadata = None
+Config   = None
 
 def GetSettings():
 	global Settings
@@ -276,7 +277,7 @@ class MetadataManagement:
 		return settings["Metadata"]["file"]
 		
 
-def InitCamera(logger, head):
+def InitCamera(logger, head, config):
 	global g_VisionModule
 	global CameraWidth
 	global CameraHeight
@@ -286,9 +287,11 @@ def InitCamera(logger, head):
 	global g_Logger
 	global g_CameraParameters
 	global g_Head
+	global Config
 	global Settings
 	global Metadata
 
+	Config = config
 	g_CameraParameters = {}
 
 	g_CameraParameters["width"] = CameraWidth

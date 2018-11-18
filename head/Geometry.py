@@ -137,6 +137,7 @@ class TModelPoly:
         return r
 
 class TPolyRegression:
+    # s - max power
     def __init__(self, s):
         self.S = s
         
@@ -244,37 +245,9 @@ class SampleImage:
         return rs
 
 class TLearning:
-    def __init__(self):
+    def __init__(self, config):
 
-        """
-        self.D = TPolyRegression(3) 
-        self.D.R = [[  4.43813268e+02,   1.05282991e+03],
-            [ -2.16923364e-01,  -5.88883706e-01],
-            [  9.06797661e-01,   3.93421281e+00],
-            [ -2.92477465e+00,   5.82353218e-02],
-            [  3.17365433e-05,   1.59439676e-04],
-            [ -2.82137964e-04,  -2.38827075e-03],
-            [  1.21844515e-04,   8.06557376e-03],
-            [  1.36942251e-03,  -1.11000059e-05],
-            [ -5.48744945e-03,  -1.00637749e-04],
-            [  1.21304322e-03,  -2.26944837e-04],
-            [ -2.31869648e-11,  -1.78206413e-08],
-            [  1.90909436e-09,   3.91012915e-07],
-            [  2.40234739e-08,  -2.04519518e-06],
-            [ -2.01968782e-07,  -3.18965224e-06],
-            [ -1.98306453e-07,  -7.04881662e-10],
-            [  1.67199645e-06,  -6.66193280e-09],
-            [ -8.05207388e-07,   2.54126171e-07],
-            [ -4.69814641e-08,   4.07231531e-08],
-            [ -2.46595579e-07,   2.92825242e-07],
-            [ -2.22027845e-06,   1.53332454e-07]]
- 
-        self.A = TPolyRegression(3)
-        self.A.R = [[  6.53931110e+03],
-            [ -1.85958593e+01],
-            [  2.73731259e-02],
-            [ -1.64016838e-05]]
-        """
+        self.config = config
 
         # (image_x, image_y, DOF_A) -> (x_distance, y_distance)
         self.D = TPolyRegression(3) 
@@ -317,6 +290,31 @@ class TLearning:
         self.DMIN = 130
         self.DMAX = 230
         self.GRAB_STEP = 5000.0 / 33.0
+
+    def LearnGrabPositions(self):
+        self.Grab = TPolyRegression(2)
+        self.Grab.Learn([[float(self.config.get("POSITIONS", "min.D")), 5000],
+                         [float(self.config.get("POSITIONS", "min.D")), 2500],
+                         [float(self.config.get("POSITIONS", "min.D")), 0],
+                         [float(self.config.get("POSITIONS", "mid.D")), 5000],
+                         [float(self.config.get("POSITIONS", "mid.D")), 2500],
+                         [float(self.config.get("POSITIONS", "mid.D")), 0],
+                         [float(self.config.get("POSITIONS", "max.D")), 5000],
+                         [float(self.config.get("POSITIONS", "max.D")), 2500],
+                         [float(self.config.get("POSITIONS", "max.D")), 0]],
+                          
+                        [[float(self.config.get("POSITIONS", "close.min.A")), float(self.config.get("POSITIONS", "close.min.G"))],
+                         [float(self.config.get("POSITIONS", "half.min.A")), float(self.config.get("POSITIONS", "half.min.G"))],
+                         [float(self.config.get("POSITIONS", "open.min.A")), float(self.config.get("POSITIONS", "open.min.G"))],
+                         [float(self.config.get("POSITIONS", "close.mid.A")), float(self.config.get("POSITIONS", "close.mid.G"))],
+                         [float(self.config.get("POSITIONS", "half.mid.A")), float(self.config.get("POSITIONS", "half.mid.G"))],
+                         [float(self.config.get("POSITIONS", "open.mid.A")), float(self.config.get("POSITIONS", "open.mid.G"))],
+                         [float(self.config.get("POSITIONS", "close.max.A")), float(self.config.get("POSITIONS", "close.max.G"))],
+                         [float(self.config.get("POSITIONS", "half.max.A")), float(self.config.get("POSITIONS", "half.max.G"))],
+                         [float(self.config.get("POSITIONS", "open.max.A")), float(self.config.get("POSITIONS", "open.max.G"))]])
+
+    def GetGrabPosition(self, d, gripper):
+        return self.Grab.GetValue([d,gripper])
 
     def GetAB(self, A, B, x, y):
         (xd, yd) = self.D.GetValue((x, y, A))

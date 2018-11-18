@@ -1,6 +1,7 @@
 from math import sin, cos, atan, pi, acos, asin, sqrt
 from PIL import Image, ImageDraw
 import json
+import ConfigParser
 
 from os import listdir
 from os.path import isfile, join
@@ -770,6 +771,23 @@ def TestEq():
     pr.Learn(x, y)
     
     print pr.R
+
+def TestEq2():
+
+	f = lambda x, y: 8 * x * x + 3 * x + 2 * y - 4
+	x = []
+	y = []
+	for ix in range(4):
+		for iy in range(4):
+			x.append([ix, iy])
+			y.append([f(ix,iy)])
+
+	pr = TPolyRegression(2)
+	pr.Learn(x, y)
+
+	print pr.R
+
+
     
 def LearnA():
     global pictures
@@ -2695,6 +2713,13 @@ def DumpsToPic():
                 img.putpixel((x, y), rgb)
         img.save(join("../pics", file) + '.png', 'PNG')
 
+def TestGrab():
+	config = ConfigParser.ConfigParser()
+	config.read('head.cfg')
+	learning = TLearning(config)
+	learning.LearnGrabPositions()
+	print learning.Grab.GetValue([float(config.get("POSITIONS", "max.D")), 2500])
+
 #Test2()
 #Im1()
 #Draw1("3500-2500.jpg")
@@ -2712,6 +2737,7 @@ def DumpsToPic():
 #DrawTurn8("2100-2500.jpg")
 #DrawTurn9()
 #TestEq()
+#TestEq2()
 #LearnA()
 #TestA2()
 #CountB()
@@ -2748,5 +2774,6 @@ def DumpsToPic():
 #TestAutoLearning2()
 #TestFillSel()
 #ShowSpace()
-DumpsToPic()
+#DumpsToPic()
+TestGrab()
 

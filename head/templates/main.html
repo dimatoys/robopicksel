@@ -147,7 +147,7 @@
                                }
             });
         }
-        
+/*
         $("#lookFrom").slider({
         	min: MinS,
         	max: MaxS,
@@ -166,39 +166,39 @@
         	var value = $("#lookFrom_s").val()
         	$("#lookFrom").slider( "option", "value", value )
         })
-        
-        $("#grabOpen").slider({
-        	min: 97,
-        	max: 218,
-            value: 150,
+*/
+        $("#grabGripper").slider({
+        	min: 0,
+        	max: 5000,
+            value: 0,
             change: function( event, ui ) {
-                        $("#grabOpen_s").val(ui.value)
-                        sendCommand("CmdTestGrabPosition('OPEN', " + ui.value + ")",
+                        $("#grabGripper_s").val(ui.value)
+                        sendCommand("CmdSetGrabPosition(" + $("#grabDistance_s").val() + ", " + ui.value + ")",
                             	function(status, result){}
                             )
                     }
         })
         
-        $("#grabOpen_send").click(function(){
-        	var value = $("#grabOpen_s").val()
-        	$("#grabOpen").slider( "option", "value", value )
+        $("#grabGripper_send").click(function(){
+        	var value = $("#grabGripper_s").val()
+        	$("#grabGripper").slider( "option", "value", value )
         })
         
-        $("#grabClosed").slider({
-        	min: 97,
-        	max: 218,
-            value: 150,
+        $("#grabDistance").slider({
+        	min: 0,
+        	max: 123,
+            value: 0,
             change: function( event, ui ) {
-                        $("#grabClosed_s").val(ui.value)
-                        sendCommand("CmdTestGrabPosition('CLOSE', " + ui.value + ")",
+                        $("#grabDistance_s").val(ui.value)
+                        sendCommand("CmdSetGrabPosition(" + ui.value + "," + $("#grabGripper_s").val() +")",
                             	function(status, result){}
                             )
                     }
         })
         
-        $("#grabClosed_send").click(function(){
-        	var value = $("#grabClosed_s").val()
-        	$("#grabClosed").slider( "option", "value", value )
+        $("#grabDistance_send").click(function(){
+        	var value = $("#grabDistance_s").val()
+        	$("#grabDistance").slider( "option", "value", value )
         })
       });
 
@@ -580,6 +580,7 @@ var Metadata  = undefined
       	  makeCmdSensors("OPEN", [], "CmdOpen()")
       	  makeCmd("LED", [{type:"select", id: "v", "options": [{name:"ON", value:"True"}, {name:"OFF", value:"False"}]}], "CmdLED($v)")
           makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
+          makeCmdPicture("LOOK", [], "CmdLook2('test.jpg')")
           makeCmd("HEAD RIGHT", [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BR$s:$a')")
           makeCmd("HEAD LEFT",  [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BL$s:$a')")
      	  makeCmdPicture("CONTROL AND D", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', 'test.jpg')")
@@ -589,7 +590,6 @@ var Metadata  = undefined
     	  makeCmd("PICK AT", [{type:"textfield", value:"150", id:"d"},{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabAtAndPlace($d,$basket)")
           makeCmd("GRAB FROM VIEW", [{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabFromAndPlace($basket)")
           makeCmdPicture("PREVIEW", [], "CmdCameraSelectObject('test.jpg')")
-          makeCmdPicture("LOOK", [], "CmdILook('test.jpg')")
           makeCmdPicture("FIND", [], "CmdIFind('test.jpg')")
           makeCmd("FIND AND PICK", [], "CmdIFindAndGrab()")
           makeCmdPicture("START NAVIGATE", [], "CmdStartNavigate('test.jpg')")
@@ -629,7 +629,7 @@ var Metadata  = undefined
           $("#camera").click(function(e){
             var posX = $(this).offset().left
             var posY = $(this).offset().top
-            sendCommand("CmdMoveToViewAndPreview(" + (e.pageX - posX) + ',' + (240 - (e.pageY - posY)) + ", 'test.jpg')",
+            sendCommand("CmdMoveToViewAndPreview(" + (e.pageX - posX) + ',' + (e.pageY - posY) + ", 'test.jpg')",
                 function(status, result){
                     $('#camera').prop('src', "static/test.jpg?" + Math.random())
                 });
@@ -795,6 +795,7 @@ var Metadata  = undefined
         </td>
         <td>
         	<table>
+<!--
         		<tr>
           			<td>LOOK A</td>
       				<td><div id="lookFrom" style="width:200px;"></div></td>
@@ -802,17 +803,18 @@ var Metadata  = undefined
       				<td><input id="lookFrom_send" type="button" value=">"/></td>
       				<td>d=<span id="lookFrom_d">-</span></td>
       			</tr>
+-->
       			<tr>
-          			<td>GRAB OPEN</td>
-      				<td><div id="grabOpen" style="width:200px;"></div></td>
-      				<td><input id="grabOpen_s" type="textfield" value="180" width="3" /></td>
-      				<td><input id="grabOpen_send" type="button" value=">"/></td>
+          			<td>GRIPPER</td>
+      				<td><div id="grabGripper" style="width:200px;"></div></td>
+      				<td><input id="grabGripper_s" type="textfield" value="0" width="3" /></td>
+      				<td><input id="grabGripper_send" type="button" value=">"/></td>
       			</tr>
       			<tr>
-      				<td>GRAB CLOSED</td>
-      				<td><div id="grabClosed" style="width:200px;"></div></td>
-      				<td><input id="grabClosed_s" type="textfield" value="180" width="3" /></td>
-      				<td><input id="grabClosed_send" type="button" value=">"/></td>
+      				<td>DISTANCE</td>
+      				<td><div id="grabDistance" style="width:200px;"></div></td>
+      				<td><input id="grabDistance_s" type="textfield" value="0" width="3" /></td>
+      				<td><input id="grabDistance_send" type="button" value=">"/></td>
       			</tr>
       		</table>
         </td>
