@@ -2714,11 +2714,92 @@ def DumpsToPic():
         img.save(join("../pics", file) + '.png', 'PNG')
 
 def TestGrab():
-	config = ConfigParser.ConfigParser()
-	config.read('head.cfg')
-	learning = TLearning(config)
-	learning.LearnGrabPositions()
-	print learning.Grab.GetValue([float(config.get("POSITIONS", "max.D")), 2500])
+    config = ConfigParser.ConfigParser()
+    config.read('head.cfg')
+    learning = TLearning(config)
+    learning.LearnGrabPositions()
+    print learning.Grab.R
+    print learning.Grab.GetValue([float(config.get("POSITIONS", "max.D")), 2500])
+
+def GrabChart():
+    config = ConfigParser.ConfigParser()
+    config.read('head.cfg')
+    learning = TLearning(config)
+    learning.LearnGrabPositions()
+
+    learn0 = TPolyRegression(2)
+    learn0.Learn([[float(config.get("POSITIONS", "min.D"))],
+                  [float(config.get("POSITIONS", "mid.D"))],
+                  [float(config.get("POSITIONS", "max.D"))]],
+
+                  [[float(config.get("POSITIONS", "open.min.A")), float(config.get("POSITIONS", "open.min.G"))],
+                   [float(config.get("POSITIONS", "open.mid.A")), float(config.get("POSITIONS", "open.mid.G"))],
+                   [float(config.get("POSITIONS", "open.max.A")), float(config.get("POSITIONS", "open.max.G"))]])
+
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # Data for plotting
+    t = np.arange(0.0, 123.0, 0.1)
+    s0 = []
+    s2500 = []
+    s5000 = []
+    d0 = []
+    for v in t:
+        s0.append(learning.Grab.GetValue([v, 0]))
+        s2500.append(learning.Grab.GetValue([v, 2500]))
+        s5000.append(learning.Grab.GetValue([v, 5000]))
+        d0.append(learn0.GetValue([v]))
+
+    fig, ax = plt.subplots()
+    ax.plot(t, s0, 'r')
+    ax.plot(t, s2500, 'b')
+    ax.plot(t, s5000, 'g')
+    ax.plot(t, d0, 'y')
+    ax.plot([float(config.get("POSITIONS", "min.D")),
+             float(config.get("POSITIONS", "min.D")),
+             float(config.get("POSITIONS", "mid.D")),
+             float(config.get("POSITIONS", "mid.D")),
+             float(config.get("POSITIONS", "max.D")),
+             float(config.get("POSITIONS", "max.D"))],
+            [float(config.get("POSITIONS", "open.min.A")),
+             float(config.get("POSITIONS", "open.min.G")),
+             float(config.get("POSITIONS", "open.mid.A")),
+             float(config.get("POSITIONS", "open.mid.G")),
+             float(config.get("POSITIONS", "open.max.A")),
+             float(config.get("POSITIONS", "open.max.G"))],'ro')
+    ax.plot([float(config.get("POSITIONS", "min.D")),
+             float(config.get("POSITIONS", "min.D")),
+             float(config.get("POSITIONS", "mid.D")),
+             float(config.get("POSITIONS", "mid.D")),
+             float(config.get("POSITIONS", "max.D")),
+             float(config.get("POSITIONS", "max.D"))],
+            [float(config.get("POSITIONS", "half.min.A")),
+             float(config.get("POSITIONS", "half.min.G")),
+             float(config.get("POSITIONS", "half.mid.A")),
+             float(config.get("POSITIONS", "half.mid.G")),
+             float(config.get("POSITIONS", "half.max.A")),
+             float(config.get("POSITIONS", "half.max.G"))],'bo')
+    ax.plot([float(config.get("POSITIONS", "min.D")),
+             float(config.get("POSITIONS", "min.D")),
+             float(config.get("POSITIONS", "mid.D")),
+             float(config.get("POSITIONS", "mid.D")),
+             float(config.get("POSITIONS", "max.D")),
+             float(config.get("POSITIONS", "max.D"))],
+            [float(config.get("POSITIONS", "close.min.A")),
+             float(config.get("POSITIONS", "close.min.G")),
+             float(config.get("POSITIONS", "close.mid.A")),
+             float(config.get("POSITIONS", "close.mid.G")),
+             float(config.get("POSITIONS", "close.max.A")),
+             float(config.get("POSITIONS", "close.max.G"))],'go')
+
+    ax.set(xlabel='distance (mm)', ylabel='servo',
+           title='Interpolation 0')
+    ax.grid()
+
+    fig.savefig("test.png")
+    plt.show()
 
 #Test2()
 #Im1()
@@ -2775,5 +2856,6 @@ def TestGrab():
 #TestFillSel()
 #ShowSpace()
 #DumpsToPic()
-TestGrab()
+#TestGrab()
+GrabChart()
 
