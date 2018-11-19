@@ -184,7 +184,7 @@ class Vision(Structure):
 				time.sleep(0.05)
 
 	# blocking command
-	def Fire(self, mode=1):
+	def Fire(self, mode=0):
 		self.WaitInit()
 		global g_PiCamera
 		global g_Head

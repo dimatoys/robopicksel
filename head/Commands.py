@@ -93,6 +93,8 @@ class Commands(threading.Thread):
 				import traceback
 				T, V, TB = sys.exc_info()
 				self.CmdPrint("Unexpected error: %s" % ''.join(traceback.format_exception(T,V,TB)))
+				self.LastStatus = self.FAIL
+				self.LastResult = "Exception"
 			self.ShutdownCamera()
 			self.Cmd = None
 
@@ -186,11 +188,22 @@ class Commands(threading.Thread):
 		self.Head.SetLED(value)
 		return self.SUCCESS
 
-	def CmdLook2(self, file):
-		self.Sleep(self.Head.SetServo(self.Head.DOF_A, int(self.config.get("POSITIONS", "camera.find.0.A", "3000"))))
-		self.Sleep(max(self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
-		               self.Head.SetServo(self.Head.DOF_B, int(self.config.get("POSITIONS", "camera.find.0.B", "2500"))),
+	def SetLookPosition(self, n):
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, int(self.config.get("POSITIONS", "camera.find.%d.A" % n, "3000"))),
+		               self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
+		               self.Head.SetServo(self.Head.DOF_B, int(self.config.get("POSITIONS", "camera.find.%d.B" % n, "2500"))),
 		               self.Head.SetServo(self.Head.DOF_G, int(self.config.get("POSITIONS", "camera.G", "4300")))))
+
+	def ObjToDict(self, obj):
+		return {"MinX": obj.MinX,
+				"MinY": obj.MinY,
+				"MaxX": obj.MaxX,
+				"MaxY": obj.MaxY,
+				"bb": obj.BorderBits,
+				"type": obj.ObjectType}
+
+	def CmdLook2(self, file):
+		self.SetLookPosition(0)
 
 		if self.CmdCameraFire(file) == self.FAIL:
 			return self.FAIL
@@ -200,26 +213,22 @@ class Commands(threading.Thread):
 			obj = self.VarCamera.Objects[0]
 			x = (obj.MinX + obj.MaxX) / 2.0
 			y = (obj.MinY + obj.MaxY) / 2.0
-			result["object"] = {"MinX": obj.MinX,
-			                    "MinY": obj.MinY,
-			                    "MaxX": obj.MaxX,
-			                    "MaxY": obj.MaxY,
-			                    "bb": obj.BorderBits,
-                                "type": obj.ObjectType}
+			result["object"] = self.ObjToDict(obj)
 			result["x"] = x
 			result["y"] = y
 
 		self.SetResult(result)
 		return self.SUCCESS
 
-	def CmdFind2(self, file):
-		self.Sleep(self.Head.SetServo(self.Head.DOF_A, int(self.config.get("POSITIONS", "camera.find.0.A", "3000"))))
-		self.Sleep(max(self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
-		               self.Head.SetServo(self.Head.DOF_B, int(self.config.get("POSITIONS", "camera.find.0.B", "2500"))),
-		               self.Head.SetServo(self.Head.DOF_G, int(self.config.get("POSITIONS", "camera.G", "4300")))))
-
+	def MoveToObject(self):
 		if self.CmdCameraFire(file) == self.FAIL:
-			return self.FAIL
+			return {"error": "camera"}
+		camera = self.LastResult
+		
+		if self.VarCamera.NumObjects == 0:
+			return {"no_obects": {"camera": camera}}
+
+		obj = self.VarCamera.Objects[0]
 
 		max_width = int(self.config.get("POSITIONS", "camera.grab.max_width", "90"))
 		picture_width = self.VarCamera.Width
@@ -227,49 +236,52 @@ class Commands(threading.Thread):
 		max_x = (picture_width + max_width) / 2
 
 		result = {"attempts":[], "max_x": max_x, "min_x": min_x}
-		camera = self.LastResult
 		attempt = 0
 		total_attempts = int(self.config.get("POSITIONS", "find.attempts", "5"))
-		while self.VarCamera.NumObjects > 0 and attempt < total_attempts:
-			attempt += 1
+
+		while True:
 			obj = self.VarCamera.Objects[0]
 			if obj.MinX >= min_x:
 				if obj.MaxX <= max_x:
-					result["final"] = {"object": {"MinX": obj.MinX,
-					                              "MinY": obj.MinY,
-					                              "MaxX": obj.MaxX,
-					                              "MaxY": obj.MaxY,
-					                              "bb": obj.BorderBits,
-					                              "type": obj.ObjectType},
+					result["final"] = {"final":  self.ObjToDict(obj),
 					                   "camera": camera}
 					break
 			else:
 				if obj.MaxX > max_x:
-					result["toobig"] = {"object": {"MinX": obj.MinX,
-					                               "MinY": obj.MinY,
-					                               "MaxX": obj.MaxX,
-					                               "MaxY": obj.MaxY,
-					                               "bb": obj.BorderBits,
-					                               "type": obj.ObjectType},
+					result["toobig"] = {"object": self.ObjToDict(obj),
 					                    "camera": camera}
 					break
+
+			attempt += 1
+			if attempt >= total_attempts:
+				result["exceed"] = attempt
+
 			x = (obj.MinX + obj.MaxX) / 2.0
 			y = (obj.MinY + obj.MaxY) / 2.0
 			self.CmdMoveToView(x, y)
 			result["attempts"].append({"move": self.LastResult,
-			                           "object": {"MinX": obj.MinX,
-			                                      "MinY": obj.MinY,
-			                                      "MaxX": obj.MaxX,
-			                                      "MaxY": obj.MaxY,
-			                                      "bb": obj.BorderBits,
-			                                      "type": obj.ObjectType},
+			                           "object": self.ObjToDict(obj),
 			                           "x": x,
 			                           "y": y,
 			                           "camera": camera})
 
 			if self.CmdCameraFire(file) == self.FAIL:
-				return self.FAIL
+				result["error"] = "camera"
+				break
 			camera = self.LastResult
+
+			if self.VarCamera.NumObjects == 0:
+				result["lost"] = {"camera": camera}
+				break
+
+			obj = self.VarCamera.Objects[0]
+
+		return result
+
+	def CmdFind2(self, file):
+		self.SetLookPosition(0)
+
+		result = self.MoveToObject()
 
 		self.SetResult(result)
 		return self.SUCCESS
@@ -285,6 +297,7 @@ class Commands(threading.Thread):
 		result["a"] = a
 		result["g"] = g
 		self.SetResult(result)
+		return self.SUCCESS
 
 	def GetGrabPosition(self, type, d):
             return (self.Head.CountPredictionValue(self.ControlPrediction[type]["g"], d),

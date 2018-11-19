@@ -239,7 +239,6 @@ void TStatImgSegmentsExtractor::DetectObjectType(TArea* area, int coreIdx) {
 
 void TStatImgSegmentsExtractor::ExtractSegments(std::list<TArea>& areas) {
 
-	
     if (Parameters->RegressionMatrix.ReAllocate(Image->Width, Image->Height, Parameters->RegressionLevel)) {
     	MakeRegressionMatrix(&Parameters->RegressionMatrix);
     }
@@ -247,18 +246,26 @@ void TStatImgSegmentsExtractor::ExtractSegments(std::list<TArea>& areas) {
     int biggestCoreIdx = -1;
     MakeAnomalyMatrix(biggestCoreIdx);
     if (biggestCoreIdx >= 0) {
-	printf("ExtractSegments: Core size: %d\n", (int)*AnomalyMatrix.Cell(biggestCoreIdx));
-	TArea area;
-	ExtractObjectFromCore(&area, biggestCoreIdx);
+		printf("ExtractSegments: Core size: %d\n", (int)*AnomalyMatrix.Cell(biggestCoreIdx));
+		TArea area;
+		ExtractObjectFromCore(&area, biggestCoreIdx);
         //printf("ExtractSegments: extracted\n");
         DetectObjectType(&area, biggestCoreIdx);
         //printf("ExtractSegments: detected\n");
-	areas.push_back(area);
+		areas.push_back(area);
     }
 }
 
 void TStatImgSegmentsExtractor::DrawDebugInfo(TMutableRGBImage* image) {
-    DrawAnomalies2(image);
+    switch (Mode) {
+	case 1:
+		DrawAnomalies(image);
+		break;
+
+	case 2:
+		DrawAnomalies2(image);
+		break;
+	}
 }
 
 void TStatImgSegmentsExtractor::DrawAnomalies2(TMutableRGBImage* image) {
