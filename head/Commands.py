@@ -22,7 +22,7 @@ class Commands(threading.Thread):
 	MOVE_D_TARGET = 150
 	D_TO_MOVE = 200.0
 
-	def __init__(self, head, logger, config):
+	def __init__(self, head, logger, config=None):
 		threading.Thread.__init__(self)
 		self.config = config
 		self.daemon = True
@@ -35,8 +35,9 @@ class Commands(threading.Thread):
 		self.Lock = threading.Condition()
 		self.VarCamera = None
 
-		self.Learning = TLearning(config)
-		self.Learning.LearnGrabPositions()
+		if config is not None:
+			self.Learning = TLearning(config)
+			self.Learning.LearnGrabPositions()
 
 		self.ControlPoints = { "OPEN": {"FARTHEST": {"g": 1261, "a": 3415, "d": 219.85},
                                                 "CLOSEST":  {"g": 3831, "a": 2491, "d": 106},
@@ -191,7 +192,7 @@ class Commands(threading.Thread):
 		               self.Head.SetServo(self.Head.DOF_B, int(self.config.get("POSITIONS", "camera.find.0.B", "2500"))),
 		               self.Head.SetServo(self.Head.DOF_G, int(self.config.get("POSITIONS", "camera.G", "4300")))))
 
-		if self.CmdCameraFire() == self.FAIL:
+		if self.CmdCameraFire(file) == self.FAIL:
 			return self.FAIL
 		result = {"camera":self.LastResult}
 
@@ -199,8 +200,6 @@ class Commands(threading.Thread):
 			obj = self.VarCamera.Objects[0]
 			x = (obj.MinX + obj.MaxX) / 2.0
 			y = (obj.MinY + obj.MaxY) / 2.0
-			self.CmdMoveToView(x, y)
-			result["move"] = self.LastResult
 			result["object"] = {"MinX": obj.MinX,
 			                    "MinY": obj.MinY,
 			                    "MaxX": obj.MaxX,
@@ -210,8 +209,67 @@ class Commands(threading.Thread):
 			result["x"] = x
 			result["y"] = y
 
-			self.CmdCameraFire(file)
-			result["camera2"] = self.LastResult
+		self.SetResult(result)
+		return self.SUCCESS
+
+	def CmdFind2(self, file):
+		self.Sleep(self.Head.SetServo(self.Head.DOF_A, int(self.config.get("POSITIONS", "camera.find.0.A", "3000"))))
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
+		               self.Head.SetServo(self.Head.DOF_B, int(self.config.get("POSITIONS", "camera.find.0.B", "2500"))),
+		               self.Head.SetServo(self.Head.DOF_G, int(self.config.get("POSITIONS", "camera.G", "4300")))))
+
+		if self.CmdCameraFire(file) == self.FAIL:
+			return self.FAIL
+
+		max_width = int(self.config.get("POSITIONS", "camera.grab.max_width", "90"))
+		picture_width = self.VarCamera.Width
+		min_x = (picture_width - max_width) / 2
+		max_x = (picture_width + max_width) / 2
+
+		result = {"attempts":[], "max_x": max_x, "min_x": min_x}
+		camera = self.LastResult
+		attempt = 0
+		total_attempts = int(self.config.get("POSITIONS", "find.attempts", "5"))
+		while self.VarCamera.NumObjects > 0 and attempt < total_attempts:
+			attempt += 1
+			obj = self.VarCamera.Objects[0]
+			if obj.MinX >= min_x:
+				if obj.MaxX <= max_x:
+					result["final"] = {"object": {"MinX": obj.MinX,
+					                              "MinY": obj.MinY,
+					                              "MaxX": obj.MaxX,
+					                              "MaxY": obj.MaxY,
+					                              "bb": obj.BorderBits,
+					                              "type": obj.ObjectType},
+					                   "camera": camera}
+					break
+			else:
+				if obj.MaxX > max_x:
+					result["toobig"] = {"object": {"MinX": obj.MinX,
+					                               "MinY": obj.MinY,
+					                               "MaxX": obj.MaxX,
+					                               "MaxY": obj.MaxY,
+					                               "bb": obj.BorderBits,
+					                               "type": obj.ObjectType},
+					                    "camera": camera}
+					break
+			x = (obj.MinX + obj.MaxX) / 2.0
+			y = (obj.MinY + obj.MaxY) / 2.0
+			self.CmdMoveToView(x, y)
+			result["attempts"].append({"move": self.LastResult,
+			                           "object": {"MinX": obj.MinX,
+			                                      "MinY": obj.MinY,
+			                                      "MaxX": obj.MaxX,
+			                                      "MaxY": obj.MaxY,
+			                                      "bb": obj.BorderBits,
+			                                      "type": obj.ObjectType},
+			                           "x": x,
+			                           "y": y,
+			                           "camera": camera})
+
+			if self.CmdCameraFire(file) == self.FAIL:
+				return self.FAIL
+			camera = self.LastResult
 
 		self.SetResult(result)
 		return self.SUCCESS

@@ -13,7 +13,7 @@ class HeadLocal(object):
 	DOF_BASKET_R = 4
 	DOF_BASKET_L = 5
 
-	def __init__(self, config):
+	def __init__(self, config=None):
 		self.Config = config
 		self.Servos = [(self.MaxS + self.MinS) / 2] * 16
 		self.Pins = [''] * 41

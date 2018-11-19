@@ -277,7 +277,7 @@ class MetadataManagement:
 		return settings["Metadata"]["file"]
 		
 
-def InitCamera(logger, head, config):
+def InitCamera(logger, head, config=None):
 	global g_VisionModule
 	global CameraWidth
 	global CameraHeight

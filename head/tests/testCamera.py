@@ -166,8 +166,10 @@ def test_stat():
 	g_Commands = Commands(g_Head, logger)
 	#g_Commands.CmdTestDump('1542258022', 't1.jpg', 1)
 	#g_Commands.CmdTestDump('1542260639', 't1.jpg', 1)
-	g_Commands.CmdTestDump('1542260685', 't1.jpg', 1)
+	#g_Commands.CmdTestDump('1542260685', 't1.jpg', 1)
 	#g_Commands.CmdTestDump('1542260719', 't1.jpg', 1)
+	g_Commands.CmdTestDump('1542568320', 't1.jpg', 0)
+	#g_Commands.CmdTestDump('1542568439', 't1.jpg', 0)
 
 	g_Commands.ShutdownCamera()
 
