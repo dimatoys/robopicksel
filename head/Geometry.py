@@ -293,25 +293,26 @@ class TLearning:
 
     def LearnGrabPositions(self):
         self.Grab = TPolyRegression(2)
-        self.Grab.Learn([[float(self.config.get("POSITIONS", "min.D")), 5000],
-                         [float(self.config.get("POSITIONS", "min.D")), 2500],
-                         [float(self.config.get("POSITIONS", "min.D")), 0],
-                         [float(self.config.get("POSITIONS", "mid.D")), 5000],
-                         [float(self.config.get("POSITIONS", "mid.D")), 2500],
-                         [float(self.config.get("POSITIONS", "mid.D")), 0],
-                         [float(self.config.get("POSITIONS", "max.D")), 5000],
-                         [float(self.config.get("POSITIONS", "max.D")), 2500],
-                         [float(self.config.get("POSITIONS", "max.D")), 0]],
-                          
-                        [[float(self.config.get("POSITIONS", "close.min.A")), float(self.config.get("POSITIONS", "close.min.G"))],
-                         [float(self.config.get("POSITIONS", "half.min.A")), float(self.config.get("POSITIONS", "half.min.G"))],
-                         [float(self.config.get("POSITIONS", "open.min.A")), float(self.config.get("POSITIONS", "open.min.G"))],
-                         [float(self.config.get("POSITIONS", "close.mid.A")), float(self.config.get("POSITIONS", "close.mid.G"))],
-                         [float(self.config.get("POSITIONS", "half.mid.A")), float(self.config.get("POSITIONS", "half.mid.G"))],
-                         [float(self.config.get("POSITIONS", "open.mid.A")), float(self.config.get("POSITIONS", "open.mid.G"))],
-                         [float(self.config.get("POSITIONS", "close.max.A")), float(self.config.get("POSITIONS", "close.max.G"))],
-                         [float(self.config.get("POSITIONS", "half.max.A")), float(self.config.get("POSITIONS", "half.max.G"))],
-                         [float(self.config.get("POSITIONS", "open.max.A")), float(self.config.get("POSITIONS", "open.max.G"))]])
+        i = 0
+        x = []
+        y = []
+        while True:
+            if self.config.has_option("POSITIONS", "D.%d" % i):
+                D = self.config.getint("POSITIONS", "D.%d" % i)
+                x.append([D,0])
+                y.append([self.config.getint("POSITIONS", "A.open.%d" % i),
+                          self.config.getint("POSITIONS", "G.open.%d" % i)])
+                x.append([D,2500])
+                y.append([self.config.getint("POSITIONS", "A.half.%d" % i),
+                          self.config.getint("POSITIONS", "G.half.%d" % i)])
+                x.append([D,5000])
+                y.append([self.config.getint("POSITIONS", "A.close.%d" % i),
+                          self.config.getint("POSITIONS", "G.close.%d" % i)])
+                i = i + 1
+            else:
+                break
+        
+        self.Grab.Learn(x, y)
 
     def GetGrabPosition(self, d, gripper):
         return self.Grab.GetValue([d,gripper])
