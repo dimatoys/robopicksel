@@ -62,6 +62,7 @@
     g_Objects = []
 
     function sendServo(id) {
+		$("#slider" + id).slider('value',$("#s" + id).val());
         var query = "/servo/"+id+"/"+$("#s" + id).val()
         $.get( query , function( data ) {});
     }
@@ -146,6 +147,32 @@
                                       })
                                }
             });
+          $("#send" + i).attr("name", i)
+          $("#send" + i).click(function() {
+              id = $(this).attr("name")
+              sendServo(id)
+          })
+          $("#s_" + i + "_m100").parent().attr("name", i)
+          $("#s_" + i + "_m100").click(function(){
+			  id = $(this).parent().attr("name")
+			  $("#s" + id).val(parseInt($("#s" + id).val()) - 100)
+			  sendServo(id)
+		  })
+          $("#s_" + i + "_m10").click(function(){
+			  id = $(this).parent().attr("name")
+			  $("#s" + id).val(parseInt($("#s" + id).val()) - 10)
+			  sendServo(id)
+		  })
+          $("#s_" + i + "_p10").click(function(){
+			  id = $(this).parent().attr("name")
+			  $("#s" + id).val(parseInt($("#s" + id).val()) + 10)
+			  sendServo(id)
+		  })
+          $("#s_" + i + "_p100").click(function(){
+			  id = $(this).parent().attr("name")
+			  $("#s" + id).val(parseInt($("#s" + id).val()) + 100)
+			  sendServo(id)
+		  })
         }
 /*
         $("#lookFrom").slider({
@@ -550,19 +577,6 @@ var Metadata  = undefined
 
     $(document).ready(function() {
 
-          $("#send0").click(function() {
-              sendServo(0)
-          })
-          $("#send1").click(function() {
-              sendServo(1)
-          })
-          $("#send2").click(function() {
-              sendServo(2)
-          })
-          $("#send3").click(function() {
-              sendServo(3)
-          })
-
           $("#sensors").click(function(){
                if ($("#sensors").val() == "PULL SENSORS") {
                    $("#sensors").val("STOP SENSORS")
@@ -756,24 +770,48 @@ var Metadata  = undefined
           		<td><div id="slider0" style="width:300px;"></div></td>
           		<td><input id="s0" class="svalue" type="textfield" value="2500" width="3" /></td>
       			<td><input id="send0" type="button" value=">"/></td>
+      			<td>
+					<input id="s_0_m100" type="button" value="-100"/>
+					<input id="s_0_m10" type="button" value="-10"/>
+					<input id="s_0_p10" type="button" value="+10"/>
+					<input id="s_0_p100" type="button" value="+100"/>
+      			</td>
           	</tr>
           	<tr>
       			<td>G</td>
           		<td><div id="slider1" style="width:300px;"></div></td>
           		<td><input id="s1" class="svalue" type="textfield" value="2500" width="3" /></td>
       			<td><input id="send1" type="button" value=">"/></td>
+      			<td>
+					<input id="s_1_m100" type="button" value="-100"/>
+					<input id="s_1_m10" type="button" value="-10"/>
+					<input id="s_1_p10" type="button" value="+10"/>
+					<input id="s_1_p100" type="button" value="+100"/>
+      			</td>
           	</tr>
           	<tr>
       			<td>A</td>
           		<td><div id="slider2" style="width:300px;"></div></td>
           		<td><input id="s2" class="svalue" type="textfield" value="2500" width="3" /></td>
       			<td><input id="send2" type="button" value=">"/></td>
+      			<td>
+					<input id="s_2_m100" type="button" value="-100"/>
+					<input id="s_2_m10" type="button" value="-10"/>
+					<input id="s_2_p10" type="button" value="+10"/>
+					<input id="s_2_p100" type="button" value="+100"/>
+      			</td>
           	</tr>
           	<tr>
       			<td>B</td>
           		<td><div id="slider3" style="width:300px;"></div></td>
           		<td><input id="s3" class="svalue" type="textfield" value="2500" width="3" /></td>
       			<td><input id="send3" type="button" value=">"/></td>
+      			<td>
+					<input id="s_3_m100" type="button" value="-100"/>
+					<input id="s_3_m10" type="button" value="-10"/>
+					<input id="s_3_p10" type="button" value="+10"/>
+					<input id="s_3_p100" type="button" value="+100"/>
+      			</td>
           	</tr>
           	<tr>
           		<td></td>
