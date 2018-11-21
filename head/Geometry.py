@@ -292,30 +292,42 @@ class TLearning:
         self.GRAB_STEP = 5000.0 / 33.0
 
     def LearnGrabPositions(self):
-        self.Grab = TPolyRegression(2)
         i = 0
         x = []
         y = []
-        while True:
-            if self.config.has_option("POSITIONS", "D.%d" % i):
-                D = self.config.getint("POSITIONS", "D.%d" % i)
-                x.append([D,0])
-                y.append([self.config.getint("POSITIONS", "A.open.%d" % i),
-                          self.config.getint("POSITIONS", "G.open.%d" % i)])
-                x.append([D,2500])
-                y.append([self.config.getint("POSITIONS", "A.half.%d" % i),
-                          self.config.getint("POSITIONS", "G.half.%d" % i)])
-                x.append([D,5000])
-                y.append([self.config.getint("POSITIONS", "A.close.%d" % i),
-                          self.config.getint("POSITIONS", "G.close.%d" % i)])
-                i = i + 1
-            else:
-                break
-        
+        #y2 = []
+        while self.config.has_option("POSITIONS", "D.%d" % i):
+            D = self.config.getfloat("POSITIONS", "D.%d" % i)
+            Aopen = self.config.getfloat("POSITIONS", "A.open.%d" % i)
+            Gopen = self.config.getfloat("POSITIONS", "G.open.%d" % i)
+            x.append([D, 0])
+            y.append([Aopen, Gopen])
+            #y2.append([Aopen + Gopen, Aopen - Gopen])
+
+            Ahalf = self.config.getfloat("POSITIONS", "A.half.%d" % i)
+            Ghalf = self.config.getfloat("POSITIONS", "G.half.%d" % i)
+            x.append([D, 2500])
+            y.append([Ahalf, Ghalf])
+            #y2.append([Ahalf + Ghalf, Ahalf - Ghalf])
+
+            Aclose = self.config.getfloat("POSITIONS", "A.close.%d" % i)
+            Gclose = self.config.getfloat("POSITIONS", "G.close.%d" % i)
+            x.append([D, 5000])
+            y.append([Aclose, Gclose])
+            #y2.append([Aclose + Gclose, Aclose - Gclose])
+
+            i = i + 1
+
+        self.Grab = TPolyRegression(2)
         self.Grab.Learn(x, y)
+        #self.Grab.Learn(x, y2)
 
     def GetGrabPosition(self, d, gripper):
-        return self.Grab.GetValue([d,gripper])
+        (a, g) = self.Grab.GetValue([d, gripper])
+        #(X, Y) = self.Grab.GetValue([d,gripper])
+        #a = (X + Y) / 2
+        #g = (X - Y) / 2
+        return (a, g)
 
     def GetAB(self, A, B, x, y):
         (xd, yd) = self.D.GetValue((x, y, A))

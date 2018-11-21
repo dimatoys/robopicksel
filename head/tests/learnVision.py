@@ -2726,80 +2726,224 @@ def GrabChart():
     config.read('head.cfg')
     learning = TLearning(config)
     learning.LearnGrabPositions()
+    print learning.Grab.R
 
-    learn0 = TPolyRegression(2)
-    learn0.Learn([[float(config.get("POSITIONS", "min.D"))],
-                  [float(config.get("POSITIONS", "mid.D"))],
-                  [float(config.get("POSITIONS", "max.D"))]],
+    i = 0
+    x0 = []
+    y0 = []
+    y5000 = []
+    while True:
+            if config.has_option("POSITIONS", "D.%d" % i):
+                x0.append([config.getfloat("POSITIONS", "D.%d" % i)])
+                y0.append([config.getfloat("POSITIONS", "A.open.%d" % i),
+                          config.getfloat("POSITIONS", "G.open.%d" % i)])
+                y5000.append([config.getfloat("POSITIONS", "A.close.%d" % i),
+                              config.getfloat("POSITIONS", "G.close.%d" % i)])
+                i = i + 1
+            else:
+                break
 
-                  [[float(config.get("POSITIONS", "open.min.A")), float(config.get("POSITIONS", "open.min.G"))],
-                   [float(config.get("POSITIONS", "open.mid.A")), float(config.get("POSITIONS", "open.mid.G"))],
-                   [float(config.get("POSITIONS", "open.max.A")), float(config.get("POSITIONS", "open.max.G"))]])
+    learn2 = TPolyRegression(2)
+    learn2.Learn(x0, y0)
+
+    learn3 = TPolyRegression(3)
+    learn3.Learn(x0, y0)
+
+    learn4 = TPolyRegression(2)
+    learn4.Learn(x0, y5000)
+
+    learn5 = TPolyRegression(3)
+    learn5.Learn(x0, y5000)
+
 
     import matplotlib
     import matplotlib.pyplot as plt
     import numpy as np
 
     # Data for plotting
-    t = np.arange(0.0, 123.0, 0.1)
+    t = np.arange(0.0, 130.0, 0.1)
     s0 = []
     s2500 = []
     s5000 = []
-    d0 = []
+    d2 = []
+    d3 = []
+    d4 = []
+    d5 = []
+    d6 = []
+    d7 = []
     for v in t:
-        s0.append(learning.Grab.GetValue([v, 0]))
-        s2500.append(learning.Grab.GetValue([v, 2500]))
-        s5000.append(learning.Grab.GetValue([v, 5000]))
-        d0.append(learn0.GetValue([v]))
+        s0.append(learning.GetGrabPosition(v, 0))
+        s2500.append(learning.GetGrabPosition(v, 2500))
+        s5000.append(learning.GetGrabPosition(v, 5000))
+        d2.append(learn2.GetValue([v]))
+        d3.append(learn3.GetValue([v]))
+        d4.append(learn4.GetValue([v]))
+        d5.append(learn5.GetValue([v]))
+        d6.append((learn2.GetValue([v]) + learn4.GetValue([v])) / 2)
+        d7.append((learn3.GetValue([v]) + learn5.GetValue([v])) / 2)
 
     fig, ax = plt.subplots()
-    ax.plot(t, s0, 'r')
-    ax.plot(t, s2500, 'b')
-    ax.plot(t, s5000, 'g')
-    ax.plot(t, d0, 'y')
-    ax.plot([float(config.get("POSITIONS", "min.D")),
-             float(config.get("POSITIONS", "min.D")),
-             float(config.get("POSITIONS", "mid.D")),
-             float(config.get("POSITIONS", "mid.D")),
-             float(config.get("POSITIONS", "max.D")),
-             float(config.get("POSITIONS", "max.D"))],
-            [float(config.get("POSITIONS", "open.min.A")),
-             float(config.get("POSITIONS", "open.min.G")),
-             float(config.get("POSITIONS", "open.mid.A")),
-             float(config.get("POSITIONS", "open.mid.G")),
-             float(config.get("POSITIONS", "open.max.A")),
-             float(config.get("POSITIONS", "open.max.G"))],'ro')
-    ax.plot([float(config.get("POSITIONS", "min.D")),
-             float(config.get("POSITIONS", "min.D")),
-             float(config.get("POSITIONS", "mid.D")),
-             float(config.get("POSITIONS", "mid.D")),
-             float(config.get("POSITIONS", "max.D")),
-             float(config.get("POSITIONS", "max.D"))],
-            [float(config.get("POSITIONS", "half.min.A")),
-             float(config.get("POSITIONS", "half.min.G")),
-             float(config.get("POSITIONS", "half.mid.A")),
-             float(config.get("POSITIONS", "half.mid.G")),
-             float(config.get("POSITIONS", "half.max.A")),
-             float(config.get("POSITIONS", "half.max.G"))],'bo')
-    ax.plot([float(config.get("POSITIONS", "min.D")),
-             float(config.get("POSITIONS", "min.D")),
-             float(config.get("POSITIONS", "mid.D")),
-             float(config.get("POSITIONS", "mid.D")),
-             float(config.get("POSITIONS", "max.D")),
-             float(config.get("POSITIONS", "max.D"))],
-            [float(config.get("POSITIONS", "close.min.A")),
-             float(config.get("POSITIONS", "close.min.G")),
-             float(config.get("POSITIONS", "close.mid.A")),
-             float(config.get("POSITIONS", "close.mid.G")),
-             float(config.get("POSITIONS", "close.max.A")),
-             float(config.get("POSITIONS", "close.max.G"))],'go')
+    ax.plot(t, s0, 'r', label = "open")
+    ax.plot(t, s2500, 'b', label = "half")
+    ax.plot(t, s5000, 'g', label = "close")
+    #ax.plot(t, d2, 'm')
+    #ax.plot(t, d3, 'k')
+    #ax.plot(t, d4, 'm')
+    #ax.plot(t, d5, 'k')
+    #ax.plot(t, d6, 'm')
+    #ax.plot(t, d7, 'k')
+
+    i = 0
+    while True:
+            if config.has_option("POSITIONS", "D.%d" % i):
+                D = config.getint("POSITIONS", "D.%d" % i)
+                ax.plot([D,D],[config.getint("POSITIONS", "A.open.%d" % i),
+                          config.getint("POSITIONS", "G.open.%d" % i)], 'ro')
+                ax.plot([D,D],[config.getint("POSITIONS", "A.half.%d" % i),
+                          config.getint("POSITIONS", "G.half.%d" % i)], 'bo')
+                ax.plot([D,D],[config.getint("POSITIONS", "A.close.%d" % i),
+                          config.getint("POSITIONS", "G.close.%d" % i)], 'go')
+                i = i + 1
+            else:
+                break
 
     ax.set(xlabel='distance (mm)', ylabel='servo',
            title='Interpolation 0')
     ax.grid()
+    ax.legend()
 
     fig.savefig("test.png")
     plt.show()
+
+def GrabChart2():
+    config = ConfigParser.ConfigParser()
+    config.read('head.cfg')
+    """
+    learning = TLearning(config)
+    learning.LearnGrabPositions()
+    print learning.Grab.R
+
+    i = 0
+    x0 = []
+    y0 = []
+    y5000 = []
+    while True:
+            if config.has_option("POSITIONS", "D.%d" % i):
+                x0.append([config.getfloat("POSITIONS", "D.%d" % i)])
+                y0.append([config.getfloat("POSITIONS", "A.open.%d" % i),
+                          config.getfloat("POSITIONS", "G.open.%d" % i)])
+                y5000.append([config.getfloat("POSITIONS", "A.close.%d" % i),
+                              config.getfloat("POSITIONS", "G.close.%d" % i)])
+                i = i + 1
+            else:
+                break
+
+    learn2 = TPolyRegression(2)
+    learn2.Learn(x0, y0)
+
+    learn3 = TPolyRegression(3)
+    learn3.Learn(x0, y0)
+
+    learn4 = TPolyRegression(2)
+    learn4.Learn(x0, y5000)
+
+    learn5 = TPolyRegression(3)
+    learn5.Learn(x0, y5000)
+    """
+
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import numpy as np
+    fig, ax = plt.subplots()
+
+    # Data for plotting
+    """
+    t = np.arange(0.0, 130.0, 0.1)
+    s0 = []
+    s2500 = []
+    s5000 = []
+    d2 = []
+    d3 = []
+    d4 = []
+    d5 = []
+    d6 = []
+    d7 = []
+    for v in t:
+        s0.append(learning.Grab.GetValue([v, 0]))
+        s2500.append(learning.Grab.GetValue([v, 2500]))
+        s5000.append(learning.Grab.GetValue([v, 5000]))
+        d2.append(learn2.GetValue([v]))
+        d3.append(learn3.GetValue([v]))
+        d4.append(learn4.GetValue([v]))
+        d5.append(learn5.GetValue([v]))
+        d6.append((learn2.GetValue([v]) + learn4.GetValue([v])) / 2)
+        d7.append((learn3.GetValue([v]) + learn5.GetValue([v])) / 2)
+
+    ax.plot(t, s0, 'r')
+    ax.plot(t, s2500, 'b')
+    ax.plot(t, s5000, 'g')
+    #ax.plot(t, d2, 'm')
+    #ax.plot(t, d3, 'k')
+    #ax.plot(t, d4, 'm')
+    #ax.plot(t, d5, 'k')
+    #ax.plot(t, d6, 'm')
+    #ax.plot(t, d7, 'k')
+    """
+    i = 0
+    while True:
+            if config.has_option("POSITIONS", "D.%d" % i):
+                D = config.getint("POSITIONS", "D.%d" % i)
+
+                Aopen = config.getint("POSITIONS", "A.open.%d" % i)
+                Gopen = config.getint("POSITIONS", "G.open.%d" % i)
+                #dot, = ax.plot([D],[Aopen - Gopen], 'ro')
+                dot, = ax.plot([D],[Aopen + Gopen], 'ro')
+                if i == 0:
+                    dot.set_label('open')
+
+                Ahalf = config.getint("POSITIONS", "A.half.%d" % i)
+                Ghalf = config.getint("POSITIONS", "G.half.%d" % i)
+                #dot, = ax.plot([D],[Ahalf - Ghalf], 'bo')
+                dot, = ax.plot([D],[Ahalf + Ghalf], 'bo')
+                if i == 0:
+                    dot.set_label('half')
+
+                Aclose = config.getint("POSITIONS", "A.close.%d" % i)
+                Gclose = config.getint("POSITIONS", "G.close.%d" % i)
+                #dot, = ax.plot([D],[Aclose - Gclose], 'go')
+                dot, = ax.plot([D],[Aclose + Gclose], 'go')
+                if i == 0:
+                    dot.set_label('close')
+
+                i = i + 1
+            else:
+                break
+
+    ax.set(xlabel='distance (mm)', ylabel='servo',
+           title='Interpolation 0')
+    ax.legend()
+    ax.grid()
+
+    fig.savefig("test.png")
+    plt.show()
+
+def f(x):
+    return x * x
+
+def TestSkLearn():
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn.pipeline import make_pipeline
+    from sklearn.linear_model import Ridge
+    import numpy as np
+
+    x = np.linspace(-1, 1, 3)
+    y = f(x)
+    X = x[:, np.newaxis]
+
+    model = make_pipeline(PolynomialFeatures(3), Ridge())
+    model.fit(X, y)
+
+    print model.predict(2)
 
 #Test2()
 #Im1()
@@ -2857,5 +3001,6 @@ def GrabChart():
 #ShowSpace()
 #DumpsToPic()
 #TestGrab()
-GrabChart()
-
+#GrabChart()
+#GrabChart2()
+TestSkLearn()
