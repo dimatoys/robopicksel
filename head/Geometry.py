@@ -1,6 +1,7 @@
 from math import *
 import numpy as np
 from PIL import Image
+import re
 
 class MinResolve:
     
@@ -317,9 +318,43 @@ class TLearning:
         self.Grab = TPolyRegression(2)
         self.Grab.Learn(x, y)
 
+    def LearnCameraY(self):
+        template = re.compile("camera\.y\.(\d+)\.(\d+)")
+        Xc = {}
+        Yc = {}
+        X = []
+        Y = []
+        for p, v in self.config.items("POSITIONS"):
+            m = template.match(p)
+            if m:
+                a = int(m.group(1))
+                d = int(m.group(2))
+                y = int(v)
+                X.append([a, y])
+                Y.append([d])
+                if a not in Xc:
+                    Xc[a] = []
+                    Yc[a] = []
+                Xc[a].append([y])
+                Yc[a].append([d])
+    
+        self.CameraY = TPolyRegression(1)
+        self.CameraY.Learn(X, Y)
+    
+        self.CameraYc = {}
+        for a, x in Xc.items():
+            self.CameraYc[a] = TPolyRegression(2)
+            self.CameraYc[a].Learn(x, Yc[a])
+
     def GetGrabPosition(self, d, gripper):
         (a, g) = self.Grab.GetValue([d, gripper])
         return (a, g)
+
+    def GetObjD(self, a, y):
+        if a in self.CameraYc:
+            return self.CameraYc[a].GetValue([y])
+        else:
+            return self.CameraY.GetValue([a,y])
 
     def GetAB(self, A, B, x, y):
         (xd, yd) = self.D.GetValue((x, y, A))

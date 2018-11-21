@@ -2955,30 +2955,37 @@ def CheckCameraLearning():
 
 	config = ConfigParser.ConfigParser()
 	config.read('head.cfg')
+        learning = TLearning(config)
+        learning.LearnCameraY()
+
 	template = re.compile("camera\.y\.(\d+)\.(\d+)")
-	X3000 = []
-	Y3000 = []
-	X2500 = []
-	Y2500 = []
-	X = []
-	Y = []
 	for p, v in config.items("POSITIONS"):
 		m = template.match(p)
 		if m:
 			a = int(m.group(1))
-			d = int(m.group(2))
-			y = int(v)
-			X.append([a,y])
-			Y.apped([d])
+			d = float(m.group(2))
+			y = float(v)
 			if a == 3000:
-				X3000.append([y])
-				Y3000.append([d])
 				ax.plot(y,d,'bo')
 			else:
 				if a == 2500:
-					X2500.append([y])
-					Y2500.append([d])
 					ax.plot(y,d,'ro')
+
+        t = np.arange(0.0, 240.0, 0.1)
+        c2500 = []
+        c3000 = []
+        j2500 = []
+        j3000 = []
+        for v in t:
+            c2500.append(learning.GetObjD(2501, v))
+            c3000.append(learning.GetObjD(3001, v))
+            j2500.append(learning.GetObjD(2500, v))
+            j3000.append(learning.GetObjD(3000, v))
+        ax.plot(t, c2500, 'g')
+        ax.plot(t, c3000, 'g')
+        ax.plot(t, j2500, 'r')
+        ax.plot(t, j3000, 'b')
+
 	ax.set(xlabel='camera Y', ylabel='Distance, mm',
 	       title='Camera positioning')
 	#ax.legend()
