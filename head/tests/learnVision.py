@@ -8,6 +8,7 @@ from os.path import isfile, join
 
 import numpy as np
 import datetime
+import re
 
 import sys
 import os
@@ -302,7 +303,7 @@ class PictureTransform(MinResolve):
 def Test2():
     t2 = TTest2()
     t2.Reset([0, 0], [0.1, 0.1])
-    print t2.ResolveSimple()
+    print(t2.ResolveSimple())
 
 def Im1():
     pt = PictureTransform([(17, 44),
@@ -315,7 +316,7 @@ def Im1():
                            (301, 120),
                            (299, 213)])
     pt.Reset([160.0, 118.0, 0], [.5, .5, 0.0001])
-    print pt.ResolveSimple()
+    print(pt.ResolveSimple())
 
 def DrawPointer(img, xy, color):
     (x,y) = xy
@@ -345,7 +346,7 @@ def DrawTurn(file):
     global pictures
 
     pt = PictureTransform(pictures[file]["img"])
-    print pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001)
+    print(pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001))
     
     img = Image.open('VideoTest/%s' % file)
     orig_points = (255, 0, 0)
@@ -369,7 +370,7 @@ def DrawTurn2(file):
 
     pic = pictures[file]
     pt = PictureTransform(pic["img"])
-    print pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001)
+    print(pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001))
     dst = pt.TransformFromImage('VideoTest/%s' % file)
     
     tr_points = (0, 255, 0)
@@ -384,11 +385,11 @@ def DrawTurn2(file):
     (cdx, cdy) = pt.TransformFrom(pt.CD)
 
     fit = np.polyfit(np.array(pic["y"]), np.array([cuy, ccy, cdy]), 2)
-    print fit
+    print(fit)
     
     for y in range(pic["y"][0], pic["y"][-1], 10):
         py = CountFit(fit, y)
-        print y, py
+        print(y, py)
         DrawPointer(dst, (ccx, py), tr_points)
 
     DrawPointer(dst, (pt.X0, pt.Y0), center_point)
@@ -410,7 +411,7 @@ def DrawTurn3(file):
 
     pic = pictures[file]
     pt = PictureTransform(pic["img"])
-    print pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001)
+    print(pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001))
     dst = pt.TransformFromImage('VideoTest/%s' % file)
     
     tr_points = (0, 255, 0)
@@ -425,11 +426,11 @@ def DrawTurn3(file):
 
     p = (1.0, 1.0, 1.0)
     fit = kmpfit.simplefit(modelV, p, pic["y"], [cuy, ccy, cdy])
-    print fit.params
+    print(fit.params)
 
     for y in range(pic["y"][0], pic["y"][-1], 10):
         py = modelV(fit.params, y)
-        print y, py
+        print(y, py)
         DrawPointer(dst, (ccx, py), tr_points)
 
     DrawPointer(dst, (pt.X0, pt.Y0), center_point)
@@ -441,8 +442,8 @@ def TestLinarg():
     import numpy as np
     a = np.array([[1., 2.], [3., 4.]])
     ainv = inv(a)
-    print ainv
-    print np.dot(a, ainv)
+    print(ainv)
+    print(np.dot(a, ainv))
     
 def TestLinarg():
     from numpy.linalg import inv
@@ -452,14 +453,14 @@ def TestLinarg():
 
     pic = pictures[file]
     pt = PictureTransform(pic["img"])
-    print pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001)
+    print(pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001))
 
     (cux, cuy) = pt.TransformFrom(pt.CU)
     (ccx, ccy) = pt.TransformFrom(pt.CC)
     (cdx, cdy) = pt.TransformFrom(pt.CD)
 
     fit = np.polyfit(np.array(pic["y"]), np.array([cuy, ccy, cdy]), 2)
-    print fit
+    print(fit)
 
     T = [[1.0, float(pic["y"][0]), float(pic["y"][0]) * float(pic["y"][0])],
          [1.0, float(pic["y"][1]), float(pic["y"][1]) * float(pic["y"][1])],
@@ -469,11 +470,11 @@ def TestLinarg():
     T = np.array(T)
     TT = T.transpose()
     r = np.dot(np.dot(inv(np.dot(TT, T)), TT), np.array(yv))
-    print yv
-    print np.dot(T, r)
+    print(yv)
+    print(np.dot(T, r))
     
     fitt = [[fit[2]], [fit[1]], [fit[0]]]
-    print np.dot(T, np.array(fitt))
+    print(np.dot(T, np.array(fitt)))
 
 def modelPoly(i, x):
     if i == 0:
@@ -498,7 +499,7 @@ def PolyTest():
         if p.S > s:
             result = result + str(i) + ", "
             s = p.S
-    print n, result
+    print(n, result)
  
 def DrawTurn4(file):
     from numpy.linalg import inv
@@ -508,7 +509,7 @@ def DrawTurn4(file):
 
     pic = pictures[file]
     pt = PictureTransform(pic["img"])
-    print pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001)
+    print(pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001))
     dst = pt.TransformFromImage('VideoTest/%s' % file)
     
     tr_points = (0, 255, 0)
@@ -534,13 +535,13 @@ def DrawTurn4(file):
     T = np.array(T)
     TT = T.transpose()
     r = np.dot(np.dot(inv(np.dot(TT, T)), TT), np.array(yv))
-    print np.dot(T, r)
+    print(np.dot(T, r))
     
     for y in range(pic["y"][0], pic["y"][-1], 10):
         py = 0
         for i in range(n):
             py = py + r[i][0] * modelPoly(i, y)
-        print y, py
+        print(y, py)
         DrawPointer(dst, (ccx, py), tr_points)
 
     
@@ -565,7 +566,7 @@ def DrawTurn5(file):
 
     pic = pictures[file]
     pt = PictureTransform(pic["img"])
-    print pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001)
+    print(pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001))
     dst = pt.TransformFromImage('VideoTest/%s' % file)
     
     tr_points = (0, 255, 0)
@@ -618,7 +619,7 @@ def DrawTurn6(file):
 
     pic = pictures[file]
     pt = PictureTransform(pic["img"])
-    print pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001)
+    print(pt.ResolveSymmetry(160.0, 118.0, 0, .5, .5, 0.0001))
     dst = pt.TransformFromImage('VideoTest/%s' % file)
     
     tr_points = (255, 0, 0)
@@ -691,7 +692,7 @@ def DrawTurn8(file):
         points.append((pr.GetValue((x, y)), pr.GetValue((width - x , y))))
         
     rs = ResolveSimmetry(points)
-    print rs.Resolve(width/ 2, height / 2, 0, 0, 0.001, 0.001, 0.00001, 0.001)
+    print(rs.Resolve(width/ 2, height / 2, 0, 0, 0.001, 0.001, 0.00001, 0.001))
     
     orig = []
     for i in range(len(pic.Img)):
@@ -702,7 +703,7 @@ def DrawTurn8(file):
         (ox, oy) = rs.TransformOpt((rx,ry))
         orig.append((ox, oy))
         
-        print "img(%d, %d)\treal=(%d, %d)\tlearn=(%f, %f)\tsymmetry=(%f, %f) orig=(%f, %f)" % (x, y, rx, ry, lx, ly, sx, sy, ox, oy)
+        print("img(%d, %d)\treal=(%d, %d)\tlearn=(%f, %f)\tsymmetry=(%f, %f) orig=(%f, %f)" % (x, y, rx, ry, lx, ly, sx, sy, ox, oy))
     
     pr2 = TPolyRegression(2)
     pr2.Learn(orig, pic.Img)
@@ -770,7 +771,7 @@ def TestEq():
     pr = TPolyRegression(len(x) - 1)
     pr.Learn(x, y)
     
-    print pr.R
+    print(pr.R)
 
 def TestEq2():
 
@@ -785,7 +786,7 @@ def TestEq2():
 	pr = TPolyRegression(2)
 	pr.Learn(x, y)
 
-	print pr.R
+	print(pr.R)
 
 
     
@@ -812,7 +813,7 @@ def LearnA():
     
     pr = TPolyRegression(3)
     pr.Learn(x, y)
-    print "D", pr.R
+    print("D", pr.R)
 
     ax = []
     ay = []
@@ -824,12 +825,12 @@ def LearnA():
     pra = TPolyRegression(pr.S)
     pra.Learn(ax, ay)
     
-    print "A", pra.R
+    print("A", pra.R)
     
     for f in files:
         d = pictures[f]["y"][1] - y0
         a = pictures[f]["A"]
-        print a, d, pra.GetValue([d])
+        print(a, d, pra.GetValue([d]))
         
 def TestA():
     D = TPolyRegression(3) 
@@ -873,7 +874,7 @@ def TestA():
         amin = A.GetValue([dminy])
         amax = A.GetValue([dmaxy])
         
-        print pic.A, (dminx, dminy), (dmaxx, dmaxy), amin, amax
+        print(pic.A, (dminx, dminy), (dmaxx, dmaxy), amin, amax)
         
 def CountB():
     global spictures
@@ -881,25 +882,25 @@ def CountB():
     (x0, y0) = pic["img"][0]
     (x1, y1) = pic["img"][1]
     B2000 = atan(float(x0 - x1) / (y0 - y1))
-    print B2000, B2000 * 180 / pi
+    print(B2000, B2000 * 180 / pi)
 
     pic = spictures["3500-3000.jpg"]
     (x0, y0) = pic["img"][0]
     (x1, y1) = pic["img"][1]
     B3000 = atan(float(x0 - x1) / (y0 - y1))
-    print B3000, B3000 * 180 / pi
+    print(B3000, B3000 * 180 / pi)
     
     s = (B2000 + B3000) / 2
     
-    print s, s * 180 / pi
+    print(s, s * 180 / pi)
 
 def TestY():
     l = TLearning()
-    print l.D.GetValue((0,0,3500))
+    print(l.D.GetValue((0,0,3500)))
     
     l.D.R[0][1] = l.D.R[0][1] + 10
 
-    print l.D.GetValue((0,0,3500))
+    print(l.D.GetValue((0,0,3500)))
     
 
 def GetTurnMatrix(pic, Y0):
@@ -914,7 +915,7 @@ def GetTurnMatrix(pic, Y0):
     pr = TPolyRegression(1)
     pr.Learn(p0, r0)
     
-    print pr.R[0]
+    print(pr.R[0])
     
 def TestTM():
     global spictures
@@ -945,14 +946,14 @@ def LearningBTest():
     pr = TPolyRegression(1)
     pr.Learn(p0, r0)
     
-    print pr.R
-    print -asin(pr.R[1][0]) * 180 / pi, -acos(pr.R[1][1]) * 180 / pi
-    print -acos(pr.R[2][0]) * 180 / pi, asin(pr.R[2][1]) * 180 / pi
+    print(pr.R)
+    print(-asin(pr.R[1][0]) * 180 / pi, -acos(pr.R[1][1]) * 180 / pi)
+    print(-acos(pr.R[2][0]) * 180 / pi, asin(pr.R[2][1]) * 180 / pi)
     
     for i in range(len(p0)):
-        print pr.GetValue(p0[i]), r0[i]
+        print(pr.GetValue(p0[i]), r0[i])
 
-    print
+    print()
 
     p0 = []
     r0 = []
@@ -963,12 +964,12 @@ def LearningBTest():
     pr = TPolyRegression(1)
     pr.Learn(p0, r0)
     
-    print pr.R
-    print -asin(pr.R[1][0]) * 180 / pi, acos(pr.R[1][1]) * 180 / pi
-    print acos(pr.R[2][0]) * 180 / pi, asin(pr.R[2][1]) * 180 / pi
+    print(pr.R)
+    print(-asin(pr.R[1][0]) * 180 / pi, acos(pr.R[1][1]) * 180 / pi)
+    print(acos(pr.R[2][0]) * 180 / pi, asin(pr.R[2][1]) * 180 / pi)
     
     for i in range(len(p0)):
-        print pr.GetValue(p0[i]), r0[i]
+        print(pr.GetValue(p0[i]), r0[i])
 
 def LearningBTest2():
     global spictures
@@ -983,19 +984,19 @@ def LearningBTest2():
         (x, y) = l.D.GetValue((pic1["img"][i][0], pic1["img"][i][1], pic1["A"]))
         p0.append((x * cos(B) - y * sin(B), x * sin(B) + y * cos(B)))
         r0.append((pic1["real"][i][0], pic1["real"][i][1]))
-        print p0[i], r0[i]
+        print(p0[i], r0[i])
     
     pr = TPolyRegression(1)
     pr.Learn(p0, r0)
     
-    print pr.R
+    print(pr.R)
     #print -asin(pr.R[1][0]) * 180 / pi, -acos(pr.R[1][1]) * 180 / pi
     #print -acos(pr.R[2][0]) * 180 / pi, asin(pr.R[2][1]) * 180 / pi
     
     for i in range(len(p0)):
-        print pr.GetValue(p0[i]), r0[i]
+        print(pr.GetValue(p0[i]), r0[i])
 
-    print
+    print()
     
     pic2 = spictures["3500-3000.jpg"]
     l = TLearning()
@@ -1008,17 +1009,17 @@ def LearningBTest2():
         (x, y) = l.D.GetValue((pic2["img"][i][0], pic2["img"][i][1], pic1["A"]))
         p0.append((x * cos(B) - y * sin(B), x * sin(B) + y * cos(B)))
         r0.append((pic2["real"][i][0], pic2["real"][i][1]))
-        print p0[i], r0[i]
+        print(p0[i], r0[i])
     
     pr = TPolyRegression(1)
     pr.Learn(p0, r0)
     
-    print pr.R
+    print(pr.R)
     #print -asin(pr.R[1][0]) * 180 / pi, -acos(pr.R[1][1]) * 180 / pi
     #print -acos(pr.R[2][0]) * 180 / pi, asin(pr.R[2][1]) * 180 / pi
     
     for i in range(len(p0)):
-        print pr.GetValue(p0[i]), r0[i]
+        print(pr.GetValue(p0[i]), r0[i])
     
 def LearningBTest3():
     
@@ -1041,9 +1042,9 @@ def LearningBTest3():
         ry = pic1["real"][i][1] - Y0
         d = (rx - px) * (rx - px) + (ry - py) * (ry - py)
         D1 = D1 + d
-        print rx - px, ry - py, d
+        print(rx - px, ry - py, d)
 
-    print D1
+    print(D1)
     
     pic2 = spictures["3500-3000.jpg"]
     
@@ -1058,10 +1059,10 @@ def LearningBTest3():
         ry = pic2["real"][i][1] - Y0
         d = (rx - px) * (rx - px) + (ry - py) * (ry - py)
         D2 = D2 + d
-        print rx - px, ry - py, d
+        print(rx - px, ry - py, d)
 
-    print D2
-    print Y0, D1 + D2
+    print(D2)
+    print(Y0, D1 + D2)
 
 def LearnWithB():
     Y0 = -15
@@ -1072,7 +1073,7 @@ def LearnWithB():
     l.D.R[0][1] = l.D.R[0][1] - Y0
 
     l.CountA()
-    #print l.A.R
+    #print(l.A.R)
     
     l.DumpMatrix(l.A.R)
 
@@ -1097,10 +1098,10 @@ def GetTurnTransformation():
     pr = TPolyRegression(1)
     pr.Learn(p0, r0)
     
-    print pr.R
+    print(pr.R)
     
     for i in range(len(pic["img"])):
-        print pr.GetValue(p0[i]), r0[i]
+        print(pr.GetValue(p0[i]), r0[i])
 
     cx = pr.R[0][0]
     cy = pr.R[0][1]
@@ -1110,13 +1111,13 @@ def GetTurnTransformation():
     a = 1 - cos(B)
     b = sin(B)
     ba = b / a
-    print "sin/cos", sin(B), cos(B)
+    print("sin/cos", sin(B), cos(B))
     
     x0 = (cx / 2) * ba - (cy / 2)
     y0 = (cx / 2) - (cy / 2) * ba
     
     # 8.9234456973 -15.0297784555
-    print "x0/y0", x0, y0
+    print("x0/y0", x0, y0)
     
     cx1 = -x0 * cos(B) + y0 * sin(B) + x0
     cy1 = -x0 * sin(B) - y0 * cos(B) + y0
@@ -1124,16 +1125,16 @@ def GetTurnTransformation():
     cx2 = y0 * sin(B)
     cy2 = y0 * (1 - cos(B)) 
     
-    print "cx/cy", cx1, cy1
+    print("cx/cy", cx1, cy1)
     
     for i in range(len(pic["img"])):
         (x,y) = p0[i]
-        print x * cos(B) - y * sin(B) + cx1, x * sin(B) + y * cos(B) + cy1, r0[i]
+        print(x * cos(B) - y * sin(B) + cx1, x * sin(B) + y * cos(B) + cy1, r0[i])
         #print x * cos(B) - (y - y0)  * sin(B), x * sin(B) + (y - y0) * cos(B) + y0, r0[i]
         
 def TestAB():
     l = TLearning()
-    print l.GetAB(3500, 2600, 160, 120)
+    print(l.GetAB(3500, 2600, 160, 120))
 
 def CountGripper():
     global gripper
@@ -1146,12 +1147,12 @@ def CountGripper():
         for m in p["grab"]:
             x.append([ry, m["GR"]])
             y.append([m["A"], m["G"]])
-            print ry, m["GR"], m["A"], m["G"]
+            print(ry, m["GR"], m["A"], m["G"])
     
     pr = TPolyRegression(2)
     pr.Learn(x, y)
     
-    print pr.R
+    print(pr.R)
 
 def LoadDump(fileName):
     f = open(fileName, 'rb')
@@ -1174,7 +1175,7 @@ def DrawNet(img, d, color):
 
 def TestDump():
     (width, height, depth, data) = LoadDump("../dumps/1502667194.dump")
-    print (width, height, depth), width * height * depth, len(data)
+    print((width, height, depth), width * height * depth, len(data))
     area = 30
     pr = TPolyRegression(2)
     a = []
@@ -1195,7 +1196,7 @@ def TestDump():
                 for x in range(area):
                     v.append(img0.getpixel((x0 + x, y0 + y)))
             pr.NewY(mx, v)
-            print "%u-%u %3u,%3u,%3u" % (x0 / area, y0 / area, pr.R[0][0], pr.R[0][1], pr.R[0][2])
+            print("%u-%u %3u,%3u,%3u" % (x0 / area, y0 / area, pr.R[0][0], pr.R[0][1], pr.R[0][2]))
             for y in range(area):
                 for x in range(area):
                     pixel = pr.GetValue((x,y))
@@ -1566,7 +1567,7 @@ class DeepLearning:
                         break
 
         endtime = datetime.datetime.now()
-        print "analyze(%d, %d):%s" % (self.Pr1.S, self.Pr2.S, str(endtime - startanalysistime))
+        print("analyze(%d, %d):%s" % (self.Pr1.S, self.Pr2.S, str(endtime - startanalysistime)))
 
         img.save(fileout, "PNG")
 
@@ -1640,7 +1641,7 @@ def CountOptimal():
         dl.DrawErrors(cw, "cw_%d_%d_e.png" % (dl.Pr1.S, dl.Pr2.S), bestthreshold, cwLabels)
     
     for l1, l2, minerror, bestthreshold, ltime, rtime in sorted(results, key=lambda res: res[2]):
-        print "%d %d %3d %3.2f %s %s" % (l1, l2, minerror, bestthreshold, str(ltime), str(rtime))
+        print("%d %d %3d %3.2f %s %s" % (l1, l2, minerror, bestthreshold, str(ltime), str(rtime)))
 
 def CountOptimal2():
     global pictures
@@ -1651,7 +1652,7 @@ def CountOptimal2():
         dl.Learn(pictures, l1, l2)
         for pic,labels in pictures.items():
             (maxhit, bestthreshold, rtime, setsize) = dl.CountOptimalThreshold({pic:labels})
-            print "%s: %d %d %3d %3.2f %s" % (pic, l1, l2, setsize - maxhit, bestthreshold, str(rtime))
+            print("%s: %d %d %3d %3.2f %s" % (pic, l1, l2, setsize - maxhit, bestthreshold, str(rtime)))
 
 def CountOptimal3():
     global pictures
@@ -1663,10 +1664,10 @@ def CountOptimal3():
         (maxhit, bestthreshold, rtime, setsize) = dl.CountOptimalThreshold(pictures)
         results.append((l1, l2, setsize - maxhit, bestthreshold, ltime, rtime))
         #dl.DrawErrors(cw, "cw_%d_%d_e.png" % (dl.Pr1.S, dl.Pr2.S), bestthreshold, cwLabels)
-        print l1,l2, rtime
+        print(l1,l2, rtime)
     
     for l1, l2, minerror, bestthreshold, ltime, rtime in sorted(results, key=lambda res: res[2]):
-        print "%d %d %3d %3.2f %s %s" % (l1, l2, minerror, bestthreshold, str(ltime), str(rtime))
+        print("%d %d %3d %3.2f %s %s" % (l1, l2, minerror, bestthreshold, str(ltime), str(rtime)))
 
 def DumpSmall():
     dump = Dump.FromFileName("../dumps/%s.dump" % "1502667194")
@@ -1677,12 +1678,12 @@ def MakeJSONDump():
     pics = {}
     for dumpName in dumps:
         pics[dumpName] = Dump.FromFileName("../dumps/%s.dump" % dumpName).GetDict()
-    print "g_pictures_set = " + json.dumps(pics)
+    print("g_pictures_set = " + json.dumps(pics))
 
 def ConvTest():
     global pixelpics
     for name,data in pixelpics.items():
-        print name, len(data)
+        print(name, len(data))
 
 def MakeConvMatrix(level):
     elements = []
@@ -1709,7 +1710,7 @@ class ConvLearn:
         self.Y = []
         self.AreaLevel = arealevel
         (self.Points, self.R) = MakeConvMatrix(self.AreaLevel)
-        print self.Points
+        print(self.Points)
 
     def GetAreaValues(self, dump, x, y):
         rec = []
@@ -1737,7 +1738,7 @@ class ConvLearn:
                 self.Y.append((label))
 
                 self.X.append(self.GetAreaValues(dump, x, y))
-        print lstat
+        print(lstat)
 
     def Learn(self, s):
         self.Pr = TPolyRegression(s)
@@ -1981,12 +1982,12 @@ def ConvMatrixTest2():
     cl = ConvLearn(1)
     
     for name in pics:
-        print name
+        print(name)
         cl.AddDump(Dump.FromFileName("../dumps/%s.dump" % name), pixelpics[name])
         
-    print "learn"
+    print("learn")
     cl.Learn(1)
-    print cl.Pr.R
+    print(cl.Pr.R)
 
 
     cwdump = Dump.FromFileName("../dumps/%s.dump" % cw)
@@ -2036,7 +2037,7 @@ def ConvMatrixTest2():
     
     threshold = 0.1
     
-    print "draw cw"
+    print("draw cw")
     scale = 10
     cl.DrawLabeledPicture(cwdump, scale, threshold, 'cw0.png')
     
@@ -2073,7 +2074,7 @@ def ConvMatrixL2():
     cwdump = Dump.FromFileName("../dumps/%s.dump" % '1502667194')
 
     detRes = cl.CountL2(cwdump, 0.1, 20, 2, 2)
-    print detRes
+    print(detRes)
     cl.DrawDetectedImage(cwdump, "cw2.png", detRes)
 
 def ConvDetect():
@@ -2122,7 +2123,7 @@ def ConvDetect():
 
 def Compatibility():
     pr = TPolyRegression(2)
-    print pr.GetPolyArray([1,2,3])
+    print(pr.GetPolyArray([1,2,3]))
 
 def OnePictireLearning():
     files = {'1502667084': {"background": (121,61,206,143), "object": (131,76, 192, 135)},
@@ -2150,7 +2151,7 @@ def OnePictireLearning():
     pr = TPolyRegression(0)
     pr.Learn(x, y)
     
-    print pr.R
+    print(pr.R)
     
     """
     db = 0
@@ -2200,8 +2201,8 @@ def OnePictireLearning():
                     neg = neg + 1
                 n = n + 1
     
-    print thr, b, fp, fp * 100.0 / b
-    print thr, n, neg, neg * 100.0 / n
+    print(thr, b, fp, fp * 100.0 / b)
+    print(thr, n, neg, neg * 100.0 / n)
     
     #cw = '1502667129'
     #cw = '1502667148'
@@ -2314,7 +2315,7 @@ class TAutoLearning:
                         v = '.'
                     s = s + v
                     i = i + 1
-                print s
+                print(s)
             
         if ba == 0:
             return 1
@@ -2357,7 +2358,7 @@ class TAutoLearning:
         for sdump in self.SDumps:
             for i in range(len(sdump.Data)):
                 if i % sdump.Width == 0:
-                    print s
+                    print(s)
                     s = ""
                 rgb = sdump.Data[i]
                 thr = self.GetMinThreshold(rgb)
@@ -2369,8 +2370,8 @@ class TAutoLearning:
                 else:
                     r = ' '
                 s = s + r
-            print s
-            print
+            print(s)
+            print()
         return (tmin, rgbmin)
 
     def GetMinThresholdCached(self, rgb):
@@ -2420,7 +2421,7 @@ class TAutoLearning:
             for g in range(-s, s + 1):
                 for b in range(-s, s + 1):
                     idx.append((r, g, b))
-        print "sort=", len(idx)
+        print("sort=", len(idx))
         idx.sort(key=lambda v: v[0] * v[0] + v[1] * v[1] + v[2] * v[2] )
 
         success = []
@@ -2430,7 +2431,7 @@ class TAutoLearning:
             while cont:
                 cont = False
                 steps = steps + 1
-                print steps, " rgb:", rgb, " thr:", thr, " s=", s, " cache=", self.CacheElements, " cacheH=", self.CacheCount
+                print(steps, " rgb:", rgb, " thr:", thr, " s=", s, " cache=", self.CacheElements, " cacheH=", self.CacheCount)
                 for v in idx:
                     rgbD = (rgb[0] + v[0], rgb[1] + v[1], rgb[2] + v[2])
                     if rgbD[0] < 0 or rgbD[0] > 255 or rgbD[1] < 0 or rgbD[1] > 255 or rgbD[2] < 0 or rgbD[2] > 255:
@@ -2443,7 +2444,7 @@ class TAutoLearning:
                         cont = True
                         success.append(v)
                         break
-        print success
+        print(success)
     
     def Print(self, rgb, thr):
         i = 0
@@ -2454,7 +2455,7 @@ class TAutoLearning:
                 v = {True: "R", False: "."}[d > thr]
                 s = s + v
                 i = i + 1
-            print s
+            print(s)
                 
 
 def AutoLearn():
@@ -2465,7 +2466,7 @@ def AutoLearn():
     width = (dump.Width / cellSize) * cellSize
     height = (dump.Height / cellSize) * cellSize
 
-    print width, height
+    print(width, height)
 
     a = []
     cellSq = float(cellSize * cellSize)
@@ -2504,7 +2505,7 @@ def AutoLearn():
             #s = s + (" %5d" % (d))
             s = s + v
             i = i + 1
-        print s
+        print(s)
      
 def AutoLearn2():
     # '1502667084', '1502667129', '1502667148', '1502667166', '1502667194'
@@ -2542,7 +2543,7 @@ def TestAutoLearning():
     #learn.AddDump("../dumps/%s.dump" % '1502667084')
 
     dump = dump2.GetScaled(learn.CellSize)
-    print learn.CheckThreshold(dump, v, thr, True)
+    print(learn.CheckThreshold(dump, v, thr, True))
 
     img = Image.frombytes('RGB', (dump2.Width, dump2.Height), dump2.Data)
     for sy in range(0, dump2.Height, 2):
@@ -2647,14 +2648,14 @@ def TestFillSel():
                 closestCluster["sum"][i] = closestCluster["sum"][i] + pixel[i]
                 closestCluster["core"][i] = closestCluster["sum"][i] / n
             closestCluster["n"] = n
-            print "%d: (%d,%d,%d): %d" % (closestClusterIdx, closestCluster["core"][0], closestCluster["core"][1], closestCluster["core"][2], minDistance)
+            print("%d: (%d,%d,%d): %d" % (closestClusterIdx, closestCluster["core"][0], closestCluster["core"][1], closestCluster["core"][2], minDistance))
         else:
             newCluster = {"core": list(pixel),
                           "sum": list(pixel),
                           "n": 1}
             closestClusterIdx = len(clusters)
             clusters.append(newCluster)
-            print "new: (%d,%d,%d): %d" % (newCluster["core"][0], newCluster["core"][1], newCluster["core"][2], minDistance)
+            print("new: (%d,%d,%d): %d" % (newCluster["core"][0], newCluster["core"][1], newCluster["core"][2], minDistance))
         if closestClusterIdx < len(colors):
             color = colors[closestClusterIdx]
         else:
@@ -2699,7 +2700,7 @@ def ShowSpace():
             if cv > cv_max:
                 cv_max = cv
 
-      print "%s (%f..%f , %f .. %f, %f .. %f)" % (file, cy_min, cy_max, cu_min, cu_max, cv_min, cv_max)
+      print("%s (%f..%f , %f .. %f, %f .. %f)" % (file, cy_min, cy_max, cu_min, cu_max, cv_min, cv_max))
       img.save("ss.png", 'PNG')
     #print "rgb=(%d..%d , %d .. %d, %d .. %d)" % (cr_min, cr_max, cg_min, cg_max, cb_min, cb_max)
 
@@ -2718,15 +2719,15 @@ def TestGrab():
     config.read('head.cfg')
     learning = TLearning(config)
     learning.LearnGrabPositions()
-    print learning.Grab.R
-    print learning.Grab.GetValue([float(config.get("POSITIONS", "max.D")), 2500])
+    print(learning.Grab.R)
+    print(learning.Grab.GetValue([float(config.get("POSITIONS", "max.D")), 2500]))
 
 def GrabChart():
     config = ConfigParser.ConfigParser()
     config.read('head.cfg')
     learning = TLearning(config)
     learning.LearnGrabPositions()
-    print learning.Grab.R
+    print(learning.Grab.R)
 
     i = 0
     x0 = []
@@ -2943,7 +2944,50 @@ def TestSkLearn():
     model = make_pipeline(PolynomialFeatures(3), Ridge())
     model.fit(X, y)
 
-    print model.predict(2)
+    print(model.predict(2))
+
+def CheckCameraLearning():
+
+	import matplotlib
+	import matplotlib.pyplot as plt
+	import numpy as np
+	fig, ax = plt.subplots()
+
+	config = ConfigParser.ConfigParser()
+	config.read('head.cfg')
+	template = re.compile("camera\.y\.(\d+)\.(\d+)")
+	X3000 = []
+	Y3000 = []
+	X2500 = []
+	Y2500 = []
+	X = []
+	Y = []
+	for p, v in config.items("POSITIONS"):
+		m = template.match(p)
+		if m:
+			a = int(m.group(1))
+			d = int(m.group(2))
+			y = int(v)
+			X.append([a,y])
+			Y.apped([d])
+			if a == 3000:
+				X3000.append([y])
+				Y3000.append([d])
+				ax.plot(y,d,'bo')
+			else:
+				if a == 2500:
+					X2500.append([y])
+					Y2500.append([d])
+					ax.plot(y,d,'ro')
+	ax.set(xlabel='camera Y', ylabel='Distance, mm',
+	       title='Camera positioning')
+	#ax.legend()
+	ax.grid()
+
+	fig.savefig("test.png")
+	plt.show()
+
+
 
 #Test2()
 #Im1()
@@ -3003,4 +3047,5 @@ def TestSkLearn():
 #TestGrab()
 #GrabChart()
 #GrabChart2()
-TestSkLearn()
+#TestSkLearn()
+CheckCameraLearning()
