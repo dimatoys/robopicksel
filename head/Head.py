@@ -350,7 +350,7 @@ class Head(HeadLocal):
                    40,  15, 16, 18, 22, 37, 13]
 
     # max time of movement servo the whole amplitude
-    SERVO_CYCLE = [0.2, 0.65, 0.75, 0.65, 1.0, 1.0]
+    SERVO_CYCLE = [0.2, 0.65, 0.75, 4.0]   #0.65
 
     # constant delay for servo control
     SERVO_COMMAND_PAUSE = 0.1

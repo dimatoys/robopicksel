@@ -38,6 +38,7 @@ class Commands(threading.Thread):
 		if config is not None:
 			self.Learning = TLearning(config)
 			self.Learning.LearnGrabPositions()
+			self.Learning.LearnCameraY()
 
 		self.ControlPoints = { "OPEN": {"FARTHEST": {"g": 1261, "a": 3415, "d": 219.85},
                                                 "CLOSEST":  {"g": 3831, "a": 2491, "d": 106},
@@ -189,10 +190,15 @@ class Commands(threading.Thread):
 		return self.SUCCESS
 
 	def SetLookPosition(self, n):
-		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, int(self.config.get("POSITIONS", "camera.find.%d.A" % n, "3000"))),
-		               self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
-		               self.Head.SetServo(self.Head.DOF_B, int(self.config.get("POSITIONS", "camera.find.%d.B" % n, "2500"))),
-		               self.Head.SetServo(self.Head.DOF_G, int(self.config.get("POSITIONS", "camera.G", "4300")))))
+		a = self.config.getint("POSITIONS", "camera.find.%d.A" % n)
+		gripper = self.Head.MinS
+		b = self.config.getint("POSITIONS", "camera.find.%d.B" % n)
+		g = self.config.getint("POSITIONS", "camera.G")
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
+		               self.Head.SetServo(self.Head.DOF_GRIPPER, gripper),
+		               self.Head.SetServo(self.Head.DOF_B, b),
+		               self.Head.SetServo(self.Head.DOF_G, g)))
+		return (b, a, g, gripper)
 
 	def ObjToDict(self, obj):
 		return {"MinX": obj.MinX,
@@ -243,7 +249,7 @@ class Commands(threading.Thread):
 			obj = self.VarCamera.Objects[0]
 			if obj.MinX >= min_x:
 				if obj.MaxX <= max_x:
-					result["final"] = {"final":  self.ObjToDict(obj),
+					result["final"] = {"object":  self.ObjToDict(obj),
 					                   "camera": camera}
 					break
 			else:
@@ -278,7 +284,7 @@ class Commands(threading.Thread):
 
 		return result
 
-	def CmdFind2(self, file):
+	def CmdFind2(self):
 		self.SetLookPosition(0)
 
 		result = self.MoveToObject()
@@ -296,6 +302,48 @@ class Commands(threading.Thread):
 		result["gripper"] = gripper
 		result["a"] = a
 		result["g"] = g
+		self.SetResult(result)
+		return self.SUCCESS
+
+	def CmdGrabAt2(self, d):
+		gripper = self.Head.MinS
+		step = (self.Head.MaxS - self.Head.MinS) / 33.0
+		result = {"d": d, "status": "LOST"}
+		while gripper < self.Head.MaxS:
+			if self.Head.GrabStatus() > 0:
+				result["status"] = "TAKEN"
+				break
+			(new_a, new_g) = self.Learning.GetGrabPosition(d, gripper)
+			self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, new_a),
+			               self.Head.SetServo(self.Head.DOF_G, new_g),
+			               self.Head.SetServo(self.Head.DOF_GRIPPER, gripper)))
+			gripper += step
+		self.SetResult(result)
+		return self.SUCCESS
+
+	def CmdLift(self):
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, 2200),
+		               self.Head.SetServo(self.Head.DOF_G, 3300)))
+		return self.SUCCESS
+
+	def CmdToBox(self):
+		self.CmdLift()
+		self.Sleep(self.Head.SetServo(self.Head.DOF_B, 400))
+		self.Sleep(self.Head.SetServo(self.Head.DOF_GRIPPER, 0))
+		return self.SUCCESS
+
+	def CmdFindAndGrab2(self):
+		(b, a, g, gripper) = self.SetLookPosition(0)
+		result = self.MoveToObject()
+		if "final" in result:
+			obj = result["final"]["object"]
+			y = (obj["MinY"] + obj["MaxY"]) / 2.0
+			result["y"] = y
+			d = self.Learning.GetObjD(a, y)
+			self.CmdGrabAt2(d)
+			result["grab"] = self.LastResult
+			if result["grab"]["status"] == "TAKEN":
+				self.CmdToBox()
 		self.SetResult(result)
 		return self.SUCCESS
 

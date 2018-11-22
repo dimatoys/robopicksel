@@ -352,9 +352,10 @@ class TLearning:
 
     def GetObjD(self, a, y):
         if a in self.CameraYc:
-            return self.CameraYc[a].GetValue([y])
+            d = self.CameraYc[a].GetValue([y])[0]
         else:
-            return self.CameraY.GetValue([a,y])
+            d = self.CameraY.GetValue([a,y])[0]
+        return d
 
     def GetAB(self, A, B, x, y):
         (xd, yd) = self.D.GetValue((x, y, A))
