@@ -190,15 +190,19 @@ class Commands(threading.Thread):
 		return self.SUCCESS
 
 	def SetLookPosition(self, n):
-		a = self.config.getint("POSITIONS", "camera.find.%d.A" % n)
-		gripper = self.Head.MinS
-		b = self.config.getint("POSITIONS", "camera.find.%d.B" % n)
-		g = self.config.getint("POSITIONS", "camera.G")
-		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
-		               self.Head.SetServo(self.Head.DOF_GRIPPER, gripper),
-		               self.Head.SetServo(self.Head.DOF_B, b),
-		               self.Head.SetServo(self.Head.DOF_G, g)))
-		return (b, a, g, gripper)
+		if self.config.has_option("POSITIONS", "camera.find.%d.A" % n):
+			self.CmdPrint("Has option: camera.find.%d.A" %n)
+			a = self.config.getint("POSITIONS", "camera.find.%d.A" % n)
+			gripper = self.Head.MinS
+			b = self.config.getint("POSITIONS", "camera.find.%d.B" % n)
+			g = self.config.getint("POSITIONS", "camera.G")
+			self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
+						   self.Head.SetServo(self.Head.DOF_GRIPPER, gripper),
+						   self.Head.SetServo(self.Head.DOF_B, b),
+						   self.Head.SetServo(self.Head.DOF_G, g)))
+			return (b, a, g, gripper)
+		else:
+			return None
 
 	def ObjToDict(self, obj):
 		return {"MinX": obj.MinX,
@@ -264,8 +268,8 @@ class Commands(threading.Thread):
 						need_adjust = True
 				else:
 					if obj.MaxX > max_x:
-						toobig.attempts({"object": self.ObjToDict(obj),
-						                 "camera": camera})
+						toobig.append({"object": self.ObjToDict(obj),
+						               "camera": camera})
 					else:
 						need_adjust = True
 
@@ -277,6 +281,7 @@ class Commands(threading.Thread):
 			attempt += 1
 			if attempt >= total_attempts:
 				result["exceed"] = attempt
+				break
 
 			x = (obj.MinX + obj.MaxX) / 2.0
 			y = (obj.MinY + obj.MaxY) / 2.0
@@ -300,11 +305,26 @@ class Commands(threading.Thread):
 
 		return result
 
-	def CmdFind2(self):
-		self.SetLookPosition(0)
+	def FindIterator(self, waitPickAttempts = 0):
+		pos = 0
+		waitPick = waitPickAttempts
+		while self.SetLookPosition(pos) is not None:
+			self.CmdPrint("Has pos %d" % pos)
+			move = self.MoveToObject()
+			if "final" in move:
+				yield move
+				if waitPick > 0:
+					waitPick -= 1
+					continue
+			pos += 1
+			waitPick = waitPickAttempts
+		self.CmdPrint("Stop finding")
+		return
 
-		result = self.MoveToObject()
-
+	def CmdFindAll(self):
+		result = []
+		for move in self.FindIterator():
+			result.append(move)
 		self.SetResult(result)
 		return self.SUCCESS
 
@@ -329,7 +349,11 @@ class Commands(threading.Thread):
 			if self.Head.GrabStatus() > 0:
 				result["status"] = "TAKEN"
 				break
-			(new_a, new_g) = self.Learning.GetGrabPosition(d, gripper)
+			pos = self.Learning.GetGrabPosition(d, gripper)
+			if pos is None:
+				result["status"] = "OUT"
+				break
+			(new_a, new_g) = pos
 			self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, new_a),
 			               self.Head.SetServo(self.Head.DOF_G, new_g),
 			               self.Head.SetServo(self.Head.DOF_GRIPPER, gripper)))
@@ -346,20 +370,27 @@ class Commands(threading.Thread):
 		self.CmdLift()
 		self.Sleep(self.Head.SetServo(self.Head.DOF_B, 400))
 		self.Sleep(self.Head.SetServo(self.Head.DOF_GRIPPER, 0))
+		self.Sleep(self.Head.SetServo(self.Head.DOF_B, 750))
 		return self.SUCCESS
 
-	def CmdFindAndGrab2(self):
-		(b, a, g, gripper) = self.SetLookPosition(0)
-		result = self.MoveToObject()
-		if "final" in result:
-			obj = result["final"]["object"]
+	def CmdFindAndGrabAll(self):
+		#(b, a, g, gripper) = self.SetLookPosition(0)
+		#result = self.MoveToObject()
+		#if "final" in result:
+		result = []
+		for move in self.FindIterator(waitPickAttempts = 10):
+			obj = move["final"]["object"]
 			y = (obj["MinY"] + obj["MaxY"]) / 2.0
-			result["y"] = y
+			a = self.Head.GetServo(self.Head.DOF_A)
 			d = self.Learning.GetObjD(a, y)
+			move["y"] = y
+			move["a"] = a
+			move["d"] = d
 			self.CmdGrabAt2(d)
-			result["grab"] = self.LastResult
-			if result["grab"]["status"] == "TAKEN":
+			move["grab"] = self.LastResult
+			if move["grab"]["status"] == "TAKEN":
 				self.CmdToBox()
+			result.append(move)
 		self.SetResult(result)
 		return self.SUCCESS
 

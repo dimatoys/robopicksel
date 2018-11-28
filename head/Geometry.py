@@ -296,8 +296,14 @@ class TLearning:
         i = 0
         x = []
         y = []
+        self.MinD = 1000000
+        self.MaxD = -1
         while self.config.has_option("POSITIONS", "D.%d" % i):
             D = self.config.getfloat("POSITIONS", "D.%d" % i)
+            if D < self.MinD:
+                self.MinD = D
+            if D > self.MaxD:
+                self.MaxD = D
             Aopen = self.config.getfloat("POSITIONS", "A.open.%d" % i)
             Gopen = self.config.getfloat("POSITIONS", "G.open.%d" % i)
             x.append([D, 0])
@@ -347,6 +353,8 @@ class TLearning:
             self.CameraYc[a].Learn(x, Yc[a])
 
     def GetGrabPosition(self, d, gripper):
+        if d < self.MinD or d > self.MaxD:
+            return None
         (a, g) = self.Grab.GetValue([d, gripper])
         return (a, g)
 

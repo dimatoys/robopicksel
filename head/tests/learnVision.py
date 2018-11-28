@@ -2994,6 +2994,12 @@ def CheckCameraLearning():
 	fig.savefig("test.png")
 	plt.show()
 
+def TestGetGrapPosition():
+	config = ConfigParser.ConfigParser()
+	config.read('head.cfg')
+	learning = TLearning(config)
+	learning.LearnGrabPositions()
+	print(learning.GetGrabPosition(180, 0))
 
 
 #Test2()
@@ -3055,4 +3061,5 @@ def CheckCameraLearning():
 #GrabChart()
 #GrabChart2()
 #TestSkLearn()
-CheckCameraLearning()
+#CheckCameraLearning()
+TestGetGrapPosition()

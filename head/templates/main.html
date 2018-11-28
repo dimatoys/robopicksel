@@ -594,8 +594,8 @@ var Metadata  = undefined
       	  makeCmdSensors("OPEN", [], "CmdOpen()")
       	  makeCmd("LED", [{type:"select", id: "v", "options": [{name:"ON", value:"True"}, {name:"OFF", value:"False"}]}], "CmdLED($v)")
           makeCmdPicture("CmdLook2", [{type:"textfield", id:"c"}], "CmdLook2('test.jpg', $c)")
-          makeCmd("CmdFind2", [], "CmdFind2()")
-          makeCmd("CmdFindAndGrab2", [], "CmdFindAndGrab2()")
+          makeCmd("CmdFindAll", [], "CmdFindAll()")
+          makeCmd("CmdFindAndGrabAll", [], "CmdFindAndGrabAll()")
           makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
 
           $("#move_forward").click(function(){
