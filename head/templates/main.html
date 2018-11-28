@@ -593,23 +593,10 @@ var Metadata  = undefined
           makeCmdPicture("CmdCameraIObjects", [], "CmdCameraIObjects('test.jpg')")
       	  makeCmdSensors("OPEN", [], "CmdOpen()")
       	  makeCmd("LED", [{type:"select", id: "v", "options": [{name:"ON", value:"True"}, {name:"OFF", value:"False"}]}], "CmdLED($v)")
-          makeCmdPicture("CmdLook2", [], "CmdLook2('test.jpg')")
+          makeCmdPicture("CmdLook2", [{type:"textfield", id:"c"}], "CmdLook2('test.jpg', $c)")
           makeCmd("CmdFind2", [], "CmdFind2()")
           makeCmd("CmdFindAndGrab2", [], "CmdFindAndGrab2()")
           makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
-          makeCmd("HEAD RIGHT", [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BR$s:$a')")
-          makeCmd("HEAD LEFT",  [{type:"textfield", id:"s", value:"0.4"}, {type:"textfield", id:"a", value:""}], "CmdCommand('BL$s:$a')")
-     	  makeCmdPicture("CONTROL AND D", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', 'test.jpg')")
-    	  makeCmd("CONTROL ONLY", [{type:"select", id: "t", "options": [{name:"Farthest", value:"FARTHEST"}, {name:"Closest", value:"CLOSEST"}, {name:"Middle", value:"MID"}]}], "CmdSetControlPoint('$t', None)")
-    	  makeCmd("GET CONTROLS", [], "CmdGetControlPoints()")
-    	  makeCmd("GRAB AT", [{type:"textfield", value:"150", id:"d"}], "CmdIGrabAt($d)")
-    	  makeCmd("PICK AT", [{type:"textfield", value:"150", id:"d"},{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabAtAndPlace($d,$basket)")
-          makeCmd("GRAB FROM VIEW", [{type:"select", id:"basket", options:[{name:"RIGHT", value:"0"},{name:"LEFT", value:"1"}]}], "CmdIGrabFromAndPlace($basket)")
-          makeCmdPicture("PREVIEW", [], "CmdCameraSelectObject('test.jpg')")
-          makeCmd("FIND AND PICK", [], "CmdIFindAndGrab()")
-          makeCmdPicture("START NAVIGATE", [], "CmdStartNavigate('test.jpg')")
-          makeCmd("GRAB at XY", [{type:"textfield", value:"160", id:"x"}, {type:"textfield", value:"120", id:"y"}], "CmdGrabAtXY($x,$y)")
-          
 
           $("#move_forward").click(function(){
               sendCommand("CmdMoveForward(" + $("#move_time").val() + ")",

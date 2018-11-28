@@ -208,21 +208,22 @@ class Commands(threading.Thread):
 				"bb": obj.BorderBits,
 				"type": obj.ObjectType}
 
-	def CmdLook2(self, file):
-		self.SetLookPosition(0)
+	def CmdLook2(self, file, pos = 0):
+		self.SetLookPosition(pos)
 
 		if self.CmdCameraFire(file) == self.FAIL:
 			return self.FAIL
 		result = {"camera":self.LastResult}
 
-		if self.VarCamera.NumObjects > 0:
-			obj = self.VarCamera.Objects[0]
+		objects = []
+		for i in range(self.VarCamera.NumObjects):
+			obj = self.VarCamera.Objects[i]
 			x = (obj.MinX + obj.MaxX) / 2.0
 			y = (obj.MinY + obj.MaxY) / 2.0
-			result["object"] = self.ObjToDict(obj)
-			result["x"] = x
-			result["y"] = y
-
+			objects.append({"row": self.ObjToDict(obj),
+			                "x": x,
+			                "y": y})
+		result["objects"] = objects
 		self.SetResult(result)
 		return self.SUCCESS
 
@@ -246,17 +247,32 @@ class Commands(threading.Thread):
 		total_attempts = int(self.config.get("POSITIONS", "find.attempts", "5"))
 
 		while True:
-			obj = self.VarCamera.Objects[0]
-			if obj.MinX >= min_x:
-				if obj.MaxX <= max_x:
-					result["final"] = {"object":  self.ObjToDict(obj),
-					                   "camera": camera}
-					break
-			else:
-				if obj.MaxX > max_x:
-					result["toobig"] = {"object": self.ObjToDict(obj),
-					                    "camera": camera}
-					break
+			toobig = []
+			if self.VarCamera.NumObjects == 0:
+				result["lost"] = {"camera": camera}
+				break
+			need_adjust = False
+			for i in range(self.VarCamera.NumObjects):
+				obj = self.VarCamera.Objects[i]
+				if obj.MinX >= min_x:
+					if obj.MaxX <= max_x:
+						result["final"] = {"object": self.ObjToDict(obj),
+						                   "camera": camera}
+						need_adjust = False
+						break
+					else:
+						need_adjust = True
+				else:
+					if obj.MaxX > max_x:
+						toobig.attempts({"object": self.ObjToDict(obj),
+						                 "camera": camera})
+					else:
+						need_adjust = True
+
+			if not need_adjust:
+				if "final" not in result:
+					result["toobig"] = toobig
+				break
 
 			attempt += 1
 			if attempt >= total_attempts:
