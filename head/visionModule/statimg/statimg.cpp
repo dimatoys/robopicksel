@@ -1,10 +1,12 @@
 #include "statimg.h"
 
+#include <math.h>
+
 class TStatImgSegmentsExtractor : public TSegmentsExtractor {
 	TStatImgExtractorFactory* Parameters;
 	TMutableImage<unsigned char>* Image;
 
-	TMutableImage<unsigned short> AnomalyMatrix;
+	TMutableImage<short> AnomalyMatrix;
     double* A;
     int ASize;
     
@@ -12,10 +14,12 @@ class TStatImgSegmentsExtractor : public TSegmentsExtractor {
     void MakeSmoothing();
 	void MakeAnomalyMatrix(int& biggestCoreIdx);
 	double GetAreaAnomaly(int ax, int ay);
-	void ExtractObjectFromCore(TArea* area, int coreIdx);
+	void ExtractObjectFromCore(TArea* area, int coreIdx, int& xmin, int& xmax, int& ymin, int& ymax);
+	void ExtractObjectFromCore2(TArea* area, int coreIdx);
     void DetectObjectType(TArea* area, int coreIdx);
-    void DrawAnomalies(TMutableRGBImage* image);
+    void DrawAnomalies1(TMutableRGBImage* image);
     void DrawAnomalies2(TMutableRGBImage* image);
+    void DrawAnomalies3(TMutableRGBImage* image);
 
 public:
 	TStatImgSegmentsExtractor(TStatImgExtractorFactory* parameters,
@@ -107,12 +111,12 @@ void TStatImgSegmentsExtractor::MakeAnomalyMatrix(int& biggestCoreIdx) {
 
 	//double threshold = Parameters->AnomalyThreshold * Parameters->AnomalyThreshold * 65536 * Image->Depth  * Parameters-> AreaCell * Parameters-> AreaCell;
 	double threshold = Parameters->AnomalyThreshold * Parameters->AnomalyThreshold * 65536 * Image->Depth;
-	unsigned short yline[AnomalyMatrix.Width];
-	memset(yline, 0, AnomalyMatrix.Width * sizeof(unsigned short));
+	short yline[AnomalyMatrix.Width];
+	memset(yline, 0, AnomalyMatrix.Width * sizeof(short));
 	biggestCoreIdx = -1;
-	unsigned short biggestCoreSize = Parameters->MinCoreSize - 1;
+	short biggestCoreSize = Parameters->MinCoreSize - 1;
 	for(int y0 = 0; y0 < AnomalyMatrix.Height; y0++) {
-		unsigned short xline = 0;
+		short xline = 0;
 		for(int x0 = 0; x0 < AnomalyMatrix.Width; x0++) {
 			/*
 			double anomalies = 0;
@@ -127,8 +131,8 @@ void TStatImgSegmentsExtractor::MakeAnomalyMatrix(int& biggestCoreIdx) {
 			double anomalies = GetAreaAnomaly(x0, y0);
 			if (anomalies > threshold) {
 				++xline;
-				unsigned short ylinev = ++yline[x0];
-				unsigned short core = 1;
+				short ylinev = ++yline[x0];
+				short core = 1;
 				if ((x0 > 0) && (y0 > 0)) {
 					core += *AnomalyMatrix.Cell(x0 - 1, y0 - 1);
 					if (core > xline) {
@@ -153,20 +157,20 @@ void TStatImgSegmentsExtractor::MakeAnomalyMatrix(int& biggestCoreIdx) {
 	}
 }
 
-void TStatImgSegmentsExtractor::ExtractObjectFromCore(TArea* area, int coreIdx) {
+void TStatImgSegmentsExtractor::ExtractObjectFromCore(TArea* area, int coreIdx, int& xmin, int& xmax, int& ymin, int& ymax) {
 	int x0, y0;
 	AnomalyMatrix.IdxToXY(coreIdx, x0, y0);
-	unsigned short core = *AnomalyMatrix.Cell(coreIdx);
-	int xmax = x0;
-	int ymax = y0;
-	int xmin = xmax - core + 1;
-	int ymin = ymax - core + 1;
+	short core = *AnomalyMatrix.Cell(coreIdx);
+	xmax = x0;
+	ymax = y0;
+	xmin = xmax - core + 1;
+	ymin = ymax - core + 1;
 	int size = core * core;
 
 	for (int i = 0; i < core; i++) {
 		int x, y;
 		for (x = x0 + 1; x < AnomalyMatrix.Width; ++x) {
-			if (*AnomalyMatrix.Cell(x, y0 - i) == 0) {
+			if (*AnomalyMatrix.Cell(x, y0 - i) <= 0) {
 				break;
 			}
 			++size;
@@ -176,7 +180,7 @@ void TStatImgSegmentsExtractor::ExtractObjectFromCore(TArea* area, int coreIdx) 
 		}
 
 		for (x = x0 - core ; x >= 0; --x) {
-			if (*AnomalyMatrix.Cell(x, y0 - i) == 0) {
+			if (*AnomalyMatrix.Cell(x, y0 - i) <= 0) {
 				break;
 			}
 			++size;
@@ -186,7 +190,7 @@ void TStatImgSegmentsExtractor::ExtractObjectFromCore(TArea* area, int coreIdx) 
 		}
 
 		for (y = y0 + 1; y < AnomalyMatrix.Height; ++y) {
-			if (*AnomalyMatrix.Cell(x0 - i, y) == 0) {
+			if (*AnomalyMatrix.Cell(x0 - i, y) <= 0) {
 				break;
 			}
 			++size;
@@ -196,7 +200,7 @@ void TStatImgSegmentsExtractor::ExtractObjectFromCore(TArea* area, int coreIdx) 
 		}
 
 		for (y = y0 - core; y >= 0; --y) {
-			if (*AnomalyMatrix.Cell(x0 - i, y) == 0) {
+			if (*AnomalyMatrix.Cell(x0 - i, y) <= 0) {
 				break;
 			}
 			++size;
@@ -217,13 +221,93 @@ void TStatImgSegmentsExtractor::ExtractObjectFromCore(TArea* area, int coreIdx) 
 	                 (ymin == AnomalyMatrix.Height - 1 ? BORDER_BOTTOM : 0);
 }
 
+void TStatImgSegmentsExtractor::ExtractObjectFromCore2(TArea* area, int coreIdx) {
+	int frontier[2][AnomalyMatrix.ImageSize()];
+	int currentFrontier = 0;
+	int currentFrontierIdx = 0;
+	frontier[currentFrontier][currentFrontierIdx++] = coreIdx;
+	short* ptr = AnomalyMatrix.Cell(coreIdx);
+	*ptr = -*ptr;
+	int xmin, xmax,  ymin, ymax;
+	AnomalyMatrix.IdxToXY(coreIdx, xmin, ymin);
+	xmax = xmin;
+	ymax = ymin;
+	int size = 0;
+	while(currentFrontierIdx > 0) {
+		int newFrontier = 1 - currentFrontier;
+		int newFrontierIdx = 0;
+		size += currentFrontierIdx;
+		for (int i = 0; i < currentFrontierIdx; ++i) {
+			int x, y;
+			AnomalyMatrix.IdxToXY(frontier[currentFrontier][i], x, y);
+			if (x > 0) {
+				int newIdx = AnomalyMatrix.Idx(x - 1, y);
+				ptr = AnomalyMatrix.Cell(newIdx);
+				if (*ptr > 0) {
+					*ptr = -*ptr;
+					frontier[newFrontier][newFrontierIdx++] = newIdx;
+					if (x - 1 < xmin) {
+						xmin = x - 1;
+					}
+				}
+			}
+			if (x + 1 < AnomalyMatrix.Width) {
+				int newIdx = AnomalyMatrix.Idx(x + 1, y);
+				ptr = AnomalyMatrix.Cell(newIdx);
+				if (*ptr > 0) {
+					*ptr = -*ptr;
+					frontier[newFrontier][newFrontierIdx++] = newIdx;
+					if (x + 1 > xmax) {
+						xmax = x + 1;
+					}
+				}
+			}
+			if (y > 0) {
+				int newIdx = AnomalyMatrix.Idx(x, y - 1);
+				ptr = AnomalyMatrix.Cell(newIdx);
+				if (*ptr > 0) {
+					*ptr = -*ptr;
+					frontier[newFrontier][newFrontierIdx++] = newIdx;
+					if (y - 1 < ymin) {
+						ymin = y - 1;
+					}
+				}
+			}
+			if (y + 1 < AnomalyMatrix.Height) {
+				int newIdx = AnomalyMatrix.Idx(x, y + 1);
+				ptr = AnomalyMatrix.Cell(newIdx);
+				if (*ptr > 0) {
+					*ptr = -*ptr;
+					frontier[newFrontier][newFrontierIdx++] = newIdx;
+					if (y + 1 > ymax) {
+						ymax = y + 1;
+					}
+				}
+			}
+		}
+		currentFrontier = newFrontier;
+		currentFrontierIdx = newFrontierIdx;
+	}
+
+	area->MinX = xmin * Parameters->AreaCell;
+	area->MinY = ymin * Parameters->AreaCell;
+	area->MaxX = (xmax + 1) * Parameters->AreaCell;
+	area->MaxY = (ymax + 1) * Parameters->AreaCell;
+	area->Size = size * Parameters->AreaCell * Parameters->AreaCell;
+	area->AtBorder = (xmin == 0 ? BORDER_LEFT : 0) +
+	                 (xmax == AnomalyMatrix.Width -1 ? BORDER_RIGHT : 0) +
+	                 (ymin == 0 ? BORDER_TOP : 0) +
+	                 (ymin == AnomalyMatrix.Height - 1 ? BORDER_BOTTOM : 0);
+
+}
+
 void TStatImgSegmentsExtractor::DetectObjectType(TArea* area, int coreIdx) {
     int x0, y0;
     AnomalyMatrix.IdxToXY(coreIdx, x0, y0);
     //printf("DetectObjectType: (x,y)=(%d,%d) core=%d area=%d\n", x0, y0, (int)*AnomalyMatrix.Cell(coreIdx), Parameters->AreaCell);
     x0 *= Parameters->AreaCell;
     y0 *= Parameters->AreaCell;
-    unsigned short coreSize = (*AnomalyMatrix.Cell(coreIdx) - 1) * Parameters->AreaCell;
+    short coreSize = (*AnomalyMatrix.Cell(coreIdx) - 1) * Parameters->AreaCell;
     //printf("DetectObjectType: (X,Y)=(%d,%d) size=%d\n", x0, y0, (int)coreSize);
     int redblue = 0;
     for (int i = 0; i < coreSize; i++) {
@@ -237,6 +321,8 @@ void TStatImgSegmentsExtractor::DetectObjectType(TArea* area, int coreIdx) {
     area->ObjectType = redblue > 0 ? 1 : 2;
 }
 
+
+/*
 void TStatImgSegmentsExtractor::ExtractSegments(std::list<TArea>& areas) {
 
     if (Parameters->RegressionMatrix.ReAllocate(Image->Width, Image->Height, Parameters->RegressionLevel)) {
@@ -245,27 +331,97 @@ void TStatImgSegmentsExtractor::ExtractSegments(std::list<TArea>& areas) {
 
     int biggestCoreIdx = -1;
     MakeAnomalyMatrix(biggestCoreIdx);
-    if (biggestCoreIdx >= 0) {
+    if (biggestCoreIdx >= Parameters->MinCoreSize) {
+		int xmin, xmax, ymin, ymax;
 		printf("ExtractSegments: Core size: %d\n", (int)*AnomalyMatrix.Cell(biggestCoreIdx));
 		TArea area;
-		ExtractObjectFromCore(&area, biggestCoreIdx);
+		ExtractObjectFromCore(&area, biggestCoreIdx, xmin, xmax, ymin, ymax);
         //printf("ExtractSegments: extracted\n");
         DetectObjectType(&area, biggestCoreIdx);
         //printf("ExtractSegments: detected\n");
 		areas.push_back(area);
     }
 }
+*/
+
+void TStatImgSegmentsExtractor::ExtractSegments(std::list<TArea>& areas) {
+
+    if (Parameters->RegressionMatrix.ReAllocate(Image->Width, Image->Height, Parameters->RegressionLevel)) {
+    	MakeRegressionMatrix(&Parameters->RegressionMatrix);
+    }
+
+    int biggestCoreIdx = -1;
+    MakeAnomalyMatrix(biggestCoreIdx);
+    if (biggestCoreIdx >= Parameters->MinCoreSize) {
+		int size = AnomalyMatrix.ImageSize();
+		for (int i = size - 1; i >= 0; --i) {
+			if (*AnomalyMatrix.Cell(i) >= Parameters->MinCoreSize) {
+				TArea area;
+				ExtractObjectFromCore2(&area, i);
+/*
+				int xmin, xmax, ymin, ymax;
+				ExtractObjectFromCore(&area, i, xmin, xmax, ymin, ymax);
+				for (int y = ymin; y <=ymax; ++y) {
+					for (int x = xmin; x <= xmax; ++x) {
+						short* ptr = AnomalyMatrix.Cell(x, y);
+						*ptr = -abs(*ptr);
+					}
+				}
+*/
+				areas.push_back(area);
+			}
+		}
+    }
+}
+
 
 void TStatImgSegmentsExtractor::DrawDebugInfo(TMutableRGBImage* image) {
     switch (Mode) {
 	case 1:
-		DrawAnomalies(image);
+		DrawAnomalies1(image);
 		break;
 
 	case 2:
 		DrawAnomalies2(image);
 		break;
+
+	case 3:
+		DrawAnomalies3(image);
+		break;
 	}
+}
+
+void TStatImgSegmentsExtractor::DrawAnomalies1(TMutableRGBImage* image) {
+
+	unsigned char colors[][3] = {{ 0xFF, 0xFF, 0xFF},
+	                             { 0xFF, 0xFF, 0x80},
+	                             { 0xFF, 0x80, 0xFF},
+	                             { 0xFF, 0x80, 0x80},
+	                             { 0x80, 0xFF, 0xFF},
+	                             { 0x80, 0xFF, 0x80},
+	                             { 0x80, 0x80, 0xFF},
+	                             { 0x80, 0x80, 0x80},
+	                             { 0xFF, 0xFF, 0x00},
+	                             { 0xFF, 0x00, 0xFF},
+	                             { 0xFF, 0x00, 0xFF},
+	                             { 0xFF, 0x00, 0x00},
+	                             { 0x00, 0xFF, 0xFF},
+	                             { 0x00, 0xFF, 0x00},
+	                             { 0x00, 0x00, 0xFF},
+	                             { 0x00, 0x00, 0x00}};
+	unsigned char* colorObj = colors[0];
+
+	//printf("DebugInfo: w=%d h=%d\n", image->Width, image->Height);
+
+	for (int y = 0; y < AnomalyMatrix.Height; y++) {
+		for (int x =0; x < AnomalyMatrix.Width; x++) {
+			//printf("(%d,%d) %d\n", x, y, a);
+			if (*AnomalyMatrix.Cell(x, y) != 0) {
+				image->DrawPointer(x * Parameters->AreaCell + Parameters->AreaCell / 2, y * Parameters->AreaCell + Parameters->AreaCell / 2, 4, colors[abs(*AnomalyMatrix.Cell(x, y)) % 16]);
+			}
+		}
+	}
+
 }
 
 void TStatImgSegmentsExtractor::DrawAnomalies2(TMutableRGBImage* image) {
@@ -324,7 +480,7 @@ void TStatImgSegmentsExtractor::DrawAnomalies2(TMutableRGBImage* image) {
     }
 }
 
-void TStatImgSegmentsExtractor::DrawAnomalies(TMutableRGBImage* image) {
+void TStatImgSegmentsExtractor::DrawAnomalies3(TMutableRGBImage* image) {
 
 	unsigned char colors[][3] = {{ 0xFF, 0xFF, 0xFF},
 	                             { 0xFF, 0xFF, 0x80},
@@ -348,9 +504,25 @@ void TStatImgSegmentsExtractor::DrawAnomalies(TMutableRGBImage* image) {
 
 	for (int y = 0; y < AnomalyMatrix.Height; y++) {
 		for (int x =0; x < AnomalyMatrix.Width; x++) {
-			//printf("(%d,%d) %d\n", x, y, a);
-			if (*AnomalyMatrix.Cell(x, y) > 0) {
-				image->DrawPointer(x * Parameters->AreaCell + Parameters->AreaCell / 2, y * Parameters->AreaCell + Parameters->AreaCell / 2, 4, colors[*AnomalyMatrix.Cell(x, y) % 16]);
+			double anomalies = sqrt(GetAreaAnomaly(x, y) / (65536 * Image->Depth));
+			printf("(%d,%d) %f\n", x, y, anomalies);
+			/*unsigned char color = (unsigned char)(anomalies * 256);
+			unsigned char rgb[3];
+			rgb[0] = color;
+			rgb[1] = color;
+			rgb[2] = color;
+			image->DrawPointer(x * Parameters->AreaCell + Parameters->AreaCell / 2, y * Parameters->AreaCell + Parameters->AreaCell / 2, 4, rgb);
+			*/
+			int c = (anomalies - 0.1) * 100;
+			if (c < 0) {
+				c = 0;
+			} else {
+				if (c > 15) {
+					c = 15;
+				}
+			}
+			if (anomalies > Parameters->AnomalyThreshold) {
+				image->DrawPointer(x * Parameters->AreaCell + Parameters->AreaCell / 2, y * Parameters->AreaCell + Parameters->AreaCell / 2, 4, colors[c]);
 			}
 		}
 	}

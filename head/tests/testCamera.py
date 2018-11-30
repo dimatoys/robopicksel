@@ -1,3 +1,5 @@
+import ConfigParser
+
 import sys
 sys.path.append('.')
 
@@ -162,14 +164,22 @@ def test_stat():
 	from Commands import Commands
 	g_Head = HeadLocal()
 	logger = StdoutLogger()
-	InitCamera(logger, g_Head)
+	
+	config = ConfigParser.ConfigParser()
+	config.read('head.cfg')
+
+	InitCamera(logger, g_Head, config)
 	g_Commands = Commands(g_Head, logger)
+	
+	ExtractorSet({'AnomalyThreshold': 0.15})
+	
 	#g_Commands.CmdTestDump('1542258022', 't1.jpg', 1)
 	#g_Commands.CmdTestDump('1542260639', 't1.jpg', 1)
 	#g_Commands.CmdTestDump('1542260685', 't1.jpg', 1)
 	#g_Commands.CmdTestDump('1542260719', 't1.jpg', 1)
-	g_Commands.CmdTestDump('1542568320', 't1.jpg', 0)
+	#g_Commands.CmdTestDump('1542568320', 't1.jpg', 0)
 	#g_Commands.CmdTestDump('1542568439', 't1.jpg', 0)
+	g_Commands.CmdTestDump('1543457501', 't1.jpg', 1)
 
 	g_Commands.ShutdownCamera()
 
