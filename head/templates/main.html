@@ -534,6 +534,7 @@ function UpdateDumps() {
 	var sel = $("#dumps").empty()
 	var allTags = {}
 	var filter = TagsFilter($("#flabels").val())
+	Dumps.sort()
 	$.each(Dumps, function(idx, value){
 		tagsSet = {}
 		if ("images" in Metadata.Data && value in Metadata.Data.images) {
@@ -821,15 +822,6 @@ var Metadata  = undefined
         </td>
         <td>
         	<table>
-<!--
-        		<tr>
-          			<td>LOOK A</td>
-      				<td><div id="lookFrom" style="width:200px;"></div></td>
-      				<td><input id="lookFrom_s" type="textfield" value="2500" width="3" /></td>
-      				<td><input id="lookFrom_send" type="button" value=">"/></td>
-      				<td>d=<span id="lookFrom_d">-</span></td>
-      			</tr>
--->
       			<tr>
           			<td>GRIPPER</td>
       				<td><div id="grabGripper" style="width:200px;"></div></td>

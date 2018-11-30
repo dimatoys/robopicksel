@@ -156,6 +156,7 @@ class Vision(Structure):
 		self.Width = int(g_CameraParameters["width"])
 		self.Height = int(g_CameraParameters["height"])
 		self.Depth = 3 #int(g_CameraParameters["depth"])
+		self.Mode = int(g_CameraParameters["debug_mode"])
 		if g_VisionModule:
 			try:
 				import picamera
@@ -184,13 +185,12 @@ class Vision(Structure):
 				time.sleep(0.05)
 
 	# blocking command
-	def Fire(self, mode=0):
+	def Fire(self):
 		self.WaitInit()
 		global g_PiCamera
 		global g_Head
 		self.FireStartTime = datetime.datetime.now()
 		if g_PiCamera:
-			self.Mode = mode
 			#g_Head.SetLED(True)
 			g_PiCamera.capture(self, format='rgb')
 			#g_Head.SetLED(False)
@@ -310,6 +310,7 @@ def InitCamera(logger, head, config=None):
 	g_CameraParameters["iso"] = "0"
 
 	g_CameraParameters["extractor"] = CameraDefAlgorithm
+	g_CameraParameters["debug_mode"] = config.get("SETTINGS", "camera.debug.mode") if config is not None and config.has_option("SETTINGS", "camera.debug.mode") else "0"
 
 	g_VisionModule = cdll.LoadLibrary('../visionModuleLocal/libvisionModule.so')
 	g_VisionModule.extractorInit.argtypes = [POINTER(TObjectsExtractor), c_char_p]

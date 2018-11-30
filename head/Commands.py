@@ -374,9 +374,6 @@ class Commands(threading.Thread):
 		return self.SUCCESS
 
 	def CmdFindAndGrabAll(self):
-		#(b, a, g, gripper) = self.SetLookPosition(0)
-		#result = self.MoveToObject()
-		#if "final" in result:
 		result = []
 		for move in self.FindIterator(waitPickAttempts = 10):
 			obj = move["final"]["object"]
