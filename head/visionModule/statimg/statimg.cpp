@@ -417,7 +417,7 @@ void TStatImgSegmentsExtractor::DrawAnomalies1(TMutableRGBImage* image) {
 		for (int x =0; x < AnomalyMatrix.Width; x++) {
 			//printf("(%d,%d) %d\n", x, y, a);
 			if (*AnomalyMatrix.Cell(x, y) != 0) {
-				image->DrawPointer(x * Parameters->AreaCell + Parameters->AreaCell / 2, y * Parameters->AreaCell + Parameters->AreaCell / 2, 4, colors[abs(*AnomalyMatrix.Cell(x, y)) % 16]);
+				image->DrawPointer(x * Parameters->AreaCell + Parameters->AreaCell / 2, y * Parameters->AreaCell + Parameters->AreaCell / 2, 4, colors[(int)abs(*AnomalyMatrix.Cell(x, y)) % 16]);
 			}
 		}
 	}

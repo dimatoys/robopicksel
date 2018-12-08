@@ -393,6 +393,37 @@ class TLearning:
             result = "%s],\n" % result
         print result
 
+class AreaMap:
+
+	def __init__(self, config):
+		self.Config = config
+
+	def AddView(self, objs, a, b):
+		pass
+
+	def GetClosest(self, a, b):
+		return None
+
+	def Discover(self):
+		return None
+
+	"""
+	def SetLookPosition(self, n):
+		if self.config.has_option("POSITIONS", "camera.find.%d.A" % n):
+			self.CmdPrint("Has option: camera.find.%d.A" %n)
+			a = self.config.getint("POSITIONS", "camera.find.%d.A" % n)
+			gripper = self.Head.MinS
+			b = self.config.getint("POSITIONS", "camera.find.%d.B" % n)
+			g = self.config.getint("POSITIONS", "camera.G")
+			self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
+						   self.Head.SetServo(self.Head.DOF_GRIPPER, gripper),
+						   self.Head.SetServo(self.Head.DOF_B, b),
+						   self.Head.SetServo(self.Head.DOF_G, g)))
+			return (b, a, g, gripper)
+		else:
+			return None
+	"""
+
 class Geometry:
 
 	DOF_GRIPPER = 0
