@@ -591,11 +591,11 @@ var Metadata  = undefined
                   $("#response").html(data);
               });
     	  })
-          makeCmdPicture("CmdCameraIObjects", [], "CmdCameraIObjects('test.jpg')")
+          makeCmdPicture("CmdPreview", [], "CmdPreview('test.jpg')")
       	  makeCmdSensors("OPEN", [], "CmdOpen()")
       	  makeCmd("LED", [{type:"select", id: "v", "options": [{name:"ON", value:"True"}, {name:"OFF", value:"False"}]}], "CmdLED($v)")
-          makeCmdPicture("CmdLook2", [{type:"textfield", id:"c"}], "CmdLook2('test.jpg', $c)")
-          makeCmd("CmdFindAll", [], "CmdFindAll()")
+          makeCmdPicture("CmdLook2", [{type:"textfield", id:"c", value: "0"}], "CmdLook2('test.jpg', $c)")
+          makeCmd("CmdFindFirst", [], "CmdFindFirst()")
           makeCmd("CmdFindAndGrabAll", [], "CmdFindAndGrabAll()")
           makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
 

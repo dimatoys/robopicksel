@@ -15,7 +15,7 @@ public:
 
 		AddParameter("MinCoreSize", &MinCoreSize, 2);
 		AddParameter("AreaCell", &AreaCell, 10);
-		AddParameter("AnomalyThreshold", &AnomalyThreshold, 0.18);
+		AddParameter("AnomalyThreshold", &AnomalyThreshold, 0.15);
 	}
 
 	TSegmentsExtractor* CreateExtractor(TMutableImage<unsigned char>* image);

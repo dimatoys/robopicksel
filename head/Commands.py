@@ -42,6 +42,11 @@ class Commands(threading.Thread):
 			self.Views = {3000: {"D":  34.0, "H": 139.0, "W1": 185.0, "W2": 150.0},
 			              2500: {"D": 104.0, "H": 132.0, "W1": 174.0, "W2": 180.0},
 			              1500: {"D": 224.0, "H": 235.0, "W1": 198.0, "W2": 320.0}}
+			self.DMIN = 130
+			self.DMAX = 230
+			self.WMIN = 5
+			self.WMAX = 55
+
 
 
 		self.ControlPoints = { "OPEN": {"FARTHEST": {"g": 1261, "a": 3415, "d": 219.85},
@@ -222,19 +227,36 @@ class Commands(threading.Thread):
 			cy = (obj.MaxY + obj.MinY) / 2.0
 			py = self.Views[a]["H"] / camera_height
 			px = (self.Views[a]["W2"] + cy * (self.Views[a]["W1"] - self.Views[a]["W2"]) / camera_height) / camera_width
-			objdict["d"] = (camera_height - cy) * py + self.Views[a]["D"]
-			objdict["dx"] = (cx - camera_width / 2.0) * px
-			objdict["w"] = (obj.MaxX - obj.MinX) * px
+			d = (camera_height - cy) * py + self.Views[a]["D"]
+			dx = (cx - camera_width / 2.0) * px
+			w = (obj.MaxX - obj.MinX) * px
 			objdict["h"] = (obj.MaxY - obj.MinY) * py
+			if d < self.DMIN:
+				objdict["reach"] = "too close"
+			else:
+				if d > self.DMAX:
+					objdict["reach"] = "too far"
+				else:
+					if w > self.WMAX:
+						objdict["reach"] = "too big"
+					else:
+						if w < self.WMIN:
+							objdict["reach"] = "too small"
+						else:
+							if self.WMAX - w >= 2 * abs(dx):
+								objdict["reach"] = "can take"
+							else:
+								objdict["reach"] = "need adjust"
+			objdict["w"] = w
+			objdict["d"] = d
+			objdict["dx"] = dx
 			objdict["cx"] = cx
 			objdict["cy"] = cy
 			objdict["px"] = px
 			objdict["py"] = py
 		return objdict
 
-	def CmdLook2(self, file, pos = 0):
-		self.SetLookPosition(pos)
-
+	def CmdPreview(self, file):
 		if self.CmdCameraFire(file) == self.FAIL:
 			return self.FAIL
 		result = {"camera":self.LastResult}
@@ -245,20 +267,14 @@ class Commands(threading.Thread):
 			obj = self.VarCamera.Objects[i]
 			objects.append(self.ObjToDict(obj, a))
 		result["objects"] = objects
+		result["a"] = a
 		self.SetResult(result)
 		return self.SUCCESS
 
-	def CmdMoveToView(self, x, y):
-		a = self.Head.GetServo(self.Head.DOF_A)
-		b = self.Head.GetServo(self.Head.DOF_B)
-		result = {"x": x, "y": y, "a": a, "b": b}
-		R = {2500:192.0, 3000:54.0}
-		if a in R:
-			b = b - 2500 * atan((x - 160) / ((240 - y) + R[a])) / pi
-			self.Sleep(self.Head.SetServo(self.Head.DOF_B, b))
-			result["new_b"] = b
-		self.SetResult(result)
-		return self.SUCCESS
+	def CmdLook2(self, file, pos = 0):
+		self.SetLookPosition(pos)
+
+		return self.CmdPreview(file)
 
 	def CmdMoveToObj(self, dx, d):
 		b = self.Head.GetServo(self.Head.DOF_B)
@@ -277,50 +293,40 @@ class Commands(threading.Thread):
 		if self.VarCamera.NumObjects == 0:
 			return {"no_obects": {"camera": camera}}
 
-		obj = self.VarCamera.Objects[0]
-
-		max_width = int(self.config.get("POSITIONS", "camera.grab.max_width", "90"))
-		picture_width = self.VarCamera.Width
-		min_x = (picture_width - max_width) / 2
-		max_x = (picture_width + max_width) / 2
-
-		result = {"attempts":[], "max_x": max_x, "min_x": min_x}
+		result = {"attempts":[]}
 		attempt = 0
 		total_attempts = int(self.config.get("POSITIONS", "find.attempts", "5"))
 
 		a = self.Head.GetServo(self.Head.DOF_A)
 		while True:
-			toobig = []
+			notfit = []
+			need_adjust = []
+			take = None
 			if self.VarCamera.NumObjects == 0:
 				result["lost"] = {"camera": camera}
 				break
-			need_adjust = False
+
 			for i in range(self.VarCamera.NumObjects):
 				obj = self.VarCamera.Objects[i]
 				objdict = self.ObjToDict(obj, a)
-				if obj.MinX >= min_x:
-					if obj.MaxX <= max_x:
-						result["final"] = {"object": objdict,
-						                   "camera": camera}
-						need_adjust = False
-						break
-					else:
-						need_adjust = True
-						break
+				if objdict["reach"] == "can take":
+					take = objdict
+					break
 				else:
-					if obj.MaxX > max_x:
-						toobig.append({"object": objdict,
-						               "camera": camera})
+					if objdict["reach"] == "need adjust":
+						need_adjust.append(objdict)
 					else:
-						need_adjust = True
-						break
+						notfit.append(objdict)
 
-			if not need_adjust:
-				if "final" not in result:
-					self.CmdPrint("too big")
-					result["toobig"] = toobig
-				else:
-					self.CmdPrint("final")
+			attempt_data = {"notfit": notfit,
+			                "need_adjust": need_adjust,
+			                "take": take,
+			                "attempt": attempt,
+			                "camera": camera}
+			result["attempts"].append(attempt_data)
+
+			if take is not None:
+				result["final"] = take
 				break
 
 			attempt += 1
@@ -328,22 +334,24 @@ class Commands(threading.Thread):
 				result["exceed"] = attempt
 				break
 
-			self.CmdMoveToObj(objdict["dx"], objdict["d"])
-			self.CmdPrint("adjust: %s %s" % (str(self.LastResult), str(objdict)))
-			result["attempts"].append({"move": self.LastResult,
-			                           "object": objdict,
-			                           "camera": camera})
+			d = None
+			dx = 10000000000
+			for objdict in need_adjust:
+				if objdict["dx"] < dx:
+					dx = objdict["dx"]
+					d = objdict["d"]
+
+			if d is None:
+				break
+
+			self.CmdMoveToObj(dx, d)
+
+			attempt_data["move"] = self.LastResult
 
 			if self.CmdCameraFire(file) == self.FAIL:
 				result["error"] = "camera"
 				break
 			camera = self.LastResult
-
-			if self.VarCamera.NumObjects == 0:
-				result["lost"] = {"camera": camera}
-				break
-
-			obj = self.VarCamera.Objects[0]
 
 		return result
 
@@ -363,11 +371,11 @@ class Commands(threading.Thread):
 		self.CmdPrint("Stop finding")
 		return
 
-	def CmdFindAll(self):
-		result = []
+	def CmdFindFirst(self):
+		move = None
 		for move in self.FindIterator():
-			result.append(move)
-		self.SetResult(result)
+			break
+		self.SetResult(move)
 		return self.SUCCESS
 
 	def CmdSetGrabPosition(self, d, gripper):
@@ -418,13 +426,11 @@ class Commands(threading.Thread):
 	def CmdFindAndGrabAll(self):
 		result = []
 		for move in self.FindIterator(waitPickAttempts = 10):
-			obj = move["final"]["object"]
-			y = (obj["MinY"] + obj["MaxY"]) / 2.0
+			obj = move["final"]
 			a = self.Head.GetServo(self.Head.DOF_A)
-			d = self.Learning.GetObjD(a, y)
-			move["y"] = y
+			d = self.Learning.GetObjD(a, obj["cy"])
 			move["a"] = a
-			move["d"] = d
+			move["ld"] = d
 			self.CmdGrabAt2(d)
 			move["grab"] = self.LastResult
 			if move["grab"]["status"] == "TAKEN":
