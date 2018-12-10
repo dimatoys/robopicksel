@@ -486,9 +486,17 @@ class ViewMap:
 class ViewRingMap:
 	def __init__(self, config):
 		self.Config = config
+		self.PickViews = [3000, 2500]
+		self.Views = {3000: {"D":  34.0, "H": 139.0, "W1": 185.0, "W2": 150.0},
+		              2500: {"D": 104.0, "H": 132.0, "W1": 174.0, "W2": 180.0},
+		              1500: {"D": 224.0, "H": 235.0, "W1": 198.0, "W2": 320.0}}
+
 		self.Rings = {}
 
-	def AddView(self, view, b):
+	def AddView(self, a, b):
+		if a not in self.Views:
+			return
+		view = self.Views[a]
 		ring = view["D"]
 		ba = ba = (2500 - b) * pi / 2500
 		if ring in self.Rings:
@@ -530,7 +538,17 @@ class ViewRingMap:
 							  fill=(0, 0, 0))
 		img.save(file_name)
 
-	def GetWatch(self, b )
+	def GetNewPickView(self, b):
+		ba = ba = (2500 - b) * pi / 2500
+		for a in self.PickViews:
+			ring = self.Views[a]["D"]
+			if ring not in self.Rings:
+				return (a, b)
+			rdata = self.Rings[ring]
+			if "Left" not in rdata:
+				return (a, b)
+		return None
+
 
 class Geometry:
 

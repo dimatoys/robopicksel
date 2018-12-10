@@ -39,15 +39,13 @@ class Commands(threading.Thread):
 			self.Learning = TLearning(config)
 			self.Learning.LearnGrabPositions()
 			self.Learning.LearnCameraY()
-			self.Views = {3000: {"D":  34.0, "H": 139.0, "W1": 185.0, "W2": 150.0},
-			              2500: {"D": 104.0, "H": 132.0, "W1": 174.0, "W2": 180.0},
-			              1500: {"D": 224.0, "H": 235.0, "W1": 198.0, "W2": 320.0}}
-			self.DMIN = 130
-			self.DMAX = 230
+			self.DMIN = 70
+			self.DMAX = 198
 			self.WMIN = 5
 			self.WMAX = 55
 			self.PicturesDir = "static"
 			self.CmdResetMap()
+			self.CAMERA_G = self.config.getint("POSITIONS", "camera.G")
 
 
 
@@ -200,28 +198,15 @@ class Commands(threading.Thread):
 		self.Head.SetLED(value)
 		return self.SUCCESS
 
-	def SetLookPosition(self, n):
-		if self.config.has_option("POSITIONS", "camera.find.%d.A" % n):
-			a = self.config.getint("POSITIONS", "camera.find.%d.A" % n)
-			gripper = self.Head.MinS
-			b = self.config.getint("POSITIONS", "camera.find.%d.B" % n)
-			g = self.config.getint("POSITIONS", "camera.G")
-			self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
-						   self.Head.SetServo(self.Head.DOF_GRIPPER, gripper),
-						   self.Head.SetServo(self.Head.DOF_B, b),
-						   self.Head.SetServo(self.Head.DOF_G, g)))
-			return (b, a, g, gripper)
-		else:
-			return None
-
-	def ObjToDict(self, obj, view):
+	def ObjToDict(self, obj, a):
 		objdict = {"MinX": obj.MinX,
 		           "MinY": obj.MinY,
 		           "MaxX": obj.MaxX,
 		           "MaxY": obj.MaxY,
 		           "bb": obj.BorderBits,
 		           "type": obj.ObjectType}
-		if view is not None:
+		if a in self.viewmap.Views:
+			view = self.viewmap.Views[a]
 			camera_width = float(CameraGetValues()["width"])
 			camera_height = float(CameraGetValues()["height"])
 			cx = (obj.MaxX + obj.MinX) / 2.0
@@ -259,6 +244,7 @@ class Commands(threading.Thread):
 
 	def CmdResetMap(self):
 		self.viewmap = ViewRingMap(self.config)
+		return self.SUCCESS
 
 	def CmdDrawMap(self, view_file = None):
 		if view_file is not None:
@@ -271,17 +257,13 @@ class Commands(threading.Thread):
 		result = {"camera":self.LastResult}
 
 		a = self.Head.GetServo(self.Head.DOF_A)
-		if a in self.Views:
-			b = self.Head.GetServo(self.Head.DOF_B)
-			view = self.Views[a]
-			self.viewmap.AddView(view, b)
-		else:
-			view = None
+		b = self.Head.GetServo(self.Head.DOF_B)
+		self.viewmap.AddView(a, b)
 
 		objects = []
 		for i in range(self.VarCamera.NumObjects):
 			obj = self.VarCamera.Objects[i]
-			objects.append(self.ObjToDict(obj, view))
+			objects.append(self.ObjToDict(obj, a))
 
 		self.CmdDrawMap(view_file)
 
@@ -290,10 +272,16 @@ class Commands(threading.Thread):
 		self.SetResult(result)
 		return self.SUCCESS
 
-	def CmdLook2(self, file, view_file, pos = 0):
-		self.SetLookPosition(pos)
-
-		return self.CmdPreview(file, view_file)
+	def CmdLookNext(self, file, view_file):
+		loc = self.viewmap.GetNewPickView(self.Head.GetServo(self.Head.DOF_B))
+		if loc is not None:
+			(a, b) = loc
+			self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
+			               self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
+			               self.Head.SetServo(self.Head.DOF_B, b),
+			               self.Head.SetServo(self.Head.DOF_G, self.CAMERA_G)))
+			self.CmdPreview(file, view_file)
+		return self.SUCCESS
 
 	def CmdMoveToObj(self, dx, d):
 		b = self.Head.GetServo(self.Head.DOF_B)
@@ -304,18 +292,23 @@ class Commands(threading.Thread):
 		return self.SUCCESS
 
 
-	def MoveToObject(self, view, viewmap, b):
+	def MoveToObject(self, a, b):
 
 		result = {"attempts":[]}
 		attempt = 0
 		total_attempts = int(self.config.get("POSITIONS", "find.attempts", "5"))
+
+		self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
+		               self.Head.SetServo(self.Head.DOF_GRIPPER, self.Head.MinS),
+		               self.Head.SetServo(self.Head.DOF_B, b),
+		               self.Head.SetServo(self.Head.DOF_G, self.CAMERA_G)))
 
 		while True:
 			if self.CmdCameraFire(file) == self.FAIL:
 				return {"error": "camera"}
 			camera = self.LastResult
 
-			self.viewmap.AddView(view, b)
+			self.viewmap.AddView(a, b)
 
 			notfit = []
 			need_adjust = []
@@ -323,7 +316,7 @@ class Commands(threading.Thread):
 
 			for i in range(self.VarCamera.NumObjects):
 				obj = self.VarCamera.Objects[i]
-				objdict = self.ObjToDict(obj, view)
+				objdict = self.ObjToDict(obj, a)
 				if objdict["reach"] == "can take":
 					take = objdict
 					break
@@ -364,25 +357,19 @@ class Commands(threading.Thread):
 
 		return result
 
-	def FindIterator(self, waitPickAttempts = 0):
-		pos = 0
-		waitPick = waitPickAttempts
-		self.viewmap = ViewMap(self.config)
+	def FindIterator(self, waitPickAttempts = 1):
+		self.CmdResetMap()
 		while True:
-			loc = self.SetLookPosition(pos)
+			loc = self.viewmap.GetNewPickView(self.Head.GetServo(self.Head.DOF_B))
 			if loc is None:
 				break
-			(b, a, g, gripper) = loc
-			if a not in self.Views:
-				break
-			move = self.MoveToObject(self.Views[a], self.viewmap, b)
-			if "final" in move:
-				yield move
-				if waitPick > 0:
-					waitPick -= 1
-					continue
-			pos += 1
-			waitPick = waitPickAttempts
+			(a, b) = loc
+			for i in range(waitPickAttempts):
+				move = self.MoveToObject(a, b)
+				if "final" in move:
+					yield move
+				else:
+					break
 		return
 
 	def CmdFindFirst(self):
@@ -413,7 +400,7 @@ class Commands(threading.Thread):
 			if self.Head.GrabStatus() > 0:
 				result["status"] = "TAKEN"
 				break
-			pos = self.Learning.GetGrabPosition(d, gripper)
+			pos = self.Learning.GetGrabPosition(d - self.DMIN, gripper)
 			if pos is None:
 				result["status"] = "OUT"
 				break
@@ -441,10 +428,11 @@ class Commands(threading.Thread):
 		result = []
 		for move in self.FindIterator(waitPickAttempts = 10):
 			obj = move["final"]
-			a = self.Head.GetServo(self.Head.DOF_A)
-			d = self.Learning.GetObjD(a, obj["cy"])
-			move["a"] = a
-			move["ld"] = d
+			d = obj["d"]
+			#a = self.Head.GetServo(self.Head.DOF_A)
+			#d = self.Learning.GetObjD(a, obj["cy"])
+			#move["a"] = a
+			#move["ld"] = d
 			self.CmdGrabAt2(d)
 			move["grab"] = self.LastResult
 			if move["grab"]["status"] == "TAKEN":

@@ -212,9 +212,9 @@
         })
         
         $("#grabDistance").slider({
-        	min: 0,
-        	max: 123,
-            value: 0,
+        	min: 70,
+        	max: 198,
+            value: 70,
             change: function( event, ui ) {
                         $("#grabDistance_s").val(ui.value)
                         sendCommand("CmdSetGrabPosition(" + ui.value + "," + $("#grabGripper_s").val() +")",
@@ -595,9 +595,9 @@ var Metadata  = undefined
           makeCmdPicture("CmdPreview", [], "CmdPreview('test.jpg', 'viewmap.png')")
       	  makeCmdSensors("OPEN", [], "CmdOpen()")
       	  makeCmd("LED", [{type:"select", id: "v", "options": [{name:"ON", value:"True"}, {name:"OFF", value:"False"}]}], "CmdLED($v)")
-          makeCmdPicture("CmdLook2", [{type:"textfield", id:"c", value: "0"}], "CmdLook2('test.jpg', 'viewmap.png', $c)")
-          makeCmd("CmdFindFirst", [], "CmdFindFirst()")
-          makeCmd("CmdFindAndGrabAll", [], "CmdFindAndGrabAll()")
+          makeCmdPicture("CmdLookNext", [], "CmdLookNext('test.jpg', 'viewmap.png')")
+          makeCmdPicture("CmdFindFirst", [], "CmdFindFirst()")
+          makeCmdPicture("CmdFindAndGrabAll", [], "CmdFindAndGrabAll()")
           makeCmdPicture("CmdResetMap", [], "CmdResetMap()")
           makeCmdPicture("CmdDrawMap", [], "CmdDrawMap('viewmap.png')")
           makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
