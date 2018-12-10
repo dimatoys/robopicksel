@@ -284,6 +284,7 @@
               sendArgCommand($(this), cmd, function(status, result){
           	      g_Objects = result
             	  $('#camera').prop('src', "static/test.jpg?" + Math.random())
+            	  $('#viewmap').prop('src', "static/viewmap.png?" + Math.random())
               })
           })
       }
@@ -591,12 +592,14 @@ var Metadata  = undefined
                   $("#response").html(data);
               });
     	  })
-          makeCmdPicture("CmdPreview", [], "CmdPreview('test.jpg')")
+          makeCmdPicture("CmdPreview", [], "CmdPreview('test.jpg', 'viewmap.png')")
       	  makeCmdSensors("OPEN", [], "CmdOpen()")
       	  makeCmd("LED", [{type:"select", id: "v", "options": [{name:"ON", value:"True"}, {name:"OFF", value:"False"}]}], "CmdLED($v)")
-          makeCmdPicture("CmdLook2", [{type:"textfield", id:"c", value: "0"}], "CmdLook2('test.jpg', $c)")
+          makeCmdPicture("CmdLook2", [{type:"textfield", id:"c", value: "0"}], "CmdLook2('test.jpg', 'viewmap.png', $c)")
           makeCmd("CmdFindFirst", [], "CmdFindFirst()")
           makeCmd("CmdFindAndGrabAll", [], "CmdFindAndGrabAll()")
+          makeCmdPicture("CmdResetMap", [], "CmdResetMap()")
+          makeCmdPicture("CmdDrawMap", [], "CmdDrawMap('viewmap.png')")
           makeCmd("COMMAND", [{type:"textfield", id:"c"}], "CmdCommand('$c')")
 
           $("#move_forward").click(function(){
@@ -896,6 +899,7 @@ var Metadata  = undefined
         <tr>
             <td>
                 <img id="camera"/>
+                <img id="viewmap"/>
                 <canvas id="dump"/>
             </td>
         </tr>

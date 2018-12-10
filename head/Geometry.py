@@ -1,6 +1,6 @@
 from math import *
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 import re
 
 class MinResolve:
@@ -393,36 +393,144 @@ class TLearning:
             result = "%s],\n" % result
         print result
 
-class AreaMap:
+class ViewMap:
 
 	def __init__(self, config):
 		self.Config = config
+		self.MapWidth = 100
+		self.MapHeight = 100
+		self.Scale = 0.2
+		self.Map = []
+		for y in range(self.MapHeight):
+			self.Map.append([0] * self.MapWidth)
 
-	def AddView(self, objs, a, b):
-		pass
+	def AddView(self, view, b):
+		ba = (2500 - b) * pi / 2500
+		bx1 = sin(ba) * view["D"]
+		by1 = cos(ba) * view["D"]
+		bx2 = sin(ba) * (view["D"] + view["H"])
+		by2 = cos(ba) * (view["D"] + view["H"])
+		cx = self.MapWidth / 2
+		cy = self.MapHeight / 2
+		points = []
+		points.append((int((bx1 - cos(ba) * view["W1"] / 2) * self.Scale + cx), int((by1 + sin(ba) * view["W1"]) * self.Scale + cy)))
+		points.append((int((bx1 + cos(ba) * view["W1"] / 2) * self.Scale + cx), int((by1 - sin(ba) * view["W1"]) * self.Scale + cy)))
+		points.append((int((bx2 + cos(ba) * view["W2"] / 2) * self.Scale + cx), int((by2 - sin(ba) * view["W2"]) * self.Scale + cy)))
+		points.append((int((bx2 - cos(ba) * view["W2"] / 2) * self.Scale + cx), int((by2 + sin(ba) * view["W2"]) * self.Scale + cy)))
 
-	def GetClosest(self, a, b):
-		return None
+		print("ba=%f bx1=%f by1=%f bx2=%f by2=%f cx=%f cy=%f" % (ba, bx1, by1, bx2, by2, cx,cy))
+		print(str(points))
 
-	def Discover(self):
-		return None
+		p1 = None
+		for i in range(4):
+			(x, y) = points[i]
+			self.Map[y][x] = 1
+			if p1 is None or x < x1:
+				x1 = x
+				p1 = i
 
-	"""
-	def SetLookPosition(self, n):
-		if self.config.has_option("POSITIONS", "camera.find.%d.A" % n):
-			self.CmdPrint("Has option: camera.find.%d.A" %n)
-			a = self.config.getint("POSITIONS", "camera.find.%d.A" % n)
-			gripper = self.Head.MinS
-			b = self.config.getint("POSITIONS", "camera.find.%d.B" % n)
-			g = self.config.getint("POSITIONS", "camera.G")
-			self.Sleep(max(self.Head.SetServo(self.Head.DOF_A, a),
-						   self.Head.SetServo(self.Head.DOF_GRIPPER, gripper),
-						   self.Head.SetServo(self.Head.DOF_B, b),
-						   self.Head.SetServo(self.Head.DOF_G, g)))
-			return (b, a, g, gripper)
+		min_right = p1 - 3
+		min_diag = p1 - 2
+		min_left = p1 - 1
+		if points[min_right][0] > points[min_left][0]:
+			p2 = min_left
+			if points[min_right][0] > points[min_diag][0]:
+				p3 = min_diag
+				p4 = min_right
+			else:
+				p3 = min_right
+				p4 = min_diag
 		else:
-			return None
-	"""
+			p2 = min_right
+			if points[min_left][0] > points[min_diag][0]:
+				p3 = min_diag
+				p4 = min_left
+			else:
+				p3 = min_left
+				p4 = min_diag
+
+		x2 = points[p2][0]
+		print(x1, x2)
+		if x2 > x1:
+			y0 = points[p1][1]
+			s1 = float(points[min_right][1] - y0) / (points[min_right][0] - points[p1][0])
+			s2 = float(points[min_left][1] - y0) / (points[min_left][0] - points[p1][0])
+			if s1 > s2:
+				st = s1
+				s1 = s2
+				s2 = st
+			for x in range(x1, x2):
+				y1 = y0 + int((x - x1) * s1)
+				y2 = y0 + int((x - x1) * s2)
+				for y in range(y1, y2 + 1):
+					self.Map[y][x] = 1
+		
+		x3 = points[p3][0]
+		if x3 > x2:
+			for x in range(x2, x3):
+				pass
+
+		x4 = points[p4][0]
+		if x4 > x3:
+			pass
+
+	def DrawMap(self, file_name):
+		colors = [(0,0,0), (255,255,255)]
+		img = Image.new('RGB', (self.MapWidth, self.MapHeight))
+		for y in range(self.MapHeight):
+			row = self.Map[y]
+			for x in range(self.MapWidth):
+				img.putpixel((x, self.MapHeight - y - 1), colors[row[x]])
+		img.save(file_name)
+
+class ViewRingMap:
+	def __init__(self, config):
+		self.Config = config
+		self.Rings = {}
+
+	def AddView(self, view, b):
+		ring = view["D"]
+		ba = ba = (2500 - b) * pi / 2500
+		if ring in self.Rings:
+			rdata = self.Rings[ring]
+		else:
+			rdata = {"R": view["H"] + view["D"],
+			         "W": atan(view["W2"] / 2.0 / (view["D"] + view["H"]))}
+			self.Rings[ring] = rdata
+		if "Left" not in rdata or ba - rdata["W"] < rdata["Left"]:
+			rdata["Left"] = ba - rdata["W"]
+		if "Right" not in rdata or ba + rdata["W"] > rdata["Right"]:
+			rdata["Right"] = ba + rdata["W"]
+
+	def DrawMap(self, file_name, size = 200):
+		img = Image.new('RGB', (size, size), (0,0,0))
+		ringsD = list(self.Rings.keys())
+		if len(ringsD) > 0:
+			ringsD.sort(reverse=True)
+			draw = ImageDraw.Draw(img)
+			maxring = self.Rings[ringsD[0]]
+			scale = size / 2.0 / maxring["R"]
+			center = size / 2
+			for ring in ringsD:
+				rdata = self.Rings[ring]
+				print(rdata["R"] * scale, 180 * (rdata["Left"] + 3 * pi / 2) / pi, 180 * (rdata["Right"] + 3 * pi / 2) / pi)
+				outr = rdata["R"] * scale
+				inr = ring * scale
+				draw.pieslice([center - outr,
+							   center - outr,
+							   center + outr,
+							   center + outr],
+							   180 * (rdata["Left"] + 3 * pi / 2) / pi,
+							   180 * (rdata["Right"] + 3 * pi / 2) /pi,
+							   fill=(255, 255, 255))
+				draw.ellipse([center - inr,
+							  center - inr,
+							  center + inr,
+							  center + inr],
+							  fill=(0, 0, 0))
+		img.save(file_name)
+
+	def GetWatch(self, b )
 
 class Geometry:
 

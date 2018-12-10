@@ -14,7 +14,7 @@ import sys
 import os
 sys.path.append('.')
 
-from Geometry import MinResolve, ResolveSymmetry, SampleImage, TModelPoly, TPolyRegression, TLearning
+from Geometry import MinResolve, ResolveSymmetry, SampleImage, TModelPoly, TPolyRegression, TLearning, ViewRingMap
 
 from labels import pixelpics
 
@@ -3001,6 +3001,19 @@ def TestGetGrapPosition():
 	learning.LearnGrabPositions()
 	print(learning.GetGrabPosition(180, 0))
 
+def TestViewMap():
+	config = ConfigParser.ConfigParser()
+	config.read('head.cfg')
+	views = {3000: {"D":  34.0, "H": 139.0, "W1": 185.0, "W2": 150.0},
+	         2500: {"D": 104.0, "H": 132.0, "W1": 174.0, "W2": 180.0},
+	         1500: {"D": 224.0, "H": 235.0, "W1": 198.0, "W2": 320.0}}
+	#vm = ViewMap(config)
+	vm = ViewRingMap(config)
+	vm.AddView(views[3000], 2500)
+	vm.AddView(views[3000], 3000)
+	vm.AddView(views[2500], 3000)
+	vm.AddView(views[1500], 2500)
+	vm.DrawMap("vm.png")
 
 #Test2()
 #Im1()
@@ -3062,4 +3075,6 @@ def TestGetGrapPosition():
 #GrabChart2()
 #TestSkLearn()
 #CheckCameraLearning()
-TestGetGrapPosition()
+#TestGetGrapPosition()
+TestViewMap()
+

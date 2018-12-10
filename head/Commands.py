@@ -5,7 +5,7 @@ import sys
 from math import *
 
 from Camera import VisionInstance, ExtractorSet, ExtractorGet, ExtractorParmeters, CameraGetValues, CameraSetValues, LearnExtractor, DeleteDump
-from Geometry import TLearning
+from Geometry import TLearning, ViewRingMap
 
 class Commands(threading.Thread):
 
@@ -46,6 +46,8 @@ class Commands(threading.Thread):
 			self.DMAX = 230
 			self.WMIN = 5
 			self.WMAX = 55
+			self.PicturesDir = "static"
+			self.CmdResetMap()
 
 
 
@@ -159,7 +161,7 @@ class Commands(threading.Thread):
 			self.CmdPrint("Init fail")
 			return self.FAIL
 		if file:
-			self.VarCamera.FileName = "static/%s" % file
+			self.VarCamera.FileName = "%s/%s" % (self.PicturesDir, file)
 		else:
 			self.VarCamera.FileName = None
 		self.VarCamera.Fire()
@@ -200,7 +202,6 @@ class Commands(threading.Thread):
 
 	def SetLookPosition(self, n):
 		if self.config.has_option("POSITIONS", "camera.find.%d.A" % n):
-			self.CmdPrint("Has option: camera.find.%d.A" %n)
 			a = self.config.getint("POSITIONS", "camera.find.%d.A" % n)
 			gripper = self.Head.MinS
 			b = self.config.getint("POSITIONS", "camera.find.%d.B" % n)
@@ -213,21 +214,21 @@ class Commands(threading.Thread):
 		else:
 			return None
 
-	def ObjToDict(self, obj, a):
+	def ObjToDict(self, obj, view):
 		objdict = {"MinX": obj.MinX,
 		           "MinY": obj.MinY,
 		           "MaxX": obj.MaxX,
 		           "MaxY": obj.MaxY,
 		           "bb": obj.BorderBits,
 		           "type": obj.ObjectType}
-		if a in self.Views:
+		if view is not None:
 			camera_width = float(CameraGetValues()["width"])
 			camera_height = float(CameraGetValues()["height"])
 			cx = (obj.MaxX + obj.MinX) / 2.0
 			cy = (obj.MaxY + obj.MinY) / 2.0
-			py = self.Views[a]["H"] / camera_height
-			px = (self.Views[a]["W2"] + cy * (self.Views[a]["W1"] - self.Views[a]["W2"]) / camera_height) / camera_width
-			d = (camera_height - cy) * py + self.Views[a]["D"]
+			py = view["H"] / camera_height
+			px = (view["W2"] + cy * (view["W1"] - view["W2"]) / camera_height) / camera_width
+			d = (camera_height - cy) * py + view["D"]
 			dx = (cx - camera_width / 2.0) * px
 			w = (obj.MaxX - obj.MinX) * px
 			objdict["h"] = (obj.MaxY - obj.MinY) * py
@@ -256,25 +257,43 @@ class Commands(threading.Thread):
 			objdict["py"] = py
 		return objdict
 
-	def CmdPreview(self, file):
+	def CmdResetMap(self):
+		self.viewmap = ViewRingMap(self.config)
+
+	def CmdDrawMap(self, view_file = None):
+		if view_file is not None:
+			self.viewmap.DrawMap("%s/%s" % (self.PicturesDir, view_file))
+		return self.SUCCESS
+
+	def CmdPreview(self, file, view_file = None):
 		if self.CmdCameraFire(file) == self.FAIL:
 			return self.FAIL
 		result = {"camera":self.LastResult}
 
 		a = self.Head.GetServo(self.Head.DOF_A)
+		if a in self.Views:
+			b = self.Head.GetServo(self.Head.DOF_B)
+			view = self.Views[a]
+			self.viewmap.AddView(view, b)
+		else:
+			view = None
+
 		objects = []
 		for i in range(self.VarCamera.NumObjects):
 			obj = self.VarCamera.Objects[i]
-			objects.append(self.ObjToDict(obj, a))
+			objects.append(self.ObjToDict(obj, view))
+
+		self.CmdDrawMap(view_file)
+
 		result["objects"] = objects
 		result["a"] = a
 		self.SetResult(result)
 		return self.SUCCESS
 
-	def CmdLook2(self, file, pos = 0):
+	def CmdLook2(self, file, view_file, pos = 0):
 		self.SetLookPosition(pos)
 
-		return self.CmdPreview(file)
+		return self.CmdPreview(file, view_file)
 
 	def CmdMoveToObj(self, dx, d):
 		b = self.Head.GetServo(self.Head.DOF_B)
@@ -285,30 +304,26 @@ class Commands(threading.Thread):
 		return self.SUCCESS
 
 
-	def MoveToObject(self):
-		if self.CmdCameraFire(file) == self.FAIL:
-			return {"error": "camera"}
-		camera = self.LastResult
-		
-		if self.VarCamera.NumObjects == 0:
-			return {"no_obects": {"camera": camera}}
+	def MoveToObject(self, view, viewmap, b):
 
 		result = {"attempts":[]}
 		attempt = 0
 		total_attempts = int(self.config.get("POSITIONS", "find.attempts", "5"))
 
-		a = self.Head.GetServo(self.Head.DOF_A)
 		while True:
+			if self.CmdCameraFire(file) == self.FAIL:
+				return {"error": "camera"}
+			camera = self.LastResult
+
+			self.viewmap.AddView(view, b)
+
 			notfit = []
 			need_adjust = []
 			take = None
-			if self.VarCamera.NumObjects == 0:
-				result["lost"] = {"camera": camera}
-				break
 
 			for i in range(self.VarCamera.NumObjects):
 				obj = self.VarCamera.Objects[i]
-				objdict = self.ObjToDict(obj, a)
+				objdict = self.ObjToDict(obj, view)
 				if objdict["reach"] == "can take":
 					take = objdict
 					break
@@ -337,7 +352,7 @@ class Commands(threading.Thread):
 			d = None
 			dx = 10000000000
 			for objdict in need_adjust:
-				if objdict["dx"] < dx:
+				if abs(objdict["dx"]) < abs(dx):
 					dx = objdict["dx"]
 					d = objdict["d"]
 
@@ -345,22 +360,22 @@ class Commands(threading.Thread):
 				break
 
 			self.CmdMoveToObj(dx, d)
-
 			attempt_data["move"] = self.LastResult
-
-			if self.CmdCameraFire(file) == self.FAIL:
-				result["error"] = "camera"
-				break
-			camera = self.LastResult
 
 		return result
 
 	def FindIterator(self, waitPickAttempts = 0):
 		pos = 0
 		waitPick = waitPickAttempts
-		while self.SetLookPosition(pos) is not None:
-			self.CmdPrint("Has pos %d" % pos)
-			move = self.MoveToObject()
+		self.viewmap = ViewMap(self.config)
+		while True:
+			loc = self.SetLookPosition(pos)
+			if loc is None:
+				break
+			(b, a, g, gripper) = loc
+			if a not in self.Views:
+				break
+			move = self.MoveToObject(self.Views[a], self.viewmap, b)
 			if "final" in move:
 				yield move
 				if waitPick > 0:
@@ -368,7 +383,6 @@ class Commands(threading.Thread):
 					continue
 			pos += 1
 			waitPick = waitPickAttempts
-		self.CmdPrint("Stop finding")
 		return
 
 	def CmdFindFirst(self):
@@ -1161,7 +1175,7 @@ class Commands(threading.Thread):
 			self.CmdPrint("Init fail")
 			return self.FAIL
 		if imgfile:
-			self.VarCamera.FileName = "static/%s" % imgfile
+			self.VarCamera.FileName = "%s/%s" % (self.PicturesDir, imgfile)
 		else:
 			self.VarCamera.FileName = None
 		self.VarCamera.TestDump(dump, mode)
