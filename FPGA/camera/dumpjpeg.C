@@ -75,11 +75,16 @@ struct TMap {
 
 struct TWin {
 	uint32_t WinSize;
+	uint32_t HistorySize;
 	uint32_t Count;
-	uint32_t Sum;
+	uint32_t* YSum;
+	uint32_t* XYSum;
+	uint32_t HHead;
+	uint32_t XSum;
 	uint32_t Head;
 
 	uint32_t* Data;
+	
 
 	TWin() {
 		Data = NULL;
@@ -88,31 +93,60 @@ struct TWin {
 	~TWin() {
 		if (Data != NULL) {
 			delete Data;
+			delete YSum;
+			delete XYSum;
 		}
 	}
+
 	void init(uint32_t winSize) {
+		init(winSize, 1);
+	}
+
+	void init(uint32_t winSize, uint32_t historySize) {
 		WinSize = winSize;
+		HistorySize = historySize;
 		Data = new uint32_t[winSize];
+		YSum = new uint32_t[historySize];
+		XYSum = new uint32_t[historySize];
 		Head = 0;
 		Count = 0;
-		Sum = 0;
+		HHead = 0;
+		YSum[HHead] = 0;
+		XYSum[HHead] = 0;
+		XSum = (winSize - 1) * winSize / 2;
 	}
 
 	void Add(uint32_t value) {
-		Sum += value;
+		auto NewHHead = (HHead + 1) % HistorySize;
 		if (Count < WinSize) {
-			++Count;
+			XYSum[NewHHead] = XYSum[HHead] + Count++ * value;
 		} else  {
-			Sum -= Data[Head];
+			YSum[NewHHead] = YSum[HHead] - Data[Head];
+			XYSum[NewHHead] = XYSum[HHead] + (WinSize - 1) * value - YSum[NewHHead];
 		}
+		YSum[NewHHead] += value;
 		Data[Head++] = value;
 		if (Head == WinSize) {
 			Head = 0;
 		}
+		HHead = NewHHead;
 	}
 
 	uint32_t GetAvg() {
-		return Sum / Count;
+		return GetAvg(0);
+	}
+
+	uint32_t GetAvg(uint32_t hist) {
+		return YSum[(HHead + HistorySize - hist) % HistorySize] / Count;
+	}
+
+	int32_t GetTrend() {
+		return GetTrend(0);
+	}
+
+	int32_t GetTrend(uint32_t hist) {
+		auto idx = (HHead + HistorySize - hist) % HistorySize;
+		return WinSize * (int64_t)XYSum[idx] - XSum * (int64_t)YSum[idx];
 	}
 };
 
@@ -326,12 +360,65 @@ struct TImage {
 					win1[winSize - 1][i].Add(pixel[i]);
 					win2[winSize - 1][i].Add(pixel2[i]);
 
-					sum[winSize - 1] += (win1[winSize - 1][i].Sum - win2[winSize - 1][i].Sum) * (win1[winSize - 1][i].Sum - win2[winSize - 1][i].Sum) / winSize/ winSize;
+					auto avg = win1[winSize - 1][i].GetAvg() - win2[winSize - 1][i].GetAvg();
+					sum[winSize - 1] += avg * avg;
+					//sum[winSize - 1] += (win1[winSize - 1][i].Sum - win2[winSize - 1][i].Sum) * (win1[winSize - 1][i].Sum - win2[winSize - 1][i].Sum) / winSize/ winSize;
 				}
 			}
 			if (x >= maxWinSize) {
-				printf("%03u,%03u,%03u,%03u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n", x, (uint32_t)pixel[0], (uint32_t)pixel[1], (uint32_t)pixel[2],
-					sum[0], sum[1], sum[2], sum[3], sum[4],sum[5], sum[6], sum[7], sum[8], sum[9],sum[10], sum[11], sum[12], sum[13], sum[14],sum[15], sum[16], sum[17], sum[18], sum[19]);
+				std::cout << x;
+				for (uint32_t i = 0; i < Depth; ++i) {
+					std::cout << ',' << (uint32_t)pixel[i];
+				}
+				for (uint32_t i = 0; i < maxWinSize; ++i) {
+					std::cout << ',' << sum[i];
+				}
+				std::cout << std::endl;
+			}
+		}
+	}
+
+	void processLine2(const char* in_file, uint32_t line) {
+
+		loadDump8(in_file);
+
+		Width = 376;
+		Height = 240;
+		Depth = 3;
+
+		uint32_t winSize = 4;
+
+		TWin trend;
+		trend.init(winSize);
+
+		TWin win1[Depth];
+		TWin win2[Depth];
+
+		for (uint32_t i = 0; i < Depth; ++i) {
+			win1[i].init(winSize);
+			win2[i].init(winSize);
+		}
+
+		for (uint32_t x = 0; x < Width - winSize; x++) {
+			uint64_t sum = 0;;
+			uint8_t* pixel = GetRGB(x, line);
+			uint8_t* pixel2 = GetRGB(x + winSize, line);
+			for (uint32_t i = 0; i < Depth; ++i) {
+				win1[i].Add(pixel[i]);
+				win2[i].Add(pixel2[i]);
+				auto avg = win1[i].GetAvg() - win2[i].GetAvg();
+				sum += avg * avg;
+			}
+			trend.Add(sum);
+			
+			if (x >= winSize) {
+				std::cout << x;
+				for (uint32_t i = 0; i < Depth; ++i) {
+					std::cout << ',' << (uint32_t)pixel[i];
+				}
+				std::cout << ',' << sum;
+				std::cout << ',' << trend.GetTrend();
+				std::cout << std::endl;
 			}
 		}
 	}
@@ -339,37 +426,18 @@ struct TImage {
 
 void test_win1(){
 	TWin win;
-	win.init(4);
-	win.Add(1);
-	printf("%u\n", win.Sum);
-	win.Add(1);
-	printf("%u\n", win.Sum);
-	win.Add(1);
-	printf("%u\n", win.Sum);
-	win.Add(1);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
-	win.Add(2);
-	printf("%u\n", win.Sum);
+	win.init(4, 4);
+	uint32_t v = 1;
+	for (uint32_t i = 0; i < 4;++i) {
+		win.Add(v);
+		printf("%u: %u %u %d %d\n", v, win.YSum[0], win.XYSum[0], win.GetTrend(), win.GetTrend(2));
+	}
+
+	v = 2; 
+	for (uint32_t i = 0; i < 11;++i) {
+		win.Add(v);
+		printf("%u: %u %u %d %d\n", v, win.YSum[0], win.XYSum[0], win.GetTrend(), win.GetTrend(2));
+	}
 }
 
 int main(int argc, char **argv)
@@ -433,8 +501,9 @@ int main(int argc, char **argv)
 	//img.process4("datal6.csv",5, 0.02, "pic6_5_02c.jpg");
 
 	//img.processLine("datal6.csv", 100);
-	img.processLine("data4.csv", 100);
-	//test_win1();
+	//img.processLine("data/data4.csv", 100);
+	//img.processLine2("data/data4.csv", 100);
+	test_win1();
 
 
 	return 0;

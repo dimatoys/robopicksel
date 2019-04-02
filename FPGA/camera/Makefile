@@ -22,7 +22,7 @@ ARCH= arm
 LOCAL_CC = gcc
 
 
-build: $(TARGET) $(TARGET3)
+build: $(TARGET3)
 
 $(TARGET): camera.o fpga.o
 	$(CC) $(LDFLAGS)   $^ -o $@
