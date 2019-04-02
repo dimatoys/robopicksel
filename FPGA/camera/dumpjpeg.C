@@ -117,19 +117,20 @@ struct TWin {
 	}
 
 	void Add(uint32_t value) {
-		auto NewHHead = (HHead + 1) % HistorySize;
+		auto newHHead = (HHead + 1) % HistorySize;
 		if (Count < WinSize) {
-			XYSum[NewHHead] = XYSum[HHead] + Count++ * value;
+			YSum[newHHead] = YSum[HHead];
+			XYSum[newHHead] = XYSum[HHead] + Count++ * value;
 		} else  {
-			YSum[NewHHead] = YSum[HHead] - Data[Head];
-			XYSum[NewHHead] = XYSum[HHead] + (WinSize - 1) * value - YSum[NewHHead];
+			YSum[newHHead] = YSum[HHead] - Data[Head];
+			XYSum[newHHead] = XYSum[HHead] + (WinSize - 1) * value - YSum[newHHead];
 		}
-		YSum[NewHHead] += value;
+		YSum[newHHead] += value;
 		Data[Head++] = value;
 		if (Head == WinSize) {
 			Head = 0;
 		}
-		HHead = NewHHead;
+		HHead = newHHead;
 	}
 
 	uint32_t GetAvg() {
@@ -430,13 +431,18 @@ void test_win1(){
 	uint32_t v = 1;
 	for (uint32_t i = 0; i < 4;++i) {
 		win.Add(v);
-		printf("%u: %u %u %d %d\n", v, win.YSum[0], win.XYSum[0], win.GetTrend(), win.GetTrend(2));
+		printf("%u: %u %u %d %d\n", v, win.YSum[win.HHead], win.XYSum[win.HHead], win.GetTrend(), win.GetTrend(2));
 	}
 
 	v = 2; 
 	for (uint32_t i = 0; i < 11;++i) {
 		win.Add(v);
-		printf("%u: %u %u %d %d\n", v, win.YSum[0], win.XYSum[0], win.GetTrend(), win.GetTrend(2));
+		printf("%u: %u %u %d %d\n", v, win.YSum[win.HHead], win.XYSum[win.HHead], win.GetTrend(), win.GetTrend(2));
+	}
+	v = 1; 
+	for (uint32_t i = 0; i < 11;++i) {
+		win.Add(v);
+		printf("%u: %u %u %d %d\n", v, win.YSum[win.HHead], win.XYSum[win.HHead], win.GetTrend(), win.GetTrend(2));
 	}
 }
 
