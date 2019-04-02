@@ -103,6 +103,11 @@ struct TWin {
 	}
 
 	void init(uint32_t winSize, uint32_t historySize) {
+		if (Data != NULL) {
+			delete Data;
+			delete YSum;
+			delete XYSum;
+		}
 		WinSize = winSize;
 		HistorySize = historySize;
 		Data = new uint32_t[winSize];
@@ -428,6 +433,57 @@ struct TImage {
 			}
 		}
 	}
+
+	void process5(const char* in_file, const char* out_file) {
+
+		loadDump8(in_file);
+
+		Width = 376;
+		Height = 240;
+		Depth = 3;
+
+		uint32_t winSize = 4;
+		int32_t threshold = 200;
+
+		TWin trend;
+
+		TWin win1[Depth];
+
+		for (uint32_t y = 0; y < Height;++y) {
+			trend.init(winSize, winSize);
+			for (uint32_t i = 0; i < Depth; ++i) {
+				win1[i].init(winSize, winSize * 2);
+			}
+
+			int32_t lastTrend = 0;
+			for (uint32_t x = 0; x < Width; x++) {
+				uint8_t* pixel = GetRGB(x, y);
+				for (uint32_t i = 0; i < Depth; ++i) {
+					win1[i].Add(pixel[i]);
+				}
+
+				if (x >= winSize * 2 + winSize / 2) {
+					uint64_t sum = 0;;
+					for (uint32_t i = 0; i < Depth; ++i) {
+						auto avg = win1[i].GetAvg() - win1[i].GetAvg(winSize);
+						sum += avg * avg;
+					}
+					trend.Add(sum);
+					auto newTrend = trend.GetTrend();
+					if (lastTrend > 0 && newTrend < 0 && lastTrend - newTrend > threshold){
+						auto xv = x - winSize - winSize / 2;
+						pixel = GetRGB(xv, y);
+						pixel[0] = 255;
+						pixel[1] = 255;
+						pixel[2] = 255;
+					}
+				}
+			}
+		}
+
+		write_jpeg_file(out_file, Buffer, Width, Height, Depth, JCS_RGB);
+	}
+
 };
 
 void test_win1(){
@@ -513,7 +569,8 @@ int main(int argc, char **argv)
 
 	//img.processLine("datal6.csv", 100);
 	//img.processLine("data/data4.csv", 100);
-	img.processLine2("data/data4.csv", 100);
+	//img.processLine2("data/data4.csv", 100);
+	img.process5("data/data4.csv", "pic4_4_200.jpg");
 	//test_win1();
 
 
