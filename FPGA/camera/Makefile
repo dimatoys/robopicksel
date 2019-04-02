@@ -2,6 +2,7 @@
 TARGET = camera
 TARGET2 = test_mem
 TARGET3 = dumpjpeg
+TARGET4 = dumpnojpeg
 
 REMOTE_ACCOUNT = debian@10.0.0.158
 REMOTE_RACCOUNT = root@10.0.0.158
@@ -22,7 +23,7 @@ ARCH= arm
 LOCAL_CC = gcc
 
 
-build: $(TARGET3)
+build: $(TARGET4)
 
 $(TARGET): camera.o fpga.o
 	$(CC) $(LDFLAGS)   $^ -o $@
@@ -32,6 +33,12 @@ $(TARGET2): test_mem.o
 
 $(TARGET3): dumpjpeg.o jpeg.o
 	g++ $(LDFLAGS) $^ -o $@ -ljpeg
+
+$(TARGET4): dumpnojpeg.o
+	g++ $(LDFLAGS) $^ -o $@
+
+dumpnojpeg.o: dumpjpeg.C
+	$(LOCAL_CC) -DNO_JPEG -g -Wall -std=c++11 -c $< -o $@
 
 %.o : %.cpp
 	$(CC) $(CFLAGS) -c $< -o $@

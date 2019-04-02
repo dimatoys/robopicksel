@@ -149,6 +149,10 @@ struct TWin {
 		auto idx = (HHead + HistorySize - hist) % HistorySize;
 		return WinSize * (int64_t)XYSum[idx] - XSum * (int64_t)YSum[idx];
 	}
+
+	uint32_t GetValue(uint32_t hist) {
+		return Data[(Head + HistorySize - hist -1) % HistorySize];
+	}
 };
 
 struct TImage {
@@ -346,7 +350,7 @@ struct TImage {
 
 		for(uint32_t winSize = 1; winSize <= maxWinSize; ++winSize) {
 			for (uint32_t i = 0; i < Depth; ++i) {
-				win1[winSize - 1][i].init(winSize);
+				win1[winSize - 1][i].init(winSize );
 				win2[winSize - 1][i].init(winSize);
 			}
 		}
@@ -390,34 +394,35 @@ struct TImage {
 		uint32_t winSize = 4;
 
 		TWin trend;
-		trend.init(winSize);
+		trend.init(winSize, winSize);
 
 		TWin win1[Depth];
-		TWin win2[Depth];
 
 		for (uint32_t i = 0; i < Depth; ++i) {
-			win1[i].init(winSize);
-			win2[i].init(winSize);
+			win1[i].init(winSize, winSize * 2);
 		}
 
-		for (uint32_t x = 0; x < Width - winSize; x++) {
-			uint64_t sum = 0;;
+		for (uint32_t x = 0; x < Width; x++) {
 			uint8_t* pixel = GetRGB(x, line);
-			uint8_t* pixel2 = GetRGB(x + winSize, line);
 			for (uint32_t i = 0; i < Depth; ++i) {
 				win1[i].Add(pixel[i]);
-				win2[i].Add(pixel2[i]);
-				auto avg = win1[i].GetAvg() - win2[i].GetAvg();
-				sum += avg * avg;
 			}
-			trend.Add(sum);
-			
-			if (x >= winSize) {
-				std::cout << x;
+
+			if (x >= winSize * 2 + winSize / 2) {
+				uint64_t sum = 0;;
+				for (uint32_t i = 0; i < Depth; ++i) {
+					auto avg = win1[i].GetAvg() - win1[i].GetAvg(winSize);
+					sum += avg * avg;
+				}
+				trend.Add(sum);
+
+				auto xv = x - winSize - winSize / 2;
+				std::cout << xv;
+				pixel = GetRGB(xv, line);
 				for (uint32_t i = 0; i < Depth; ++i) {
 					std::cout << ',' << (uint32_t)pixel[i];
 				}
-				std::cout << ',' << sum;
+				std::cout << ',' << trend.GetValue(winSize / 2);
 				std::cout << ',' << trend.GetTrend();
 				std::cout << std::endl;
 			}
@@ -508,8 +513,8 @@ int main(int argc, char **argv)
 
 	//img.processLine("datal6.csv", 100);
 	//img.processLine("data/data4.csv", 100);
-	//img.processLine2("data/data4.csv", 100);
-	test_win1();
+	img.processLine2("data/data4.csv", 100);
+	//test_win1();
 
 
 	return 0;
