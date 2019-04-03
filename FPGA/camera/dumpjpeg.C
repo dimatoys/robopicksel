@@ -450,7 +450,7 @@ struct TImage {
 		char out_file[100];
 
 		sprintf(in_file, "data/data%u.csv", pic);
-		sprintf(out_file, "pic%u_%u_%d.jpg", pic, winSize, trendThreshold);
+		sprintf(out_file, "pic%u_%u_%d_%u_%lu.jpg", pic, winSize, trendThreshold, minHAreaCount, areasDiffThreshold);
 		
 		loadDump8(in_file);
 
@@ -638,7 +638,7 @@ int main(int argc, char **argv)
 	//img.processLine("data/data4.csv", 100);
 	//img.processLine2("data/data4.csv", 100);
 	//img.process5("data/data4.csv", "pic4_4_200.jpg", 4, 200);
-	img.process5(4, 4, 400, 10, 10);
+	img.process5(4, 4, 400, 8, 400);
 	//img.process5("data/data4.csv", "pic4_4_500.jpg", 4, 500);
 	//test_win1();
 
