@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <jpeglib.h>
 
 #include "jpeg.h"
 
@@ -50,3 +51,11 @@ int write_jpeg_file(const char *filename,
 	/* success code is 1! */
 	return 1;
 }
+
+int save_RGB(const char *filename,
+                  void* raw_image,
+                    int width,
+                    int height) {
+	return write_jpeg_file(filename, raw_image, width, height, 3, JCS_RGB);
+}
+

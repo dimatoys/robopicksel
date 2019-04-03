@@ -222,7 +222,7 @@ struct TImage {
 			//printf("%u, %u, %u\n", (uint32_t)pixel[0], (uint32_t)pixel[1], (uint32_t)pixel[2]);
 		}
 
-		write_jpeg_file("pic.jpg", rgb, width, height, depth, JCS_RGB);
+		save_RGB("pic.jpg", rgb, width, height);
 	}
 
 	void processRGB() {
@@ -231,7 +231,7 @@ struct TImage {
 		Height = 240;
 		Depth = 3;
 
-		write_jpeg_file("pic.jpg", Buffer, Width, Height, Depth, JCS_RGB);
+		save_RGB("pic.jpg", Buffer, Width, Height);
 	}
 
 	void process2(const char* in_file, uint32_t win_size, const char* file_name) {
@@ -258,7 +258,7 @@ struct TImage {
 			}
 		}
 
-		write_jpeg_file(file_name, Buffer, Width, Height, Depth, JCS_RGB);
+		save_RGB(file_name, Buffer, Width, Height);
 	}
 
 	void process3(const char* in_file, uint32_t win_size, float thresholdPct, const char* file_name) {
@@ -287,7 +287,7 @@ struct TImage {
 			}
 		}
 
-		write_jpeg_file(file_name, Buffer, Width, Height, Depth, JCS_RGB);
+		save_RGB(file_name, Buffer, Width, Height);
 	}
 
 	void process4(const char* in_file, uint32_t win_size, float thresholdPct, const char* file_name) {
@@ -343,7 +343,7 @@ struct TImage {
 			}
 		}
 
-		write_jpeg_file(file_name, Buffer, Width, Height, Depth, JCS_RGB);
+		save_RGB(file_name, Buffer, Width, Height);
 	}
 
 	void processLine(const char* in_file, uint32_t line) {
@@ -440,13 +440,17 @@ struct TImage {
 		}
 	}
 
-	void process5(uint32_t pic, uint32_t winSize, int32_t threshold) {
+	void process5(uint32_t pic,
+	              uint32_t winSize,
+	              int32_t trendThreshold,
+	              uint32_t minHAreaCount,
+	              uint64_t areasDiffThreshold) {
 
 		char in_file[100];
 		char out_file[100];
 
 		sprintf(in_file, "data/data%u.csv", pic);
-		sprintf(out_file, "pic%u_%u_%u.jpg", pic, winSize, threshold);
+		sprintf(out_file, "pic%u_%u_%d.jpg", pic, winSize, trendThreshold);
 		
 		loadDump8(in_file);
 
@@ -479,14 +483,33 @@ struct TImage {
 
 				int32_t vx = (int32_t)x - winSize - winSize / 2;
 				if (vx >= 0) {
-					uint64_t sum = 0;;
+					uint64_t sumDiff = 0;
 					for (uint32_t i = 0; i < Depth; ++i) {
 						auto avg = win1[i].GetAvg() - win1[i].GetAvg(winSize);
-						sum += avg * avg;
+						sumDiff += avg * avg;
 					}
-					trend.Add(sum);
+					trend.Add(sumDiff);
 					auto newTrend = trend.GetTrend();
-					if (lastTrend > 0 && newTrend < 0 && lastTrend - newTrend > threshold){
+
+					if (lastTrend > 0 &&
+						newTrend < 0 &&
+						lastTrend - newTrend > trendThreshold &&
+						borders[bcount].AreaCount > minHAreaCount){
+
+						if (bcount > 0) {
+							uint64_t areaSumDiff = 0;
+							for (uint32_t i = 0; i < Depth; ++i) {
+								auto avg = borders[bcount].AreaSum[i] / borders[bcount].AreaCount - borders[bcount - 1].AreaSum[i] / borders[bcount - 1].AreaCount;
+								areaSumDiff += avg * avg;
+							}
+							if( areaSumDiff < areasDiffThreshold) {
+								bcount--;
+								for (uint32_t i = 0; i < Depth; ++i) {
+									borders[bcount].AreaSum[i] += borders[bcount + 1].AreaSum[i];
+								}
+								borders[bcount].AreaCount += borders[bcount + 1].AreaCount;
+							}
+						}
 
 						borders[bcount++].X = vx;
 						borders[bcount].AreaCount = 0;
@@ -495,29 +518,27 @@ struct TImage {
 						}
 
 					} else {
-
-						uint8_t* pixel = GetRGB(vx, y);
+						//uint8_t* pixel = GetRGB(vx, y);
 						for (uint32_t i = 0; i < Depth; ++i) {
-							borders[bcount].AreaSum[i] += pixel[i];
+							//borders[bcount].AreaSum[i] += pixel[i];
+							borders[bcount].AreaSum[i] += win1[i].GetValue(x - vx);
 						}
 						borders[bcount].AreaCount++;
-
 					}
+
 					lastTrend = newTrend;
 				}
 			}
 
 			for (uint32_t i = 0; i < bcount; ++i) {
-				if (borders[i].AreaCount > 0) {
-					uint8_t avg[Depth];
-					for (uint32_t j = 0; j < Depth; ++j) {
-						avg[j] = (uint8_t)(borders[i].AreaSum[j] / borders[i].AreaCount);
-					}
-					for (uint32_t j = 0; j < borders[i].AreaCount; ++j) {
-						uint8_t* pixel = GetRGB(borders[i].X - j, y);
-						for (uint32_t k = 0; k < Depth; ++k) {
-							pixel[k] = avg[k];
-						}
+				uint8_t avg[Depth];
+				for (uint32_t j = 0; j < Depth; ++j) {
+					avg[j] = (uint8_t)(borders[i].AreaSum[j] / borders[i].AreaCount);
+				}
+				for (uint32_t j = 0; j < borders[i].AreaCount; ++j) {
+					uint8_t* pixel = GetRGB(borders[i].X - j, y);
+					for (uint32_t k = 0; k < Depth; ++k) {
+						pixel[k] = avg[k];
 					}
 				}
 				uint8_t* pixel = GetRGB(borders[i].X, y);
@@ -527,7 +548,7 @@ struct TImage {
 			}
 		}
 
-		write_jpeg_file(out_file, Buffer, Width, Height, Depth, JCS_RGB);
+		save_RGB(out_file, Buffer, Width, Height);
 	}
 
 };
@@ -617,7 +638,7 @@ int main(int argc, char **argv)
 	//img.processLine("data/data4.csv", 100);
 	//img.processLine2("data/data4.csv", 100);
 	//img.process5("data/data4.csv", "pic4_4_200.jpg", 4, 200);
-	img.process5(4, 4, 400);
+	img.process5(4, 4, 400, 10, 10);
 	//img.process5("data/data4.csv", "pic4_4_500.jpg", 4, 500);
 	//test_win1();
 
