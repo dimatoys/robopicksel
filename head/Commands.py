@@ -429,10 +429,6 @@ class Commands(threading.Thread):
 		for move in self.FindIterator(waitPickAttempts = 10):
 			obj = move["final"]
 			d = obj["d"]
-			#a = self.Head.GetServo(self.Head.DOF_A)
-			#d = self.Learning.GetObjD(a, obj["cy"])
-			#move["a"] = a
-			#move["ld"] = d
 			self.CmdGrabAt2(d)
 			move["grab"] = self.LastResult
 			if move["grab"]["status"] == "TAKEN":

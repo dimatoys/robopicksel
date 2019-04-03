@@ -521,7 +521,6 @@ class ViewRingMap:
 			center = size / 2
 			for ring in ringsD:
 				rdata = self.Rings[ring]
-				print(rdata["R"] * scale, 180 * (rdata["Left"] + 3 * pi / 2) / pi, 180 * (rdata["Right"] + 3 * pi / 2) / pi)
 				outr = rdata["R"] * scale
 				inr = ring * scale
 				draw.pieslice([center - outr,
@@ -539,7 +538,8 @@ class ViewRingMap:
 		img.save(file_name)
 
 	def GetNewPickView(self, b):
-		ba = ba = (2500 - b) * pi / 2500
+		ba = (2500 - b) * pi / 2500
+		candidates = []
 		for a in self.PickViews:
 			ring = self.Views[a]["D"]
 			if ring not in self.Rings:
@@ -547,8 +547,29 @@ class ViewRingMap:
 			rdata = self.Rings[ring]
 			if "Left" not in rdata:
 				return (a, b)
-		return None
+			if ba >= rdata["Left"]:
+				if ba <= rdata["Right"]:
+					if rdata["Left"] > -pi / 2:
+						candidates.append((a, rdata["Left"] - rdata["W"]))
+					if rdata["Right"] < pi / 2:
+						candidates.append((a, rdata["Right"] + rdata["W"]))
+				else:
+					if rdata["Right"] < pi / 2:
+						candidates.append((a, rdata["Right"] + rdata["W"]))
+			else:
+				if rdata["Left"] > -pi / 2:
+					candidates.append((a, rdata["Left"] - rdata["W"]))
 
+		if len(candidates) == 0:
+			return None
+
+		new_b = None
+		for a, b in candidates:
+			if new_b is None or abs(ba - b) < abs(ba - new_b):
+				new_a = a
+				new_b = b
+
+		return (new_a, 2500 - new_b * 2500 / pi)
 
 class Geometry:
 
