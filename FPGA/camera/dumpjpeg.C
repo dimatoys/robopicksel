@@ -444,34 +444,38 @@ struct TImage {
 	              uint32_t winSize,
 	              int32_t trendThreshold,
 	              uint32_t minHAreaCount,
-	              uint64_t areasDiffThreshold) {
+	              uint32_t areasDiffThreshold) {
 
 		char in_file[100];
 		char out_file[100];
 
 		sprintf(in_file, "data/data%u.csv", pic);
-		sprintf(out_file, "pic%u_%u_%d_%u_%lu.jpg", pic, winSize, trendThreshold, minHAreaCount, areasDiffThreshold);
-		
+		sprintf(out_file, "pic%u_%u_%d_%u_%u.jpg", pic, winSize, trendThreshold, minHAreaCount, areasDiffThreshold);
+
 		loadDump8(in_file);
 
 		Width = 376;
 		Height = 240;
 		Depth = 3;
 
+		uint32_t vWinSize = 4;
+
 		TWin trend;
 
 		TWin win1[Depth];
-		
-		TBorder borders[Width];
+
+		TBorder borders[vWinSize][Width / minHAreaCount];
+		uint32_t bcount[vWinSize];
+		uint32_t vHead = 0;
 
 		for (uint32_t y = 0; y < Height;++y) {
-			uint32_t bcount = 0;
+			bcount[vHead] = 0;
 			trend.init(winSize, winSize);
 			for (uint32_t i = 0; i < Depth; ++i) {
 				win1[i].init(winSize, winSize * 2);
-				borders[bcount].AreaSum[i] = 0;
+				borders[vHead][0].AreaSum[i] = 0;
 			}
-			borders[bcount].AreaCount = 0;
+			borders[vHead][0].AreaCount = 0;
 
 			int32_t lastTrend = 0;
 			for (uint32_t x = 0; x < Width; x++) {
@@ -494,58 +498,65 @@ struct TImage {
 					if (lastTrend > 0 &&
 						newTrend < 0 &&
 						lastTrend - newTrend > trendThreshold &&
-						borders[bcount].AreaCount > minHAreaCount){
+						borders[vHead][bcount[vHead]].AreaCount > minHAreaCount){
 
-						if (bcount > 0) {
+						// Apply areasDiffThreshold
+						/*
+						if (bcount[vHead] > 0) {
 							uint64_t areaSumDiff = 0;
 							for (uint32_t i = 0; i < Depth; ++i) {
-								auto avg = borders[bcount].AreaSum[i] / borders[bcount].AreaCount - borders[bcount - 1].AreaSum[i] / borders[bcount - 1].AreaCount;
+								auto avg = borders[vHead][bcount[vHead]].AreaSum[i] / borders[vHead][bcount[vHead]].AreaCount - borders[vHead][bcount[vHead] - 1].AreaSum[i] / borders[vHead][bcount[vHead] - 1].AreaCount;
 								areaSumDiff += avg * avg;
 							}
 							if( areaSumDiff < areasDiffThreshold) {
-								bcount--;
+								bcount[vHead]--;
 								for (uint32_t i = 0; i < Depth; ++i) {
-									borders[bcount].AreaSum[i] += borders[bcount + 1].AreaSum[i];
+									borders[vHead][bcount[vHead]].AreaSum[i] += borders[vHead][bcount[vHead] + 1].AreaSum[i];
 								}
-								borders[bcount].AreaCount += borders[bcount + 1].AreaCount;
+								borders[vHead][bcount[vHead]].AreaCount += borders[vHead][bcount[vHead] + 1].AreaCount;
 							}
 						}
+						*/
 
-						borders[bcount++].X = vx;
-						borders[bcount].AreaCount = 0;
+						// Border
+						borders[vHead][bcount[vHead]++].X = vx;
+						borders[vHead][bcount[vHead]].AreaCount = 0;
 						for(uint32_t i = 0; i < Depth; ++i) {
-							borders[bcount].AreaSum[i] = 0;
+							borders[vHead][bcount[vHead]].AreaSum[i] = 0;
 						}
 
 					} else {
-						//uint8_t* pixel = GetRGB(vx, y);
+						// Same area
 						for (uint32_t i = 0; i < Depth; ++i) {
-							//borders[bcount].AreaSum[i] += pixel[i];
-							borders[bcount].AreaSum[i] += win1[i].GetValue(x - vx);
+							borders[vHead][bcount[vHead]].AreaSum[i] += win1[i].GetValue(x - vx);
 						}
-						borders[bcount].AreaCount++;
+						borders[vHead][bcount[vHead]].AreaCount++;
 					}
 
 					lastTrend = newTrend;
 				}
 			}
+			printf("%u:%u\n", y, bcount[vHead]);
 
-			for (uint32_t i = 0; i < bcount; ++i) {
+			// Draw borders and areas
+			for (uint32_t i = 0; i < bcount[vHead]; ++i) {
 				uint8_t avg[Depth];
 				for (uint32_t j = 0; j < Depth; ++j) {
-					avg[j] = (uint8_t)(borders[i].AreaSum[j] / borders[i].AreaCount);
+					avg[j] = (uint8_t)(borders[vHead][i].AreaSum[j] / borders[vHead][i].AreaCount);
 				}
-				for (uint32_t j = 0; j < borders[i].AreaCount; ++j) {
-					uint8_t* pixel = GetRGB(borders[i].X - j, y);
+				for (uint32_t j = 0; j < borders[vHead][i].AreaCount; ++j) {
+					uint8_t* pixel = GetRGB(borders[vHead][i].X - j, y);
 					for (uint32_t k = 0; k < Depth; ++k) {
 						pixel[k] = avg[k];
 					}
 				}
-				uint8_t* pixel = GetRGB(borders[i].X, y);
+				uint8_t* pixel = GetRGB(borders[vHead][i].X, y);
 				pixel[0] = 255;
 				pixel[1] = 255;
 				pixel[2] = 255;
 			}
+
+			vHead = (vHead + 1) % vWinSize;
 		}
 
 		save_RGB(out_file, Buffer, Width, Height);
@@ -638,7 +649,7 @@ int main(int argc, char **argv)
 	//img.processLine("data/data4.csv", 100);
 	//img.processLine2("data/data4.csv", 100);
 	//img.process5("data/data4.csv", "pic4_4_200.jpg", 4, 200);
-	img.process5(4, 4, 400, 8, 400);
+	img.process5(4, 4, 400, 4, 400);
 	//img.process5("data/data4.csv", "pic4_4_500.jpg", 4, 500);
 	//test_win1();
 
