@@ -160,6 +160,12 @@ struct TWin {
 	}
 };
 
+struct TBorder {
+	uint32_t X;
+	uint32_t AreaSum[3];
+	uint32_t AreaCount;
+};
+
 struct TImage {
 
 	uint8_t* Buffer;
@@ -434,8 +440,14 @@ struct TImage {
 		}
 	}
 
-	void process5(const char* in_file, const char* out_file, uint32_t winSize, int32_t threshold) {
+	void process5(uint32_t pic, uint32_t winSize, int32_t threshold) {
 
+		char in_file[100];
+		char out_file[100];
+
+		sprintf(in_file, "data/data%u.csv", pic);
+		sprintf(out_file, "pic%u_%u_%u.jpg", pic, winSize, threshold);
+		
 		loadDump8(in_file);
 
 		Width = 376;
@@ -445,21 +457,28 @@ struct TImage {
 		TWin trend;
 
 		TWin win1[Depth];
+		
+		TBorder borders[Width];
 
 		for (uint32_t y = 0; y < Height;++y) {
+			uint32_t bcount = 0;
 			trend.init(winSize, winSize);
 			for (uint32_t i = 0; i < Depth; ++i) {
 				win1[i].init(winSize, winSize * 2);
+				borders[bcount].AreaSum[i] = 0;
 			}
+			borders[bcount].AreaCount = 0;
 
 			int32_t lastTrend = 0;
 			for (uint32_t x = 0; x < Width; x++) {
+
 				uint8_t* pixel = GetRGB(x, y);
 				for (uint32_t i = 0; i < Depth; ++i) {
 					win1[i].Add(pixel[i]);
 				}
 
-				if (x >= winSize * 2 + winSize / 2) {
+				int32_t vx = (int32_t)x - winSize - winSize / 2;
+				if (vx >= 0) {
 					uint64_t sum = 0;;
 					for (uint32_t i = 0; i < Depth; ++i) {
 						auto avg = win1[i].GetAvg() - win1[i].GetAvg(winSize);
@@ -468,14 +487,43 @@ struct TImage {
 					trend.Add(sum);
 					auto newTrend = trend.GetTrend();
 					if (lastTrend > 0 && newTrend < 0 && lastTrend - newTrend > threshold){
-						auto xv = x - winSize - winSize / 2;
-						pixel = GetRGB(xv, y);
-						pixel[0] = 255;
-						pixel[1] = 255;
-						pixel[2] = 255;
+
+						borders[bcount++].X = vx;
+						borders[bcount].AreaCount = 0;
+						for(uint32_t i = 0; i < Depth; ++i) {
+							borders[bcount].AreaSum[i] = 0;
+						}
+
+					} else {
+
+						uint8_t* pixel = GetRGB(vx, y);
+						for (uint32_t i = 0; i < Depth; ++i) {
+							borders[bcount].AreaSum[i] += pixel[i];
+						}
+						borders[bcount].AreaCount++;
+
 					}
 					lastTrend = newTrend;
 				}
+			}
+
+			for (uint32_t i = 0; i < bcount; ++i) {
+				if (borders[i].AreaCount > 0) {
+					uint8_t avg[Depth];
+					for (uint32_t j = 0; j < Depth; ++j) {
+						avg[j] = (uint8_t)(borders[i].AreaSum[j] / borders[i].AreaCount);
+					}
+					for (uint32_t j = 0; j < borders[i].AreaCount; ++j) {
+						uint8_t* pixel = GetRGB(borders[i].X - j, y);
+						for (uint32_t k = 0; k < Depth; ++k) {
+							pixel[k] = avg[k];
+						}
+					}
+				}
+				uint8_t* pixel = GetRGB(borders[i].X, y);
+				pixel[0] = 255;
+				pixel[1] = 255;
+				pixel[2] = 255;
 			}
 		}
 
@@ -569,7 +617,7 @@ int main(int argc, char **argv)
 	//img.processLine("data/data4.csv", 100);
 	//img.processLine2("data/data4.csv", 100);
 	//img.process5("data/data4.csv", "pic4_4_200.jpg", 4, 200);
-	img.process5("data/data4.csv", "pic4_4_400.jpg", 4, 400);
+	img.process5(4, 4, 400);
 	//img.process5("data/data4.csv", "pic4_4_500.jpg", 4, 500);
 	//test_win1();
 
