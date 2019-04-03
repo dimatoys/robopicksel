@@ -434,16 +434,13 @@ struct TImage {
 		}
 	}
 
-	void process5(const char* in_file, const char* out_file) {
+	void process5(const char* in_file, const char* out_file, uint32_t winSize, int32_t threshold) {
 
 		loadDump8(in_file);
 
 		Width = 376;
 		Height = 240;
 		Depth = 3;
-
-		uint32_t winSize = 4;
-		int32_t threshold = 200;
 
 		TWin trend;
 
@@ -477,6 +474,7 @@ struct TImage {
 						pixel[1] = 255;
 						pixel[2] = 255;
 					}
+					lastTrend = newTrend;
 				}
 			}
 		}
@@ -570,7 +568,9 @@ int main(int argc, char **argv)
 	//img.processLine("datal6.csv", 100);
 	//img.processLine("data/data4.csv", 100);
 	//img.processLine2("data/data4.csv", 100);
-	img.process5("data/data4.csv", "pic4_4_200.jpg");
+	//img.process5("data/data4.csv", "pic4_4_200.jpg", 4, 200);
+	img.process5("data/data4.csv", "pic4_4_400.jpg", 4, 400);
+	//img.process5("data/data4.csv", "pic4_4_500.jpg", 4, 500);
 	//test_win1();
 
 
